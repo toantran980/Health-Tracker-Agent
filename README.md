@@ -4,7 +4,7 @@
 
 **AI Health & Wellness Tracker** is an intelligent personal health management system that helps users optimize their daily routines across three key dimensions: **diet management**, **study schedules**, and **overall time efficiency**. The system uses custom-built AI reasoning, optimization algorithms, and machine learning to provide personalized recommendations and adaptive scheduling.
 
-This is a **Track B — Applied AI Application** project with core AI logic implemented by the team, not relying solely on external APIs. The system is implemented as a Python-based REST API that can be integrated into mobile applications, web platforms, or used directly via API calls.
+This is a project with core AI logic implemented by the team, not relying solely on external APIs. The system is implemented as a Python-based REST API that can be integrated into mobile applications, web platforms, or used directly via API calls.
 
 ---
 
