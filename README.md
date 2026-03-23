@@ -189,10 +189,10 @@ health-agent/
 
 ## Implementation Timeline
 
-- **Phase 1 (Weeks 1-2)**: Data collection, model training pipeline, basic UI
-- **Phase 2 (Weeks 3-4)**: AI modules implementation (scheduler, productivity predictor)
-- **Phase 3 (Weeks 5-6)**: Integration, evaluation metrics, user testing
-- **Phase 4 (Week 7)**: Optimization, documentation, final evaluation
+- **Phase 1 (Weeks 1)**: Data collection, model training pipeline, basic UI
+- **Phase 2 (Weeks 2)**: AI modules implementation (scheduler, productivity predictor)
+- **Phase 3 (Weeks 3)**: Integration, evaluation metrics, user testing
+- **Phase 4 (Week 4)**: Optimization, documentation, final evaluation
 
 ---
 
