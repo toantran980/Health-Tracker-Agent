@@ -191,8 +191,7 @@ health-agent/
 
 - **Phase 1 (Weeks 1)**: Data collection, model training pipeline, basic UI
 - **Phase 2 (Weeks 2)**: AI modules implementation (scheduler, productivity predictor)
-- **Phase 3 (Weeks 3)**: Integration, evaluation metrics, user testing
-- **Phase 4 (Week 4)**: Optimization, documentation, final evaluation
+- **Phase 3 (Weeks 3)**: Integration, evaluation metrics, user testing, Optimization, documentation, final evaluation
 
 ---
 
