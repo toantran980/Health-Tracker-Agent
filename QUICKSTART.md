@@ -1,6 +1,7 @@
 # Quick Start Guide
 
 ## One-Line Setup
+
 ```bash
 pip install -r requirements.txt && python examples.py
 ```
@@ -8,6 +9,7 @@ pip install -r requirements.txt && python examples.py
 ## What You Get
 
 ### ✅ Data Models (7 classes)
+
 - `UserProfile` - Complete user health profile with BMR/TDEE calculations
 - `StudySession` - Track study efficiency and focus
 - `ScheduledActivity` - Manage calendar events
@@ -19,39 +21,40 @@ pip install -r requirements.txt && python examples.py
 ### 🤖 AI Modules (6 implementations)
 
 1. **Knowledge Base** - Rule-based inference with 7 health rules
+
    ```python
    kb = KnowledgeBase(user)
    kb.add_facts({"daily_calories": 2500, "energy_level": 5})
    recommendations = kb.get_top_recommendations()
    ```
-
 2. **Schedule Optimizer** - CSP solver for optimal scheduling
+
    ```python
    optimizer = ScheduleOptimizer()
    schedule = optimizer.optimize_schedule(tasks, num_trials=100)
    ```
-
 3. **Productivity Predictor** - ML model for focus prediction
+
    ```python
    predictor = ProductivityPredictor()
    focus = predictor.predict(features)
    optimal_hour = predictor.suggest_optimal_time()[0]
    ```
-
 4. **Nutrition Analyzer** - Pattern recognition & correlation
+
    ```python
    analyzer = NutritionAnalyzer(target_nutrition)
    analyzer.add_daily_log(log)
    correlations = analyzer.correlate_nutrition_performance(scores)
    ```
-
 5. **Meal Recommender** - Content-based filtering
+
    ```python
    recommender = MealRecommendationEngine(user, foods)
    meals = recommender.get_constraint_based_recommendations()
    ```
-
 6. **Activity Recommender** - Timing optimization
+
    ```python
    activity_rec = ActivityRecommendationEngine(user)
    activity_rec.add_productivity_data(hour=10, focus=8, energy=7)
@@ -59,6 +62,7 @@ pip install -r requirements.txt && python examples.py
    ```
 
 ### 🌐 REST API (12+ Endpoints)
+
 ```
 POST   /api/user/create                           - Create user
 GET    /api/user/<id>                             - Get profile
@@ -75,16 +79,19 @@ GET    /api/health                                - Health check
 ```
 
 ### 🧪 Tests (23+ Cases)
+
 ```bash
 python -m pytest tests/test_ai_modules.py -v
 ```
 
 ### 📚 Examples (6 Scenarios)
+
 ```bash
 python examples.py
 ```
 
 ## File Structure
+
 ```
 Health-Agent/
 ├── models/              # Data models
@@ -102,10 +109,13 @@ Health-Agent/
 ## Run Options
 
 **Option 1: Run Examples**
+
 ```bash
 python examples.py
 ```
+
 Shows all features in action:
+
 - User creation
 - Productivity prediction
 - Schedule optimization
@@ -114,19 +124,25 @@ Shows all features in action:
 - AI inference
 
 **Option 2: Start API Server**
+
 ```bash
 python main.py
 ```
+
 Server at http://localhost:5000
+
 - Make REST calls with curl
 - Integrate with other apps
 - Postman/Insomnia compatible
 
 **Option 3: Run Tests**
+
 ```bash
 python tests/test_ai_modules.py
 ```
+
 23+ test cases covering:
+
 - Data model calculations
 - AI algorithm correctness
 - End-to-end workflows
@@ -134,12 +150,14 @@ python tests/test_ai_modules.py
 ## Key Features Demonstrated
 
 ### 🎓 Study Optimization
+
 - Predict focus score for any time/condition
 - Suggest optimal study times
 - Estimate ideal session duration
 - Optimize weekly schedule
 
 ### 🥗 Nutrition Tracking
+
 - Log meals with macros
 - Track adherence to targets
 - Identify eating patterns
@@ -147,12 +165,14 @@ python tests/test_ai_modules.py
 - Correlate nutrition with performance
 
 ### ⏰ Time Management
+
 - Find available time slots
 - Optimize task scheduling
 - Handle constraints
 - Prioritize by deadline & difficulty
 
 ### 🧠 AI Intelligence
+
 - Rule-based reasoning with 7 rules
 - Machine learning (linear/nonlinear)
 - Pattern recognition
@@ -160,6 +180,7 @@ python tests/test_ai_modules.py
 - Correlation analysis
 
 ### 📊 Analytics
+
 - Weekly/daily reports
 - Adherence metrics
 - Effectiveness scoring
@@ -207,6 +228,7 @@ Top Meals: Chicken Bowl, Brown Rice, Salads
 ## Troubleshooting
 
 **Import Error?**
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -219,7 +241,7 @@ Ensure all imports work: `python -c "from ai_modules import *"`
 
 ## Tech Stack
 
-- **Language**: Python 3.8+
+- **Language**: Python 3.10+
 - **API**: Flask
 - **ML**: Custom implementations (no TensorFlow/PyTorch)
 - **Database Ready**: SQLite/PostgreSQL compatible
@@ -227,7 +249,6 @@ Ensure all imports work: `python -c "from ai_modules import *"`
 
 ## Project Stats
 
-- 📝 **2,500+ lines** of code
 - 🤖 **6 AI modules** implemented
 - 📊 **6 evaluation metrics**
 - 🧪 **23+ test cases**

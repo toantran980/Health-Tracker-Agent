@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher
 - pip (Python package manager)
 
 ## Installation
@@ -64,29 +64,36 @@ python tests/test_ai_modules.py
 ## API Endpoints
 
 ### User Management
+
 - `POST /api/user/create` - Create new user
 - `GET /api/user/<user_id>` - Get user profile
 
 ### Insights
+
 - `GET /api/insights/<user_id>` - Get comprehensive health insights
 
 ### Nutrition
+
 - `POST /api/nutrition/log-meal` - Log a meal
 - `GET /api/nutrition/analysis/<user_id>` - Get nutrition report
 - `GET /api/nutrition/recommendations/<user_id>` - Get macro recommendations
 
 ### Scheduling
+
 - `GET /api/schedule/available-slots/<user_id>` - Find available study slots
 - `POST /api/schedule/optimize/<user_id>` - Optimize weekly schedule
 
 ### Productivity
+
 - `POST /api/productivity/predict/<user_id>` - Predict focus score
 - `GET /api/productivity/optimal-time/<user_id>` - Get optimal study time
 
 ### Recommendations
+
 - `POST /api/recommendations/<user_id>` - Get AI recommendations
 
 ### System
+
 - `GET /api/health` - Health check
 
 ## Project Structure
@@ -128,6 +135,7 @@ Health-Agent/
 ## Usage Examples
 
 ### 1. Create User
+
 ```python
 from models.user_profile import UserProfile, Goal
 
@@ -142,6 +150,7 @@ user = UserProfile(
 ```
 
 ### 2. Predict Study Productivity
+
 ```python
 from ai_modules import ProductivityPredictor, Features
 
@@ -161,6 +170,7 @@ print(f"Expected Focus: {focus_score}/10")
 ```
 
 ### 3. Optimize Study Schedule
+
 ```python
 from ai_modules import ScheduleOptimizer
 from datetime import datetime, timedelta
@@ -178,6 +188,7 @@ schedule = optimizer.optimize_schedule(tasks)
 ```
 
 ### 4. Analyze Nutrition
+
 ```python
 from ai_modules import NutritionAnalyzer
 from models.meal import NutritionInfo
@@ -188,6 +199,7 @@ report = analyzer.get_nutrition_report()
 ```
 
 ### 5. Get AI Recommendations
+
 ```python
 from ai_modules import KnowledgeBase
 
@@ -203,24 +215,28 @@ recommendations = kb.get_top_recommendations(n=3)
 ## AI Modules Overview
 
 ### Knowledge Base (Rule-based Reasoning)
+
 - Inference engine using forward chaining
 - 7+ built-in rules for health optimization
 - Extensible rule system
 - Confidence scoring for recommendations
 
 ### Schedule Optimizer (CSP Solver)
+
 - Constraint Satisfaction Problem solver with backtracking
 - Productivity-aware time slot allocation
 - Task prioritization (difficulty, deadline, duration)
 - Supports scheduling constraints
 
 ### Productivity Predictor (ML)
+
 - Linear and non-linear prediction models
 - Features: sleep, nutrition, energy, time of day, task difficulty
 - Recommended session duration estimation
 - Optimal study time suggestions
 
 ### Nutrition Analyzer (Pattern Recognition)
+
 - Macro balance analysis
 - Adherence tracking
 - Anomaly detection
@@ -228,6 +244,7 @@ recommendations = kb.get_top_recommendations(n=3)
 - Correlation analysis with performance
 
 ### Recommendation Engines
+
 - Content-based meal filtering
 - Constraint-based meal selection
 - Activity timing optimization
@@ -244,19 +261,25 @@ recommendations = kb.get_top_recommendations(n=3)
 ## Troubleshooting
 
 ### Import Errors
+
 Ensure all files are in correct directories and dependencies are installed:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### Flask Port Already in Use
+
 Change port in `main.py`:
+
 ```python
 app.run(port=5001)  # Use different port
 ```
 
 ### Missing Data
+
 Sample data available in `data/sample_data.py`:
+
 ```python
 from data.sample_data import SAMPLE_FOODS, create_sample_user
 ```
@@ -281,18 +304,8 @@ from data.sample_data import SAMPLE_FOODS, create_sample_user
 ## Contributing
 
 Extend the system by:
+
 1. Adding new rules in `knowledge_base.py`
 2. Adding new predictive models in `productivity_predictor.py`
 3. Extending schedulers in `scheduler_optimizer.py`
 4. Adding new API endpoints in `api/__init__.py`
-
-## License
-
-This project is for educational use in CPSC 481 (AI course).
-
-## Support
-
-For issues or questions, refer to:
-- Example usage: `examples.py`
-- Test cases: `tests/test_ai_modules.py`
-- Implementation details: Source code comments
