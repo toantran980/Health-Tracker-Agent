@@ -71,13 +71,18 @@ class TestNutritionModels(unittest.TestCase):
             name="Food 2",
             nutrition_info=NutritionInfo(calories=200, protein_g=15, carbs_g=30, fat_g=6)
         )
+        food3 = FoodItem(
+            food_id="f3",
+            name="Food 3",
+            nutrition_info=NutritionInfo(calories=0, protein_g=0, carbs_g=0, fat_g=0)
+        )
         
         meal = Meal(
             meal_id="meal1",
             user_id="user1",
             meal_type=MealType.LUNCH,
             timestamp=datetime.now(),
-            food_items=[food1, food2]
+            food_items=[food1, food2, food3]
         )
         
         total = meal.get_total_nutrition()
@@ -115,7 +120,7 @@ class TestProductivityPredictor(unittest.TestCase):
         self.assertGreaterEqual(hour, 8)
         self.assertLessEqual(hour, 22)
         self.assertGreaterEqual(day, 0)
-        self.assertLessEqual(day, 4)  # Weekdays
+        self.assertLessEqual(day, 4) 
         self.assertGreater(focus, 0)
     
     def test_session_duration_estimation(self):
@@ -154,16 +159,22 @@ class TestScheduleOptimizer(unittest.TestCase):
                 "deadline": datetime.now() + timedelta(days=2)
             },
             {
-                "subject": "Python",
+                "subject": "Physics",
                 "duration_min": 60,
                 "difficulty": 6,
                 "deadline": datetime.now() + timedelta(days=3)
             },
             {
-                "subject": "Reading",
+                "subject": "Machine Learning",
                 "duration_min": 45,
                 "difficulty": 3,
                 "deadline": datetime.now() + timedelta(days=5)
+            },
+            {
+                "subject": "AI",
+                "duration_min": 120,
+                "difficulty": 9,
+                "deadline": datetime.now() + timedelta(days=1)
             }
         ]
         
