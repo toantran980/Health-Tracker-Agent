@@ -9,7 +9,7 @@ This is a **complete, fully-functional Python implementation** of an AI-powered 
 - **Time Efficiency Analysis** with pattern recognition
 - **REST API** for integration
 
-All AI components are **custom-built** (Track B requirements), not relying on external APIs.
+All AI components are **custom-built** (Track B requirements), not only external APIs.
 
 ---
 
