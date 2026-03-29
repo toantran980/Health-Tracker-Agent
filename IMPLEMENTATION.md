@@ -389,9 +389,7 @@ curl -X POST http://localhost:5000/api/productivity/predict/user1 \
 
 ---
 
-## 📈 Key Numbers
-
-- **Lines of Code**: ~2,500+ (implementation only)
+## 📈 Key Number
 - **AI Modules**: 6 (knowledge base, scheduler, predictor, analyzer, 2 recommenders)
 - **Built-in Rules**: 7
 - **Evaluation Metrics**: 6+
