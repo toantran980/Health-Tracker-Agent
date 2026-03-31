@@ -9,9 +9,7 @@ from api.routes import app
 
 def main():
     """Run the application"""
-    print("=" * 60)
     print("AI Health & Wellness Tracker")
-    print("=" * 60)
     print("\nStarting Flask API server...")
     print("Server running at: http://localhost:5000")
     print("\nAvailable endpoints:")

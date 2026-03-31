@@ -15,10 +15,7 @@ from ai_modules import (
 
 def example_1_user_creation():
     """Example 1: Create user profile"""
-    print("\n" + "="*60)
     print("Example 1: User Profile Creation")
-    print("="*60)
-    
     user = UserProfile(
         user_id="user_001",
         name="Alex Chen",
@@ -45,9 +42,7 @@ def example_1_user_creation():
 
 def example_2_productivity_prediction(user: UserProfile):
     """Example 2: Predict productivity for study session"""
-    print("\n" + "="*60)
     print("Example 2: Productivity Prediction")
-    print("="*60)
     
     predictor = ProductivityPredictor(model_type="nonlinear")
     
@@ -98,9 +93,7 @@ def example_2_productivity_prediction(user: UserProfile):
 
 def example_3_schedule_optimization(user: UserProfile):
     """Example 3: Optimize weekly study schedule"""
-    print("\n" + "="*60)
     print("Example 3: Schedule Optimization")
-    print("="*60)
     
     scheduler = ScheduleOptimizer(user.earliest_study_time, user.latest_study_time)
     
@@ -136,20 +129,18 @@ def example_3_schedule_optimization(user: UserProfile):
     optimized_schedule = scheduler.optimize_schedule(tasks, num_trials=50)
     
     if optimized_schedule:
-        print(f"\n📅 Optimized Study Schedule:\n")
+        print(f"\nOptimized Study Schedule:\n")
         for i, item in enumerate(optimized_schedule, 1):
             task = item["task"]
             time_slot = item["time_slot"]
             print(f"  {i}. {task['subject']} ({task['duration_min']}min)")
-            print(f"     📍 {time_slot}")
+            print(f"     {time_slot}")
             print(f"     Difficulty: {task['difficulty']}/10")
 
 
 def example_4_nutrition_analysis():
     """Example 4: Nutrition tracking and analysis"""
-    print("\n" + "="*60)
     print("Example 4: Nutrition Analysis")
-    print("="*60)
     
     # Target nutrition
     target = NutritionInfo(
@@ -214,16 +205,14 @@ def example_4_nutrition_analysis():
     
     # Macro recommendations
     recommendations = analyzer.get_macro_recommendations()
-    print(f"\n💡 Recommendations:")
+    print(f"\nRecommendations:")
     for macro, rec in recommendations.items():
-        print(f"  • {rec}")
+        print(f"{rec}")
 
 
 def example_5_meal_recommendations():
     """Example 5: Personalized meal recommendations"""
-    print("\n" + "="*60)
     print("Example 5: Meal Recommendations")
-    print("="*60)
     
     user = UserProfile(
         user_id="user_001",
@@ -257,7 +246,7 @@ def example_5_meal_recommendations():
         n=3
     )
     
-    print(f"\n🍽️  Recommended Vegan Meals:\n")
+    print(f"\nRecommended Vegan Meals:\n")
     for i, rec in enumerate(recommendations, 1):
         print(f"  {i}. {rec['name']}")
         print(f"     Calories: {rec['calories']:.0f} | Protein: {rec['protein_g']:.0f}g")
@@ -266,9 +255,8 @@ def example_5_meal_recommendations():
 
 def example_6_knowledge_base_inference():
     """Example 6: AI-powered recommendations using knowledge base"""
-    print("\n" + "="*60)
     print("Example 6: Knowledge Base Inference")
-    print("="*60)
+
     
     user = UserProfile(
         user_id="user_001",
@@ -298,7 +286,7 @@ def example_6_knowledge_base_inference():
     # Get recommendations
     recommendations = kb.get_top_recommendations(n=3)
     
-    print(f"\n🤖 AI Recommendations Based on Today's Data:\n")
+    print(f"\nAI Recommendations Based on Today's Data:\n")
     for i, rec in enumerate(recommendations, 1):
         print(f"  {i}. {rec.get('action', 'N/A').replace('_', ' ').title()}")
         print(f"     {rec.get('suggestion', '')}")
@@ -307,9 +295,7 @@ def example_6_knowledge_base_inference():
 
 def main():
     """Run all examples"""
-    print("\n" + "🏥"*30)
     print("AI HEALTH & WELLNESS TRACKER - EXAMPLES")
-    print("🏥"*30)
     
     # Run examples
     user = example_1_user_creation()
@@ -319,9 +305,7 @@ def main():
     example_5_meal_recommendations()
     example_6_knowledge_base_inference()
     
-    print("\n" + "="*60)
-    print("✅ All examples completed!")
-    print("="*60 + "\n")
+    print("\nAll examples completed!")
 
 
 if __name__ == '__main__':

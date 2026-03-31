@@ -84,7 +84,7 @@ class NutritionAnalyzer:
 
     def detect_nutritional_anomalies(self, sensitivity: float = 2.0) -> List[Dict]:
         """
-        Track B — Statistical Anomaly Detection via Z-Score.
+        Statistical Anomaly Detection via Z-Score.
 
         The mean and standard deviation are derived exclusively from *older*
         history (everything before the last 7 days) so that an anomalous day
