@@ -1,89 +1,111 @@
 """
 chatbot.py
 
-AI Health Chatbot — uses OpenAI (gpt-4o-mini) as primary.
-Falls back to Groq (llama-3.3-70b, free tier) if no OpenAI key.
+AI Health Chatbot — uses OpenAI (gpt-4o-mini) as primary LLM.
+Falls back to Groq (llama-3.3-70b-versatile, free tier) if no OpenAI key.
+Both providers use the same interface so the rest of the app is unaffected.
 
 Install:  pip install openai groq python-dotenv
+
+Setup (.env):
+    OPENAI_API_KEY=sk-...       # takes priority if both keys present
+    GROQ_API_KEY=gsk_...        # free at https://console.groq.com
 """
 
 import os
 from dataclasses import dataclass, field
+from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# ─────────────────────────────────────────────
-# AUTO-SELECT PROVIDER
-# Set OPENAI_API_KEY in .env to use OpenAI.
-# Set GROQ_API_KEY in .env to use Groq (free).
-# OpenAI takes priority if both are present.
-# ─────────────────────────────────────────────
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GROQ_API_KEY   = os.getenv("GROQ_API_KEY",   "")
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
-
-if OPENAI_API_KEY:
-    from openai import OpenAI
-    _client   = OpenAI(api_key=OPENAI_API_KEY)
-    _model    = "gpt-4o-mini"
-    _provider = "openai"
-elif GROQ_API_KEY:
-    from groq import Groq
-    _client   = Groq(api_key=GROQ_API_KEY)
-    _model    = "llama-3.3-70b-versatile"
-    _provider = "groq"
-else:
-    raise EnvironmentError(
-        "No AI key found.\n"
-        "Add OPENAI_API_KEY or GROQ_API_KEY to your .env file.\n"
-        "Get a free Groq key at: https://console.groq.com"
-    )
-
-print(f"[Chatbot] Provider: {_provider}  |  Model: {_model}")
+# ── Lazy provider init: fails at chat() time, not at import time ──────────
+# This prevents a missing .env key from crashing the entire Flask app on
+# startup.  The error is surfaced only when a user actually tries to chat.
+client   = None
+model    = None
+provider = None
 
 
-# ─────────────────────────────────────────────
+def _init_provider():
+    """Initialise the LLM client on first use."""
+    global client, model, provider
+
+    if client is not None:
+        return   # already initialised
+
+    if OPENAI_API_KEY:
+        from openai import OpenAI
+        client   = OpenAI(api_key=OPENAI_API_KEY)
+        model    = "gpt-4o-mini"
+        provider = "openai"
+    if GROQ_API_KEY:
+        from groq import Groq
+        client   = Groq(api_key=GROQ_API_KEY)
+        model    = "llama-3.3-70b-versatile"
+        provider = "groq"
+    else:
+        raise EnvironmentError(
+            "No AI key found. Add OPENAI_API_KEY or GROQ_API_KEY to your .env file.\n"
+            "Get a free Groq key at: https://console.groq.com"
+        )
+
+    print(f"[Chatbot] Provider: {provider}  |  Model: {model}")
+
+
+# ── Conversation window limit ─────────────────────────────────────────────
+# Keep only the last N user+assistant message pairs so history never grows
+# large enough to hit the model's context-window limit.
+MAX_HISTORY_PAIRS = 20
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # USER HEALTH SNAPSHOT
-# Fill this from your existing DB before calling chat()
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
 
 @dataclass
 class UserHealthSnapshot:
     """
-    Represents the user's current health state.
+    Current health state injected into the chatbot system prompt.
+
     Pass real values from your database — only fields you track are needed.
-    Missing/None fields are simply omitted from the AI context.
+    None / missing fields are omitted from the AI context automatically.
     """
     name: str = "User"
 
-    # Diet
-    calories_today: int = 0
-    calorie_target: int = 2300
-    protein_g: float = 0
-    protein_target_g: float = 150
-    carbs_g: float = 0
-    fat_g: float = 0
-    water_ml: int = 0
-    water_target_ml: int = 2500
+    # ── Diet ─────────────────────────────────────────────────────────────
+    calories_today:    int   = 0
+    calorie_target:    int   = 2300
+    protein_g:         float = 0.0
+    protein_target_g:  float = 150.0
+    carbs_g:           float = 0.0
+    fat_g:             float = 0.0
+    water_ml:          int   = 0
+    water_target_ml:   int   = 2500
 
-    # Study & focus
-    study_hours_today: float = 0
-    focus_score: float | None = None          # 1–10 scale
+    # ── Study & focus ─────────────────────────────────────────────────────
+    study_hours_today:      float          = 0.0
+    focus_score:            Optional[float] = None   # 1-10 scale
 
-    # Wellness
-    sleep_hours_last_night: float | None = None
-    weekly_adherence_pct: float | None = None
+    # ── Wellness ──────────────────────────────────────────────────────────
+    sleep_hours_last_night: Optional[float] = None
+    weekly_adherence_pct:   Optional[float] = None
 
-    # Goals & preferences
-    health_goal: str = "general wellness"     # e.g. "weight loss", "muscle gain"
-    dietary_restrictions: list[str] = field(default_factory=list)
+    # ── Goals & preferences ───────────────────────────────────────────────
+    health_goal:          str        = "general wellness"
+    dietary_restrictions: list[str]  = field(default_factory=list)
 
-    # Feed insights from your ai_modules here for richer responses
+    # ── Feed insights from NutritionAnalyzer / KnowledgeBase here ─────────
     active_insights: list[str] = field(default_factory=list)
 
     def to_context_block(self) -> str:
-        """Converts snapshot to a plain-text block injected into the system prompt."""
+        """
+        Render snapshot as a plain-text block for the system prompt.
+        Only includes lines where data is actually present.
+        """
         lines = [
             f"- Health goal: {self.health_goal}",
             f"- Calories today: {self.calories_today} / {self.calorie_target} kcal",
@@ -107,14 +129,15 @@ class UserHealthSnapshot:
         return "\n".join(lines)
 
 
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
 # SYSTEM PROMPT
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
 
-SYSTEM_PROMPT_TEMPLATE = """You are VitaAI, a friendly AI health assistant inside a personal health and wellness tracker app. You help users with:
+_SYSTEM_PROMPT_TEMPLATE = """You are VitaAI, a friendly AI health assistant inside a personal health and wellness tracker app.
 
+You help users with:
 - Meal suggestions and nutritional advice tailored to their goals and macros
-- Study schedule tips and focus optimization strategies
+- Study schedule tips and focus optimisation strategies
 - Sleep, energy, and wellness pattern interpretation
 - Motivation and habit coaching
 
@@ -122,26 +145,30 @@ Here is the user's current health data:
 {health_context}
 
 Guidelines:
-- Always personalize advice using the user's actual data above.
-- Keep responses under 150 words unless the user asks for more detail.
-- Use a warm, encouraging tone. Never be preachy.
-- If asked something outside health/study/wellness, politely redirect.
+- Always personalise advice using the user's actual data above.
+- Keep responses under 150 words unless the user explicitly asks for more detail.
+- Use a warm, encouraging tone. Never be preachy or repetitive.
+- If asked something outside health, study, or wellness, politely redirect.
 - Do not diagnose medical conditions or replace professional medical advice.
-- Respect dietary restrictions listed above when recommending meals.
+- Always respect any dietary restrictions listed above when recommending food.
 """
 
 
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
 # CHATBOT CLASS
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
 
 class HealthChatbot:
     """
-    Stateful per-user chatbot session. One instance per user.
+    Stateful per-user chatbot session.
+
+    One instance per user, stored in bot_sessions dict in routes.py.
+    Conversation history is kept as a rolling window of MAX_HISTORY_PAIRS
+    message pairs to prevent context-window overflow on long sessions.
 
     Example:
         snapshot = UserHealthSnapshot(calories_today=1800, health_goal="muscle gain")
-        bot = HealthChatbot(snapshot)
+        bot      = HealthChatbot(snapshot)
         print(bot.chat("What should I eat for dinner?"))
     """
 
@@ -150,154 +177,78 @@ class HealthChatbot:
         self.history: list[dict] = []
 
     def update_snapshot(self, snapshot: UserHealthSnapshot) -> None:
-        """Call this after user logs a new meal or activity mid-session."""
+        """
+        Replace the health snapshot mid-session.
+        Call this after the user logs a new meal or activity so the next
+        chatbot response reflects up-to-date data.
+        """
         self.snapshot = snapshot
 
     def chat(self, user_message: str) -> str:
-        """Send a message, get a reply. Conversation history is kept automatically."""
-        self.history.append({"role": "user", "content": user_message})
+        """
+        Send a message and get a reply.
 
-        system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        Conversation history is maintained automatically as a rolling window.
+        Raises EnvironmentError if no API key is configured.
+        Returns an error string (not a raise) on API failures so the Flask
+        route always returns a valid JSON response.
+        """
+        _init_provider()   # lazy init — raises EnvironmentError if no key
+
+        self.history.append({"role": "user", "content": user_message})
+        self._trim_history()
+
+        system_prompt = _SYSTEM_PROMPT_TEMPLATE.format(
             health_context=self.snapshot.to_context_block()
         )
 
-        response = _client.chat.completions.create(
-            model=_model,
-            max_tokens=512,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                *self.history,
-            ],
-        )
+        try:
+            response = client.chat.completions.create(
+                model      = model,
+                max_tokens = 512,
+                messages   = [
+                    {"role": "system", "content": system_prompt},
+                    *self.history,
+                ],
+            )
+            reply = response.choices[0].message.content.strip()
 
-        reply = response.choices[0].message.content
+        except Exception as e:
+            # Remove the user message we just appended so history stays clean
+            self.history.pop()
+            print(f"[Chatbot] API error ({provider}): {e}")
+            reply = (
+                "I'm having trouble connecting right now. "
+                "Please try again in a moment."
+            )
+
         self.history.append({"role": "assistant", "content": reply})
         return reply
 
     def reset(self) -> None:
-        """Wipe conversation history. Keeps the snapshot."""
+        """Wipe conversation history. Keeps the current snapshot."""
         self.history = []
 
+    def get_provider(self) -> str:
+        """Return the active LLM provider name, or 'none' if not yet initialised."""
+        return provider or "none"
 
-# ─────────────────────────────────────────────
-# FLASK ROUTE
-# Copy the block below into your api/routes.py
-# ─────────────────────────────────────────────
+    # ── Private ────────────────────────────────────────────────────────
+    def _trim_history(self) -> None:
+        """
+        Keep only the last MAX_HISTORY_PAIRS user/assistant pairs.
 
-"""
-from flask import request, jsonify
-from ai_modules.chatbot import HealthChatbot, UserHealthSnapshot
-
-bot_sessions: dict[str, HealthChatbot] = {}
-
-
-@app.route("/api/chat", methods=["POST"])
-def chat():
-    data       = request.get_json()
-    user_id    = data.get("user_id")
-    message    = data.get("message", "").strip()
-
-    if not user_id or not message:
-        return jsonify({"error": "user_id and message are required"}), 400
-
-    # ── Build snapshot from your real DB query ──
-    snapshot = UserHealthSnapshot(
-        calories_today        = data.get("calories_today", 0),
-        calorie_target        = data.get("calorie_target", 2300),
-        protein_g             = data.get("protein_g", 0),
-        carbs_g               = data.get("carbs_g", 0),
-        fat_g                 = data.get("fat_g", 0),
-        study_hours_today     = data.get("study_hours_today", 0),
-        focus_score           = data.get("focus_score"),
-        sleep_hours_last_night= data.get("sleep_hours"),
-        health_goal           = data.get("health_goal", "general wellness"),
-        dietary_restrictions  = data.get("dietary_restrictions", []),
-        active_insights       = data.get("active_insights", []),
-    )
-
-    if user_id not in bot_sessions:
-        bot_sessions[user_id] = HealthChatbot(snapshot)
-    else:
-        bot_sessions[user_id].update_snapshot(snapshot)
-
-    reply = bot_sessions[user_id].chat(message)
-    return jsonify({"reply": reply, "provider": _provider})
+        Without trimming, a long conversation eventually exceeds the model's
+        context window and raises an API error.
+        """
+        max_messages = MAX_HISTORY_PAIRS * 2   # each pair = 2 messages
+        if len(self.history) > max_messages:
+            self.history = self.history[-max_messages:]
 
 
-@app.route("/api/chat/reset", methods=["POST"])
-def reset_chat():
-    user_id = request.get_json().get("user_id")
-    if user_id in bot_sessions:
-        bot_sessions[user_id].reset()
-    return jsonify({"status": "ok"})
-"""
-
-
-# ─────────────────────────────────────────────
-# FASTAPI ROUTE
-# Use this instead if your project uses FastAPI
-# ─────────────────────────────────────────────
-
-"""
-from fastapi import FastAPI
-from pydantic import BaseModel
-from ai_modules.chatbot import HealthChatbot, UserHealthSnapshot
-
-app = FastAPI()
-bot_sessions: dict[str, HealthChatbot] = {}
-
-
-class ChatRequest(BaseModel):
-    user_id: str
-    message: str
-    calories_today: int = 0
-    calorie_target: int = 2300
-    protein_g: float = 0
-    carbs_g: float = 0
-    fat_g: float = 0
-    study_hours_today: float = 0
-    focus_score: float | None = None
-    sleep_hours: float | None = None
-    health_goal: str = "general wellness"
-    dietary_restrictions: list[str] = []
-    active_insights: list[str] = []
-
-
-@app.post("/api/chat")
-async def chat(req: ChatRequest):
-    snapshot = UserHealthSnapshot(
-        calories_today         = req.calories_today,
-        calorie_target         = req.calorie_target,
-        protein_g              = req.protein_g,
-        carbs_g                = req.carbs_g,
-        fat_g                  = req.fat_g,
-        study_hours_today      = req.study_hours_today,
-        focus_score            = req.focus_score,
-        sleep_hours_last_night = req.sleep_hours,
-        health_goal            = req.health_goal,
-        dietary_restrictions   = req.dietary_restrictions,
-        active_insights        = req.active_insights,
-    )
-    if req.user_id not in bot_sessions:
-        bot_sessions[req.user_id] = HealthChatbot(snapshot)
-    else:
-        bot_sessions[req.user_id].update_snapshot(snapshot)
-
-    reply = bot_sessions[req.user_id].chat(req.message)
-    return {"reply": reply, "provider": _provider}
-
-
-@app.post("/api/chat/reset")
-async def reset_chat(user_id: str):
-    if user_id in bot_sessions:
-        bot_sessions[user_id].reset()
-    return {"status": "ok"}
-"""
-
-
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
 # QUICK TEST — run: python ai_modules/chatbot.py
-# ─────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     snapshot = UserHealthSnapshot(
@@ -315,11 +266,11 @@ if __name__ == "__main__":
         weekly_adherence_pct   = 72,
         health_goal            = "muscle gain",
         dietary_restrictions   = ["no pork"],
-        active_insights        = ["High protein days → +23% next-day focus"],
+        active_insights        = ["High protein days correlate with +23% next-day focus"],
     )
 
     bot = HealthChatbot(snapshot)
-    print(f"VitaAI ready ({_provider}). Type 'quit' to exit.\n")
+    print(f"VitaAI ready ({bot.get_provider()}). Type 'quit' to exit.\n")
 
     while True:
         user_input = input("You: ").strip()

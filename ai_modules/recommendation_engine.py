@@ -1,256 +1,386 @@
-"""Recommendation Engine - Personalized suggestions based on AI analysis"""
+import math
 from typing import List, Dict, Optional
 from datetime import datetime
 from models.user_profile import UserProfile, Goal
 from models.meal import FoodItem, NutritionInfo
 
 
+# ---------------------------------------------------------------------------
+# Goal-specific weights
+# Each weight tuple: (calories, protein, carbs, fat, satisfaction)
+# Must sum to 1.0 across the first four + satisfaction.
+# ---------------------------------------------------------------------------
+GOAL_WEIGHTS: Dict[str, Dict[str, float]] = {
+    "MUSCLE_GAIN": {"calories": 0.15, "protein": 0.55, "carbs": 0.10, "fat": 0.10, "satisfaction": 0.10},
+    "WEIGHT_LOSS": {"calories": 0.50, "protein": 0.20, "carbs": 0.10, "fat": 0.10, "satisfaction": 0.10},
+    "MAINTENANCE": {"calories": 0.20, "protein": 0.25, "carbs": 0.20, "fat": 0.15, "satisfaction": 0.20},
+}
+DEFAULT_WEIGHTS = {"calories": 0.20, "protein": 0.25, "carbs": 0.20, "fat": 0.15, "satisfaction": 0.20}
+
+
 class MealRecommendationEngine:
-    """Content and collaborative filtering for meal recommendations"""
-    
+    """
+    Personalized meal suggestions using content-based filtering and
+    vector-space similarity with goal-aware heuristic weighting.
+
+    AI logic overview
+    -----------------
+    1. Hard filtering:   drop foods that violate dietary constraints / allergies.
+    2. Vectorisation:    represent each food as a 4-D normalised macro vector
+                         [calories, protein_g, carbs_g, fat_g].
+    3. Cosine scoring:   measure angular distance between food vector and
+                         user target / liked-food vectors (scale-independent).
+    4. Goal weighting:   each macro dimension's contribution to the final
+                         score shifts according to the user's active Goal
+                         (reasoning adapts to user context).
+    5. Satisfaction:     user ratings (1-10) blend into the final score so
+                         palatability is never ignored.
+    """
+
     def __init__(self, user_profile: UserProfile, food_database: List[FoodItem]):
-        self.user_profile = user_profile
-        self.food_database = food_database
+        self.user_profile   = user_profile
+        self.food_database  = food_database
         self.user_meal_history: List[Dict] = []
-        self.user_ratings: Dict[str, float] = {}  # food_id -> rating (1-10)
-    
-    def rate_meal(self, food_id: str, rating: float):
-        """Record user rating for a food"""
+        self.user_ratings:      Dict[str, float] = {}   # food_id -> rating (1-10)
+
+        # Pre-compute per-feature min/max across the whole database once so
+        # normalisation is consistent for every call.
+        self.db_stats = self.compute_db_stats()
+
+    # ------------------------------------------------------------------ #
+    #  Public data-ingestion methods                                        #
+    # ------------------------------------------------------------------ #
+
+    def rate_meal(self, food_id: str, rating: float) -> None:
+        """Store a user rating (1-10) for a given food."""
+        if not 1.0 <= rating <= 10.0:
+            raise ValueError("Rating must be between 1 and 10.")
         self.user_ratings[food_id] = rating
-    
-    def add_meal_to_history(self, food_id: str, meal_type: str):
-        """Add meal to user history"""
+
+    def add_meal_to_history(self, food_id: str, meal_type: str) -> None:
+        """Log a consumed meal with timestamp."""
         self.user_meal_history.append({
-            "food_id": food_id,
+            "food_id":   food_id,
             "meal_type": meal_type,
-            "timestamp": datetime.now()
+            "timestamp": datetime.now(),
         })
-    
+
+    # ------------------------------------------------------------------ #
+    #  Vector helpers                                                       #
+    # ------------------------------------------------------------------ #
+
+    def compute_db_stats(self) -> Dict[str, Dict[str, float]]:
+        """
+        Pre-compute per-feature (min, max) across the whole food database.
+
+        Used for min-max normalisation so that calorie values (~2 000) do not
+        swamp protein values (~30 g) when cosine similarity is computed.
+        """
+        if not self.food_database:
+            return {}
+
+        fields = ["calories", "protein_g", "carbs_g", "fat_g"]
+        stats: Dict[str, Dict[str, float]] = {}
+        for field in fields:
+            values = [getattr(f.nutrition_info, field) for f in self.food_database]
+            stats[field] = {"min": min(values), "max": max(values)}
+        return stats
+
+    def food_to_raw_vector(self, info: NutritionInfo) -> List[float]:
+        """Return raw 4-D macro vector."""
+        return [info.calories, info.protein_g, info.carbs_g, info.fat_g]
+
+    def minmax_normalize(self, vec: List[float]) -> List[float]:
+        """
+        Min-max normalise a 4-D macro vector to [0, 1] per feature using
+        database-wide statistics computed at construction time.
+
+        Without this step, cosine similarity is dominated by whichever
+        feature has the largest absolute values (almost always calories).
+        """
+        fields = ["calories", "protein_g", "carbs_g", "fat_g"]
+        normalised = []
+        for i, field in enumerate(fields):
+            mn  = self.db_stats.get(field, {}).get("min", 0)
+            mx  = self.db_stats.get(field, {}).get("max", 1)
+            val = (vec[i] - mn) / (mx - mn) if mx != mn else 0.0
+            normalised.append(val)
+        return normalised
+
+    def cosine_similarity(self, v1: List[float], v2: List[float]) -> float:
+        """
+        Cosine similarity between two pre-normalised vectors.
+
+        Returns a value in [0, 1]; returns 0 for zero-magnitude inputs.
+        """
+        dot   = sum(a * b for a, b in zip(v1, v2))
+        mag_a = math.sqrt(sum(a ** 2 for a in v1))
+        mag_b = math.sqrt(sum(b ** 2 for b in v2))
+        return dot / (mag_a * mag_b) if mag_a > 0 and mag_b > 0 else 0.0
+
+    def food_vector(self, food: FoodItem) -> List[float]:
+        """Return a min-max normalised 4-D vector for a food item."""
+        return self.minmax_normalize(self.food_to_raw_vector(food.nutrition_info))
+
+    def target_vector(self, target_calories: float, target_protein: float,
+                       target_carbs: float = 0.0, target_fat: float = 0.0) -> List[float]:
+        """Return a min-max normalised target vector."""
+        raw = [target_calories, target_protein, target_carbs, target_fat]
+        return self.minmax_normalize(raw)
+
+    # ------------------------------------------------------------------ #
+    #  Goal-weight resolution                                              #
+    # ------------------------------------------------------------------ #
+
+    def resolve_weights(self) -> Dict[str, float]:
+        """
+        Return the weight dict that matches the user's active Goal.
+
+        Falls back to balanced default when no recognised goal is set.
+        """
+        if Goal.MUSCLE_GAIN in self.user_profile.goals:
+            return GOAL_WEIGHTS["MUSCLE_GAIN"]
+        if Goal.WEIGHT_LOSS in self.user_profile.goals:
+            return GOAL_WEIGHTS["WEIGHT_LOSS"]
+        return DEFAULT_WEIGHTS
+
+    # ------------------------------------------------------------------ #
+    #  Constraint check                                                     #
+    # ------------------------------------------------------------------ #
+
+    def satisfies_dietary_constraints(self, food: FoodItem) -> bool:
+        """Return True iff the food respects all profile restrictions."""
+        restrictions = self.user_profile.dietary_restrictions
+        if "vegan"       in restrictions and not food.is_vegan:       return False
+        if "vegetarian"  in restrictions and not food.is_vegetarian:  return False
+        if "gluten_free" in restrictions and not food.is_gluten_free: return False
+
+        food_tags_lower = {t.lower() for t in food.tags}
+        for allergy in self.user_profile.allergies:
+            if allergy.lower() in food_tags_lower:
+                return False
+        return True
+
+    # ------------------------------------------------------------------ #
+    #  Recommendation methods                                              #
+    # ------------------------------------------------------------------ #
+
     def get_content_based_recommendations(self, n: int = 5) -> List[Dict]:
         """
-        Content-based filtering: recommend meals similar to highly-rated meals
+        Content-based filtering: recommend foods similar to highly-rated ones.
+
+        For each candidate food, compute cosine similarity (in 4-D normalised
+        macro space) against every food the user rated >= 7.  Weight each
+        similarity by the normalised rating so better-liked foods exert more
+        influence.  Sum across all liked foods, sort descending.
+
+        Falls back to high-protein defaults when no ratings exist.
         """
         if not self.user_ratings:
-            return self._get_default_recommendations(n)
-        
-        # Get highly-rated meals
-        highly_rated = {fid: rating for fid, rating in self.user_ratings.items() if rating >= 7}
-        
-        if not highly_rated:
-            return self._get_default_recommendations(n)
-        
-        recommendations = []
-        scored_foods = {}
-        
+            return self.get_default_recommendations(n)
+
+        liked = {fid: r for fid, r in self.user_ratings.items() if r >= 7.0}
+        if not liked:
+            return self.get_default_recommendations(n)
+
+        # Build a lookup map once for efficiency
+        food_by_id: Dict[str, FoodItem] = {f.food_id: f for f in self.food_database}
+
+        scored: Dict[str, Dict] = {}
         for food in self.food_database:
-            if food.food_id in highly_rated:
-                continue  # Skip already-rated items
-            
-            # Calculate similarity to highly-rated meals
-            similarity_score = 0.0
-            for rated_food_id, rating in highly_rated.items():
-                rated_food = next((f for f in self.food_database if f.food_id == rated_food_id), None)
-                if rated_food:
-                    similarity = self._calculate_food_similarity(food, rated_food)
-                    similarity_score += similarity * (rating / 10.0)
-            
-            if similarity_score > 0:
-                scored_foods[food.food_id] = {
-                    "food": food,
-                    "score": similarity_score
-                }
-        
-        # Sort by score and return top N
-        sorted_foods = sorted(scored_foods.items(), key=lambda x: x[1]["score"], reverse=True)
-        
-        for food_id, item in sorted_foods[:n]:
-            food = item["food"]
-            recommendations.append({
-                "food_id": food.food_id,
-                "name": food.name,
-                "category": food.category,
-                "calories": food.nutrition_info.calories,
-                "protein_g": food.nutrition_info.protein_g,
-                "reason": "Similar to meals you enjoyed"
-            })
-        
-        return recommendations
-    
-    def get_constraint_based_recommendations(self, target_calories: int, 
-                                             target_protein: float, n: int = 5) -> List[Dict]:
-        """
-        Recommend meals that satisfy dietary constraints and goals
-        """
-        recommendations = []
-        
-        # Filter foods by dietary restrictions
-        suitable_foods = [f for f in self.food_database 
-                         if self._satisfies_dietary_constraints(f)]
-        
-        # Score foods by nutritional fit
-        scored_foods = []
-        for food in suitable_foods:
-            # Calculate how well it balances the remaining daily needs
-            remaining_calories = max(target_calories - sum(item.get("calories", 0) 
-                                    for item in recommendations), 500)
-            
-            calorie_fit = 1.0 - abs(food.nutrition_info.calories - remaining_calories) / remaining_calories
-            calorie_fit = max(0, min(1.0, calorie_fit))
-            
-            # Protein fit
-            protein_fit = 1.0 - abs(food.nutrition_info.protein_g - (target_protein / 3)) / (target_protein / 3)
-            protein_fit = max(0, min(1.0, protein_fit))
-            
-            # User satisfaction (if known)
-            satisfaction = self.user_ratings.get(food.food_id, 5.0) / 10.0
-            
-            # Combined score
-            score = (calorie_fit * 0.4) + (protein_fit * 0.35) + (satisfaction * 0.25)
-            
-            scored_foods.append((food, score))
-        
-        # Sort and return top N
-        scored_foods.sort(key=lambda x: x[1], reverse=True)
-        
-        for food, score in scored_foods[:n]:
-            recommendations.append({
-                "food_id": food.food_id,
-                "name": food.name,
-                "category": food.category,
-                "calories": food.nutrition_info.calories,
-                "protein_g": food.nutrition_info.protein_g,
-                "macros": food.nutrition_info.get_macro_ratio(),
-                "fit_score": round(score, 2),
-                "reason": "Matches your daily nutritional targets"
-            })
-        
-        return recommendations
-    
-    def _satisfies_dietary_constraints(self, food: FoodItem) -> bool:
-        """Check if food satisfies user's restrictions"""
-        if "vegan" in self.user_profile.dietary_restrictions and not food.is_vegan:
-            return False
-        if "vegetarian" in self.user_profile.dietary_restrictions and not food.is_vegetarian:
-            return False
-        if "gluten_free" in self.user_profile.dietary_restrictions and not food.is_gluten_free:
-            return False
-        
-        # Check allergies
-        for allergy in self.user_profile.allergies:
-            if allergy.lower() in food.tags:
-                return False
-        
-        return True
-    
-    def _calculate_food_similarity(self, food1: FoodItem, food2: FoodItem) -> float:
-        """Calculate similarity between two foods (0-1)"""
-        # Category match
-        category_match = 1.0 if food1.category == food2.category else 0.5
-        
-        # Nutritional similarity (macro ratio)
-        macros1 = food1.nutrition_info.get_macro_ratio()
-        macros2 = food2.nutrition_info.get_macro_ratio()
-        
-        macro_diff = sum(abs(macros1[k] - macros2[k]) for k in macros1) / 3
-        macro_similarity = 1.0 - (macro_diff / 100)
-        
-        # Tag overlap
-        tag_overlap = len(set(food1.tags) & set(food2.tags)) / max(len(set(food1.tags) | set(food2.tags)), 1)
-        
-        return (category_match * 0.3) + (macro_similarity * 0.5) + (tag_overlap * 0.2)
-    
-    def _get_default_recommendations(self, n: int) -> List[Dict]:
-        """Get generic healthy recommendations"""
-        # Filter by constraints, sort by healthiness
-        suitable = [f for f in self.food_database if self._satisfies_dietary_constraints(f)]
-        
-        # Sort by protein content (healthier)
-        suitable.sort(key=lambda f: f.nutrition_info.protein_g, reverse=True)
-        
-        recommendations = []
-        for food in suitable[:n]:
-            recommendations.append({
-                "food_id": food.food_id,
-                "name": food.name,
-                "category": food.category,
-                "calories": food.nutrition_info.calories,
-                "protein_g": food.nutrition_info.protein_g,
-                "reason": "Nutritious and aligns with your preferences"
-            })
-        
-        return recommendations
+            if food.food_id in liked:
+                continue   # skip already-rated foods                  
+            if not self.satisfies_dietary_constraints(food):
+                continue
 
+            fv = self.food_vector(food)
+            total_sim = 0.0
 
-class ActivityRecommendationEngine:
-    """Recommend study times and exercise based on patterns"""
-    
-    def __init__(self, user_profile: UserProfile):
-        self.user_profile = user_profile
-        self.productivity_history: List[int] = []
-        self.energy_history: List[int] = []
-        self.time_slots: List[int] = []  # Hour of day
-    
-    def add_productivity_data(self, hour: int, focus_score: int, energy_level: int):
-        """Record productivity at specific time"""
-        self.time_slots.append(hour)
-        self.productivity_history.append(focus_score)
-        self.energy_history.append(energy_level)
-    
-    def recommend_study_times(self, num_recommendations: int = 3) -> List[Dict]:
-        """Recommend optimal study times based on history"""
-        if not self.productivity_history:
-            # Default recommendations
-            return [
-                {"hour": 10, "reason": "Peak morning focus window", "expected_focus": 9},
-                {"hour": 14, "reason": "Post-break recovery focus", "expected_focus": 8},
-                {"hour": 17, "reason": "Evening focus peak", "expected_focus": 8}
-            ]
-        
-        # Calculate average productivity per hour
-        hour_productivity = {}
-        for hour, focus in zip(self.time_slots, self.productivity_history):
-            if hour not in hour_productivity:
-                hour_productivity[hour] = []
-            hour_productivity[hour].append(focus)
-        
-        hour_averages = {hour: sum(scores) / len(scores) 
-                        for hour, scores in hour_productivity.items()}
-        
-        # Sort by average productivity
-        sorted_hours = sorted(hour_averages.items(), key=lambda x: x[1], reverse=True)
-        
-        recommendations = []
-        for hour, avg_focus in sorted_hours[:num_recommendations]:
-            recommendations.append({
-                "hour": hour,
-                "expected_focus": round(avg_focus, 1),
-                "reason": f"Your data shows peak focus around {hour}:00"
-            })
-        
-        return recommendations
-    
-    def recommend_exercise_timing(self) -> Dict:
-        """Recommend optimal time for exercise"""
-        if not self.energy_history:
-            return {
-                "recommended_hour": 17,
-                "reason": "Late afternoon is typically good for exercise energy levels"
+            for rated_id, rating in liked.items():
+                rated_food = food_by_id.get(rated_id)
+                if rated_food is None:
+                    continue
+                rv  = self.food_vector(rated_food)
+                sim = self.cosine_similarity(fv, rv)
+                total_sim += sim * (rating / 10.0)   # rating-weighted similarity
+
+            if total_sim > 0:
+                scored[food.food_id] = {"food": food, "score": total_sim}
+
+        ranked = sorted(scored.values(), key=lambda x: x["score"], reverse=True)
+        return [
+            {
+                "food_id":  item["food"].food_id,
+                "name":     item["food"].name,
+                "calories": item["food"].nutrition_info.calories,
+                "score":    round(item["score"], 4),
+                "reason":   "Similar macro profile to meals you rated highly",
             }
-        
-        # Find hour with highest energy
-        hour_energy = {}
-        for hour, energy in zip(self.time_slots, self.energy_history):
-            if hour not in hour_energy:
-                hour_energy[hour] = []
-            hour_energy[hour].append(energy)
-        
-        hour_avg_energy = {hour: sum(levels) / len(levels) 
-                          for hour, levels in hour_energy.items()}
-        
-        best_hour = max(hour_avg_energy.items(), key=lambda x: x[1])[0]
-        
-        return {
-            "recommended_hour": best_hour,
-            "expected_energy_level": round(hour_avg_energy[best_hour], 1),
-            "reason": f"Your energy levels peak around {best_hour}:00"
+            for item in ranked[:n]
+        ]
+
+    def get_constraint_based_recommendations(
+        self,
+        target_calories: float,
+        target_protein:  float,
+        target_carbs:    float = 0.0,
+        target_fat:      float = 0.0,
+        n: int = 5,
+    ) -> List[Dict]:
+        """
+        Goal-aware constraint-based recommendations.
+        Each macro is scored independently as:
+
+            fit_k = 1 − |actual_k − target_k| / target_k    (clamped to 0)
+
+        The four macro-fit scores and a satisfaction score are then combined
+        using goal-specific weights that sum to 1.0.
+
+        For MUSCLE_GAIN, protein weight jumps to 0.55.
+        For WEIGHT_LOSS, calorie weight becomes 0.50.
+        For balanced/maintenance, weights are roughly equal.
+        """
+        weights = self.resolve_weights()
+        tv      = self.target_vector(target_calories, target_protein, target_carbs, target_fat)
+
+        targets = {
+            "calories":  target_calories,
+            "protein_g": target_protein,
+            "carbs_g":   target_carbs,
+            "fat_g":     target_fat,
         }
+
+        def macro_fit(actual: float, target: float) -> float:
+            """Normalised proximity score in [0, 1]."""
+            if target == 0:
+                return 1.0
+            return max(0.0, 1.0 - abs(actual - target) / target)
+
+        scored: List[tuple] = []
+        for food in self.food_database:
+            if not self.satisfies_dietary_constraints(food):
+                continue
+
+            ni = food.nutrition_info
+
+            # Individual macro-fit scores
+            cal_fit  = macro_fit(ni.calories,  targets["calories"])
+            prot_fit = macro_fit(ni.protein_g, targets["protein_g"])
+            carb_fit = macro_fit(ni.carbs_g,   targets["carbs_g"])   if targets["carbs_g"]  > 0 else 1.0
+            fat_fit  = macro_fit(ni.fat_g,     targets["fat_g"])     if targets["fat_g"]    > 0 else 1.0
+
+            # User satisfaction (default neutral 5/10 when unrated)
+            satisfaction = self.user_ratings.get(food.food_id, 5.0) / 10.0
+
+            # Weighted composite score
+            score = (
+                weights["calories"]     * cal_fit  +
+                weights["protein"]      * prot_fit +
+                weights["carbs"]        * carb_fit +
+                weights["fat"]          * fat_fit  +
+                weights["satisfaction"] * satisfaction
+            )
+
+            # Also compute cosine similarity for display purposes
+            fv      = self.food_vector(food)
+            cos_sim = self.cosine_similarity(fv, tv)
+
+            scored.append((food, score, cos_sim))
+
+        scored.sort(key=lambda x: x[1], reverse=True)
+
+        active_goal = (
+            "MUSCLE_GAIN" if Goal.MUSCLE_GAIN in self.user_profile.goals
+            else "WEIGHT_LOSS" if Goal.WEIGHT_LOSS in self.user_profile.goals
+            else "MAINTENANCE"
+        )
+
+        return [
+            {
+                "name":             food.name,
+                "food_id":          food.food_id,
+                "calories":         food.nutrition_info.calories,
+                "protein_g":        food.nutrition_info.protein_g,
+                "fit_score":        round(score,   4),
+                "cosine_sim":       round(cos_sim, 4),
+                "goal_applied":     active_goal,
+                "reason":           f"Optimised for {active_goal.lower().replace('_', ' ')} targets",
+            }
+            for food, score, cos_sim in scored[:n]
+        ]
+
+    def get_hybrid_recommendations(
+        self,
+        target_calories: float,
+        target_protein:  float,
+        target_carbs:    float = 0.0,
+        target_fat:      float = 0.0,
+        content_weight:  float = 0.4,
+        constraint_weight: float = 0.6,
+        n: int = 5,
+    ) -> List[Dict]:
+        """
+        Hybrid recommender: blend content-based and constraint-based scores.
+
+        Combines personalisation (what the user historically likes) with
+        nutritional fit (what serves their current targets/goal), giving a
+        more robust recommendation than either method alone.
+
+        content_weight:    Weight for content-based score (0-1).
+        constraint_weight: Weight for constraint-based score (0-1).
+                            content_weight + constraint_weight should = 1.0.
+
+        Returns top-n foods ranked by blended score.
+        """
+        content_recs    = {r["food_id"]: r["score"] for r in self.get_content_based_recommendations(n=len(self.food_database))}
+        constraint_recs = {r["food_id"]: r["fit_score"] for r in self.get_constraint_based_recommendations(target_calories, target_protein, target_carbs, target_fat, n=len(self.food_database))}
+
+        all_ids = set(content_recs) | set(constraint_recs)
+        blended: List[tuple] = []
+        food_by_id = {f.food_id: f for f in self.food_database}
+
+        for fid in all_ids:
+            c_score  = content_recs.get(fid, 0.0)
+            cs_score = constraint_recs.get(fid, 0.0)
+            combined = content_weight * c_score + constraint_weight * cs_score
+            food     = food_by_id.get(fid)
+            if food:
+                blended.append((food, combined))
+
+        blended.sort(key=lambda x: x[1], reverse=True)
+        return [
+            {
+                "name":        food.name,
+                "food_id":     food.food_id,
+                "calories":    food.nutrition_info.calories,
+                "blend_score": round(score, 4),
+                "reason":      "Matches your taste preferences and nutrition targets",
+            }
+            for food, score in blended[:n]
+        ]
+
+    # ------------------------------------------------------------------ #
+    #  Default / fallback                                                   #
+    # ------------------------------------------------------------------ #
+
+    def get_default_recommendations(self, n: int) -> List[Dict]:
+        """
+        Cold-start fallback: return constraint-compliant, high-protein foods.
+
+        Used when the user has no ratings yet.
+        """
+        suitable = [
+            f for f in self.food_database
+            if self.satisfies_dietary_constraints(f)
+        ]
+        suitable.sort(key=lambda f: f.nutrition_info.protein_g, reverse=True)
+        return [
+            {
+                "name":      f.name,
+                "food_id":   f.food_id,
+                "calories":  f.nutrition_info.calories,
+                "protein_g": f.nutrition_info.protein_g,
+                "reason":    "High-protein recommendation (no rating history yet)",
+            }
+            for f in suitable[:n]
+        ]

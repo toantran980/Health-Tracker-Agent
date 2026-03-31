@@ -293,13 +293,25 @@ from data.sample_data import SAMPLE_FOODS, create_sample_user
 
 ## Future Enhancements
 
-- Database integration (PostgreSQL/MongoDB)
-- Real-time data ingestion from wearables
-- Computer vision for food recognition
-- Advanced NLP for study content analysis
-- Mobile app development
-- Advanced ensemble ML models
-- Real-time notification system
+## Future Enhancements
+
+- PostgreSQL integration to persist DailyNutritionLog and UserProfile
+  across sessions, enabling longitudinal analysis beyond the current
+  in-memory history list, etc.
+- Collaborative filtering (SVD/matrix factorisation) to extend
+  MealRecommendationEngine beyond single-user content-based scoring
+  once a multi-user rating dataset is available
+- Wearable API integration (Apple HealthKit, Fitbit) to auto-populate
+  ActivityLog and energy metrics, removing manual data entry friction
+- Computer vision food recognition to replace manual FoodItem lookup
+  with photo-based NutritionInfo estimation
+- Adaptive macro target recalibration: use weekly correlate_nutrition_
+  performance() output to automatically adjust UserProfile targets
+  rather than keeping them static
+- Anomaly-triggered notifications: surface detect_nutritional_anomalies()
+  Z-score alerts and adherence rate drops directly to the user in real time
+- FastAPI REST layer to expose NutritionAnalyzer and
+  MealRecommendationEngine as endpoints for mobile or web clients
 
 ## Contributing
 
