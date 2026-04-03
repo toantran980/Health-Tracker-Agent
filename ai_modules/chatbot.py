@@ -251,7 +251,7 @@ class HealthChatbot:
 
 if __name__ == "__main__":
     snapshot = UserHealthSnapshot(
-        name                   = "Alex",
+        name                   = "Toan",
         calories_today         = 1800,
         calorie_target         = 2300,
         protein_g              = 110,

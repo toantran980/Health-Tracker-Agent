@@ -24,7 +24,6 @@ def main():
     print("  POST   /api/productivity/predict/<user_id>")
     print("  GET    /api/productivity/optimal-time/<user_id>")
     print("  POST   /api/recommendations/<user_id>")
-    print("\n" + "=" * 60)
     
     app.run(debug=True, host='0.0.0.0', port=5000)
 
