@@ -19,16 +19,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+#OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY",   "")
 
-# ── Lazy provider init: fails at chat() time, not at import time ──────────
+# Lazy provider init: fails at chat() time, not at import time
 # This prevents a missing .env key from crashing the entire Flask app on
 # startup.  The error is surfaced only when a user actually tries to chat.
 client   = None
 model    = None
 provider = None
-
 
 def _init_provider():
     """Initialise the LLM client on first use."""
@@ -37,11 +36,11 @@ def _init_provider():
     if client is not None:
         return   # already initialised
 
-    if OPENAI_API_KEY:
+    '''if OPENAI_API_KEY:
         from openai import OpenAI
         client   = OpenAI(api_key=OPENAI_API_KEY)
-        model    = "gpt-4o-mini"
-        provider = "openai"
+        model    = "gpt-5"
+        provider = "openai"'''
     if GROQ_API_KEY:
         from groq import Groq
         client   = Groq(api_key=GROQ_API_KEY)

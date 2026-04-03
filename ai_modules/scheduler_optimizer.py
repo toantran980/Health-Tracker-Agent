@@ -11,7 +11,6 @@ class Constraint(Enum):
     HARD = "hard"  # Must be satisfied
     SOFT = "soft"  # Preferred but can be violated
 
-
 @dataclass
 class TimeSlot:
     """Represents a time slot in a schedule"""
@@ -92,11 +91,7 @@ class ScheduleOptimizer:
     def optimize_schedule(self, tasks: List[Dict], num_trials: int = 100) -> List[Dict]:
         """
         Optimize schedule using backtracking with constraint satisfaction
-        
-        Args:
-            tasks: List of tasks with {"subject": str, "duration_min": int, "difficulty": int, "deadline": datetime}
-            num_trials: Number of optimization attempts
-        
+
         Returns:
             Optimized schedule with time slots assigned to each task
         """

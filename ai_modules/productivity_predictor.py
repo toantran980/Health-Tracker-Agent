@@ -67,7 +67,7 @@ class ProductivityPredictor:
             feature_values = [data[0].to_vector()[feature_idx] for data in self.training_data]
             focus_scores = [data[1] for data in self.training_data]
             
-            correlation = self._calculate_correlation(feature_values, focus_scores)
+            correlation = self.calculate_correlation(feature_values, focus_scores)
             # Adjust weight based on correlation strength
             self.weights[feature_idx] *= (1.0 + correlation * 0.1)
         
@@ -85,16 +85,16 @@ class ProductivityPredictor:
             Focus score 1-10
         """
         if not self.is_trained and len(self.training_data) == 0:
-            return self._predict_linear(features)
+            return self.predict_linear(features)
         
         if self.model_type == "linear_regression":
-            return self._predict_linear(features)
+            return self.predict_linear(features)
         elif self.model_type == "nonlinear":
-            return self._predict_nonlinear(features)
+            return self.predict_nonlinear(features)
         else:
-            return self._predict_linear(features)
+            return self.predict_linear(features)
     
-    def _predict_linear(self, features: Features) -> int:
+    def predict_linear(self, features: Features) -> int:
         """Linear regression prediction"""
         feature_vector = features.to_vector()
         
@@ -106,9 +106,9 @@ class ProductivityPredictor:
         # Clamp to 1-10 range
         return max(1, min(10, round(prediction)))
     
-    def _predict_nonlinear(self, features: Features) -> int:
+    def predict_nonlinear(self, features: Features) -> int:
         """Non-linear prediction using interaction terms"""
-        base_score = self._predict_linear(features)
+        base_score = self.predict_linear(features)
         
         # Add interaction effects
         # Good sleep + good nutrition = synergistic effect
@@ -125,7 +125,7 @@ class ProductivityPredictor:
         final_score = base_score + sleep_nutrition_boost + difficulty_boost + hour_bonus
         return max(1, min(10, round(final_score)))
     
-    def _calculate_correlation(self, x: List[float], y: List[float]) -> float:
+    def calculate_correlation(self, x: List[float], y: List[float]) -> float:
         """Calculate Pearson correlation coefficient"""
         if len(x) < 2 or len(x) != len(y):
             return 0.0

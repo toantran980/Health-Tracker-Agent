@@ -22,16 +22,16 @@ class NutritionAnalyzer:
     #  Vector helpers                                                       #
     # ------------------------------------------------------------------ #
 
-    def _to_vector(self, info: NutritionInfo) -> List[float]:
+    def to_vector(self, info: NutritionInfo) -> List[float]:
         """Return a 4-D macro vector: [calories, protein_g, carbs_g, fat_g]."""
         return [info.calories, info.protein_g, info.carbs_g, info.fat_g]
 
-    def _normalize_vector(self, vec: List[float]) -> List[float]:
+    def normalize_vector(self, vec: List[float]) -> List[float]:
         """L2-normalise a vector so cosine similarity is scale-independent."""
         magnitude = math.sqrt(sum(v ** 2 for v in vec))
         return [v / magnitude for v in vec] if magnitude > 0 else vec
 
-    def _cosine_similarity(self, a: NutritionInfo, b: NutritionInfo) -> float:
+    def cosine_similarity(self, a: NutritionInfo, b: NutritionInfo) -> float:
         """
         Cosine similarity between two NutritionInfo objects in 4-D macro space.
 
@@ -40,8 +40,8 @@ class NutritionAnalyzer:
 
         Returns a value in [0, 1] where 1 means identical macro ratios.
         """
-        va = self._normalize_vector(self._to_vector(a))
-        vb = self._normalize_vector(self._to_vector(b))
+        va = self.normalize_vector(self.to_vector(a))
+        vb = self.normalize_vector(self.to_vector(b))
         return sum(x * y for x, y in zip(va, vb))
 
     # ------------------------------------------------------------------ #
@@ -153,10 +153,10 @@ class NutritionAnalyzer:
         return {
             "favorite_meals":   top_meals,
             "meal_timing":      avg_timing,
-            "macro_preferences": self._get_macro_pref(),
+            "macro_preferences": self.get_macro_pref(),
         }
 
-    def _get_macro_pref(self) -> str:
+    def get_macro_pref(self) -> str:
         """Classify the user's dominant macro preference from recent averages."""
         macros = self.get_weekly_average().get_macro_ratio()
         if macros["protein_percent"] > 35:
@@ -213,7 +213,7 @@ class NutritionAnalyzer:
                     f"target {target:.1f} % (priority weight {weights[key]:.0%})"
                 )
             else:
-                recommendations[key] = f"{label.capitalize()} intake is on target ✓"
+                recommendations[key] = f"{label.capitalize()} intake is on target"
 
         return recommendations
 
@@ -222,9 +222,7 @@ class NutritionAnalyzer:
     # ------------------------------------------------------------------ #
 
     def correlate_nutrition_performance(self, focus_scores: List[int]) -> float:
-        """
-        Pearson r between daily diet-adherence ratio and external focus scores.
-        """
+        """Pearson r between daily diet-adherence ratio and external focus scores"""
         if len(self.history) < 2 or len(focus_scores) != len(self.history):
             return 0.0
 
@@ -232,9 +230,9 @@ class NutritionAnalyzer:
             log.get_adherence_ratio(self.target_nutrition)
             for log in self.history
         ]
-        return self._pearson_correlation(adherence, [float(s) for s in focus_scores])
+        return self.pearson_correlation(adherence, [float(s) for s in focus_scores])
 
-    def _pearson_correlation(self, x: List[float], y: List[float]) -> float:
+    def pearson_correlation(self, x: List[float], y: List[float]) -> float:
         """Standard Pearson correlation coefficient."""
         n = len(x)
         if n < 2 or len(y) != n:
@@ -277,7 +275,7 @@ class NutritionAnalyzer:
 
         Each macro is scored as 1 − normalised absolute deviation from target,
         then combined using goal-specific weights so the metric actually
-        changes meaning with the user's objective (Track B reasoning).
+        changes meaning with the user's objective
         """
         GOAL_WEIGHTS = {
             "MUSCLE_GAIN": {"calories": 0.2, "protein": 0.6, "carbs": 0.1, "fat": 0.1},
@@ -288,16 +286,16 @@ class NutritionAnalyzer:
         actual  = log.get_total_nutrition()
         target  = self.target_nutrition
 
-        def _fit(actual_val: float, target_val: float) -> float:
+        def fit(actual_val: float, target_val: float) -> float:
             if target_val == 0:
                 return 1.0
             return max(0.0, 1.0 - abs(actual_val - target_val) / target_val)
 
         return (
-            weights["calories"] * _fit(actual.calories,  target.calories)  +
-            weights["protein"]  * _fit(actual.protein_g, target.protein_g) +
-            weights["carbs"]    * _fit(actual.carbs_g,   target.carbs_g)   +
-            weights["fat"]      * _fit(actual.fat_g,     target.fat_g)
+            weights["calories"] * fit(actual.calories,  target.calories)  +
+            weights["protein"]  * fit(actual.protein_g, target.protein_g) +
+            weights["carbs"]    * fit(actual.carbs_g,   target.carbs_g)   +
+            weights["fat"]      * fit(actual.fat_g,     target.fat_g)
         )
 
     # ------------------------------------------------------------------ #
@@ -326,7 +324,7 @@ class NutritionAnalyzer:
                 "fat_g":     round(avg.fat_g,     1),
             },
             "macro_similarity_to_target": round(
-                self._cosine_similarity(avg, self.target_nutrition), 4
+                self.cosine_similarity(avg, self.target_nutrition), 4
             ),
             "adherence_rate_pct":  round(self.calculate_adherence_rate(), 1),
             "anomalies":           self.detect_nutritional_anomalies(),
