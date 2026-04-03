@@ -174,7 +174,7 @@ class NutritionAnalyzer:
         Goal-aware macro recommendations.
 
         Goal-specific weights shift which nutrient gap is treated as most
-        urgent (Track B — reasoning adapts to user context).
+        urgent (reasoning adapts to user context).
         """
         GOAL_WEIGHTS = {
             "MUSCLE_GAIN": {"protein": 0.6, "carbs": 0.2, "fat": 0.2},
