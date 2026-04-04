@@ -205,11 +205,19 @@ class TestNutritionAnalyzer(unittest.TestCase):
             fat_g=65
         )
         
+        meal = Meal(
+            meal_id="m1",
+            user_id="user1",
+            meal_type=MealType.LUNCH,
+            timestamp=datetime.now(),
+            food_items=[FoodItem(food_id="f1", name="Food", nutrition_info=nutrition)]
+        )
+        
         log = DailyNutritionLog(
             log_id="log1",
             user_id="user1",
             date=datetime.now(),
-            meals=[]
+            meals=[meal]
         )
         
         adherence = log.get_adherence_ratio(self.target_nutrition)
@@ -316,7 +324,7 @@ class TestMealRecommendationEngine(unittest.TestCase):
             is_vegan=False
         )
         
-        satisfies = self.recommender._satisfies_dietary_constraints(food_with_meat)
+        satisfies = self.recommender.satisfies_dietary_constraints(food_with_meat)
         self.assertFalse(satisfies)
     
     def test_food_similarity(self):
@@ -337,7 +345,9 @@ class TestMealRecommendationEngine(unittest.TestCase):
             tags=["lean"]
         )
         
-        similarity = self.recommender._calculate_food_similarity(food1, food2)
+        v1 = self.recommender.food_vector(food1)
+        v2 = self.recommender.food_vector(food2)
+        similarity = self.recommender.cosine_similarity(v1, v2)
         self.assertGreater(similarity, 0)
         self.assertLessEqual(similarity, 1.0)
 

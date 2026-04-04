@@ -11,7 +11,7 @@ def main():
     """Run the application"""
     print("AI Health & Wellness Tracker")
     print("\nStarting Flask API server...")
-    print("Server running at: http://localhost:5000")
+    print("Server running at: http://localhost:5001")
     print("\nAvailable endpoints:")
     print("  POST   /api/user/create")
     print("  GET    /api/user/<user_id>")
@@ -25,7 +25,7 @@ def main():
     print("  GET    /api/productivity/optimal-time/<user_id>")
     print("  POST   /api/recommendations/<user_id>")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)
 
 if __name__ == '__main__':
     main()

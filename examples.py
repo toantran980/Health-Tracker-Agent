@@ -220,22 +220,13 @@ def example_5_meal_recommendations():
         age=22,
         weight_kg=72,
         height_cm=178,
-        dietary_restrictions=["vegan"],
-        allergies=["peanuts"]
+        dietary_restrictions=[],
+        allergies=[]
     )
     
-    # Sample vegan foods
-    foods = [
-        FoodItem(food_id="lentils", name="Lentil Pasta", 
-                 nutrition_info=NutritionInfo(200, 12, 35, 2),
-                 is_vegan=True, tags=["vegan", "protein"]),
-        FoodItem(food_id="chickpeas", name="Chickpea Curry",
-                 nutrition_info=NutritionInfo(250, 15, 30, 8),
-                 is_vegan=True, tags=["vegan", "protein"]),
-        FoodItem(food_id="cashew", name="Cashew Stir Fry",
-                 nutrition_info=NutritionInfo(300, 8, 25, 20),
-                 is_vegan=True, tags=["vegan", "nuts"]),
-    ]
+    print("Loading Kaggle Dataset for testing...")
+    from data.dataset_loader import load_kaggle_food_dataset
+    foods = load_kaggle_food_dataset(limit=500)
     
     recommender = MealRecommendationEngine(user, foods)
     
