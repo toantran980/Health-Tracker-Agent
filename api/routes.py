@@ -33,6 +33,9 @@ from api.external_apis import (
     nutritionix_to_fooditem,
 )
 
+from data.loader import load_food_database
+food_database = load_food_database()
+
 app = Flask(__name__)
 
 # ── In-memory stores (replace with DB in production) ──────────────────────
@@ -112,7 +115,9 @@ def create_user():
     )
     knowledge_bases[user_id]     = KnowledgeBase(user)
     nutrition_analyzers[user_id] = NutritionAnalyzer(target_nutrition)
-    meal_recommenders[user_id]   = MealRecommendationEngine(user, [])
+    #meal_recommenders[user_id]   = MealRecommendationEngine(user, [])
+    meal_recommenders[user_id] = MealRecommendationEngine(user, food_database)
+
 
     return jsonify({"status": "success", "user": user.to_dict()}), 201
 
