@@ -32,6 +32,10 @@ from api.external_apis import (
     food_facts_to_fooditem,
     nutritionix_to_fooditem,
 )
+from data.dataset_loader import load_kaggle_food_dataset
+
+print("Initializing global food database from Kaggle...")
+GLOBAL_FOOD_DB = load_kaggle_food_dataset(limit=2500)
 
 app = Flask(__name__)
 
@@ -112,7 +116,7 @@ def create_user():
     )
     knowledge_bases[user_id]     = KnowledgeBase(user)
     nutrition_analyzers[user_id] = NutritionAnalyzer(target_nutrition)
-    meal_recommenders[user_id]   = MealRecommendationEngine(user, [])
+    meal_recommenders[user_id]   = MealRecommendationEngine(user, GLOBAL_FOOD_DB)
 
     return jsonify({"status": "success", "user": user.to_dict()}), 201
 
@@ -686,4 +690,4 @@ def health_check():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)
