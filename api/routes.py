@@ -34,11 +34,10 @@ from api.external_apis import (
 )
 from data.dataset_loader import load_kaggle_food_dataset
 
-print("Initializing global food database from Kaggle...")
-GLOBAL_FOOD_DB = load_kaggle_food_dataset(limit=2500)
 
-# from data.loader import load_food_database
-# food_database = load_food_database()
+# from data.loader_v2 import load_food_database
+# food_database = load_food_database()   # this is from loader_v2.py
+
 
 print("Initializing global food database from Kaggle...")
 GLOBAL_FOOD_DB = load_kaggle_food_dataset(limit=2500)
@@ -122,8 +121,7 @@ def create_user():
     )
     knowledge_bases[user_id]     = KnowledgeBase(user)
     nutrition_analyzers[user_id] = NutritionAnalyzer(target_nutrition)
-    #meal_recommenders[user_id]   = MealRecommendationEngine(user, [])
-    #meal_recommenders[user_id] = MealRecommendationEngine(user, food_database)
+    #meal_recommenders[user_id] = MealRecommendationEngine(user, food_database) # this is from loader_v2.py
 
     meal_recommenders[user_id]   = MealRecommendationEngine(user, GLOBAL_FOOD_DB)
 
