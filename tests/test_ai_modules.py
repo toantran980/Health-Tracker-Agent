@@ -178,7 +178,6 @@ class TestScheduleOptimizer(unittest.TestCase):
             }
         ]
         
-        # Commented out invalid num_trials parameter - method doesn't accept it
         # schedule = self.optimizer.optimize_schedule(tasks, num_trials=10)
         schedule = self.optimizer.optimize_schedule(tasks)
         
