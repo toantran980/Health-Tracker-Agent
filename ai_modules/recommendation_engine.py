@@ -426,7 +426,7 @@ class ActivityRecommendationEngine:
     #  Goal resolution                                                      #
     # ------------------------------------------------------------------ #
  
-    def _preferred_types(self) -> List[str]:
+    def preferred_types(self) -> List[str]:
         """Return activity types ordered by relevance to the user's goal."""
         if Goal.MUSCLE_GAIN in self.user_profile.goals:
             return ["strength", "cardio", "flexibility"]
@@ -462,7 +462,7 @@ class ActivityRecommendationEngine:
         # Gate max intensity by energy level
         max_intensity = max(1, energy_level)
  
-        preferred_types = self._preferred_types()
+        preferred_types = self.preferred_types()
  
         # Score each activity
         scored: List[tuple] = []
@@ -501,7 +501,7 @@ class ActivityRecommendationEngine:
                 "duration_minutes":   duration,
                 "indoor":             act["indoor"] or force_indoor,
                 "goal_aligned":       act["type"] == preferred_types[0],
-                "reason":             self._reason(act["type"], energy_level, force_indoor),
+                "reason":             self.reason(act["type"], energy_level, force_indoor),
             })
  
         return results
@@ -510,7 +510,7 @@ class ActivityRecommendationEngine:
     #  Helper                                                               #
     # ------------------------------------------------------------------ #
  
-    def _reason(self, activity_type: str, energy: int, indoor: bool) -> str:
+    def reason(self, activity_type: str, energy: int, indoor: bool) -> str:
         parts = []
         if activity_type == "strength":
             parts.append("Supports muscle development")
