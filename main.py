@@ -1,31 +1,46 @@
 """Main application entry point"""
 import sys
 import os
+import logging
+from flask import Flask
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from api.routes import app
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 def main():
     """Run the application"""
-    print("AI Health & Wellness Tracker")
-    print("\nStarting Flask API server...")
-    print("Server running at: http://localhost:5001")
-    print("\nAvailable endpoints:")
-    print("  POST   /api/user/create")
-    print("  GET    /api/user/<user_id>")
-    print("  GET    /api/health")
-    print("  GET    /api/insights/<user_id>")
-    print("  GET    /api/nutrition/analysis/<user_id>")
-    print("  GET    /api/nutrition/recommendations/<user_id>")
-    print("  GET    /api/schedule/available-slots/<user_id>")
-    print("  POST   /api/schedule/optimize/<user_id>")
-    print("  POST   /api/productivity/predict/<user_id>")
-    print("  GET    /api/productivity/optimal-time/<user_id>")
-    print("  POST   /api/recommendations/<user_id>")
-    
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    logger.info("Starting AI Health & Wellness Tracker")
+    logger.info("Initializing Flask API server...")
+
+    port = int(os.environ.get('PORT', 5001))
+    host = os.environ.get('HOST', '0.0.0.0')
+    debug = os.environ.get('DEBUG', 'True').lower() == 'true'
+
+    logger.info(f"Server will run at: http://{host}:{port}")
+    logger.info("Available endpoints:")
+    logger.info("  POST   /api/user/create")
+    logger.info("  GET    /api/user/<user_id>")
+    logger.info("  GET    /api/health")
+    logger.info("  GET    /api/insights/<user_id>")
+    logger.info("  GET    /api/nutrition/analysis/<user_id>")
+    logger.info("  GET    /api/nutrition/recommendations/<user_id>")
+    logger.info("  GET    /api/schedule/available-slots/<user_id>")
+    logger.info("  POST   /api/schedule/optimize/<user_id>")
+    logger.info("  POST   /api/productivity/predict/<user_id>")
+    logger.info("  GET    /api/productivity/optimal-time/<user_id>")
+    logger.info("  POST   /api/recommendations/<user_id>")
+
+    try:
+        app.run(debug=debug, host=host, port=port)
+    except Exception as e:
+        logger.error(f"Failed to start server: {e}")
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
