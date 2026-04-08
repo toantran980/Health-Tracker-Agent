@@ -126,7 +126,7 @@ def example_3_schedule_optimization(user: UserProfile):
     ]
     
     print(f"\nOptimizing schedule for {len(tasks)} tasks...")
-    optimized_schedule = scheduler.optimize_schedule(tasks, num_trials=50)
+    optimized_schedule = scheduler.optimize_schedule(tasks) #try num_trials=50)
     
     if optimized_schedule:
         print(f"\nOptimized Study Schedule:\n")
@@ -225,9 +225,12 @@ def example_5_meal_recommendations():
     )
     
     print("Loading Kaggle Dataset for testing...")
-    from data.dataset_loader import load_kaggle_food_dataset
-    foods = load_kaggle_food_dataset(limit=500)
+    #from data.dataset_loader import load_kaggle_food_dataset
+    #foods = load_kaggle_food_dataset(limit=500)
     
+    from data.dataset_loader_v2 import load_food_database
+    foods = load_food_database()  # this is from loader_v2.py
+
     recommender = MealRecommendationEngine(user, foods)
     
     # Get constraint-based recommendations

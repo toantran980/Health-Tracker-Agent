@@ -81,7 +81,7 @@ GET    /api/health                                - Health check
 ### 🧪 Tests (23+ Cases)
 
 ```bash
-python -m pytest tests/test_ai_modules.py -v
+python -m unittest tests/test_ai_modules.py -v
 ```
 
 ### 📚 Examples (6 Scenarios)
