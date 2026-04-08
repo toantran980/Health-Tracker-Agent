@@ -27,6 +27,8 @@ from api.external_apis import (
     get_food_by_barcode,
     log_natural_language_meal,
     search_exercise,
+    search_exercisedb,
+    proxy_wger_endpoint,
     get_weather_context,
     search_all_sources,
     food_facts_to_fooditem,
@@ -663,6 +665,36 @@ def exercise_search():
         return jsonify({"error": "q parameter is required"}), 400
 
     results = search_exercise(query)
+    return jsonify({"results": results, "count": len(results)}), 200
+
+
+@app.route('/api/wger/<endpoint>', methods=['GET'])
+def wger_proxy_route(endpoint):
+    """
+    Generic proxy for any WGER API v2 endpoint.
+    Examples: /api/wger/muscle, /api/wger/equipment, /api/wger/routine
+    Passes any query parameters forward.
+    """
+    params = request.args.to_dict()
+    result = proxy_wger_endpoint(endpoint, params)
+    
+    if isinstance(result, dict) and len(result) == 1 and "error" in result:
+        return jsonify(result), 400
+        
+    return jsonify(result), 200
+
+
+@app.route('/api/exercisedb/search', methods=['GET'])
+def get_exercisedb_search():
+    """
+    Search the ExerciseDB database (RapidAPI) by name.
+    Expects detailed return including target muscles & gifUrl.
+    """
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify({"error": "q parameter is required"}), 400
+
+    results = search_exercisedb(query)
     return jsonify({"results": results, "count": len(results)}), 200
 
 

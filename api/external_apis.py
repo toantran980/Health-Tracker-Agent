@@ -51,6 +51,8 @@ NUTRITIONIX_BASE = "https://trackapi.nutritionix.com/v2"
 WGER_BASE        = "https://wger.de/api/v2"
 OPEN_METEO_BASE  = "https://api.open-meteo.com/v1"
 USDA_BASE        = "https://api.nal.usda.gov/fdc/v1"
+EXERCISEDB_HOST  = "exercisedb.p.rapidapi.com"
+RAPIDAPI_KEY     = os.getenv("EXERCISEDB_API_KEY", "07a1c4c94bmshb552effb5767d33p1da768jsn2f78433b5b3d")
 
 
 # ============================================================
@@ -299,6 +301,68 @@ def get_exercise_detail(exercise_id: int) -> dict:
     except requests.exceptions.RequestException as e:
         print(f"[Wger] Detail error: {e}")
         return {}
+
+
+def proxy_wger_endpoint(endpoint: str, params: dict = None) -> dict:
+    """
+    Generic proxy to fetch data from any Wger API v2 endpoint.
+    Provides access to routines, equipment, muscles, etc.
+    """
+    # Quick fix to prevent double slashes if endpoint already has one
+    endpoint = endpoint.strip("/")
+    url = f"{WGER_BASE}/{endpoint}/"
+    
+    try:
+        resp = requests.get(url, params=params or {}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.exceptions.RequestException as e:
+        print(f"[Wger] Proxy error for {endpoint}: {e}")
+        return {"error": str(e)}
+
+
+# ============================================================
+# 4.5. EXERCISEDB (RapidAPI)
+# ============================================================
+
+def search_exercisedb(name: str) -> list[dict]:
+    """
+    Search exercises using ExerciseDB from RapidAPI.
+    
+    Args:
+        name: Exercise name (e.g. "bench").
+        
+    Returns:
+        List of detailed exercise dicts, or [] on failure.
+    """
+    url = f"https://{EXERCISEDB_HOST}/exercises/name/{name}"
+    headers = {
+        "x-rapidapi-host": EXERCISEDB_HOST,
+        "x-rapidapi-key": RAPIDAPI_KEY
+    }
+    
+    try:
+        resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+        
+        return [
+            {
+                "exercise_id": str(item.get("id", "")),
+                "name":        item.get("name", "").title(),
+                "body_part":   item.get("bodyPart", ""),
+                "equipment":   item.get("equipment", ""),
+                "target":      item.get("target", ""),
+                "gif_url":     item.get("gifUrl", ""),
+                "instructions": item.get("instructions", []),
+            }
+            for item in data[:10]  # limit to top 10 to avoid huge payloads
+        ]
+
+    except requests.exceptions.RequestException as e:
+        print(f"[ExerciseDB] API error: {e}")
+        return []
+
 
 
 # ============================================================
