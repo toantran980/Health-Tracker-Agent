@@ -42,6 +42,7 @@ load_dotenv()
 
 REQUEST_TIMEOUT = 10   # seconds — applies to every API call
 
+
 NUTRITIONIX_APP_ID  = os.getenv("NUTRITIONIX_APP_ID",  "")
 NUTRITIONIX_APP_KEY = os.getenv("NUTRITIONIX_APP_KEY", "")
 USDA_API_KEY        = os.getenv("USDA_API_KEY",        "DEMO_KEY")
@@ -52,7 +53,7 @@ WGER_BASE        = "https://wger.de/api/v2"
 OPEN_METEO_BASE  = "https://api.open-meteo.com/v1"
 USDA_BASE        = "https://api.nal.usda.gov/fdc/v1"
 EXERCISEDB_HOST  = "exercisedb.p.rapidapi.com"
-RAPIDAPI_KEY     = os.getenv("EXERCISEDB_API_KEY", "07a1c4c94bmshb552effb5767d33p1da768jsn2f78433b5b3d")
+RAPIDAPI_KEY     = os.getenv("EXERCISEDB_API_KEY", "")
 
 
 # ============================================================
