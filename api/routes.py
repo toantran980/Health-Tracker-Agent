@@ -21,7 +21,7 @@ from ai_modules import (
     NutritionAnalyzer,
     MealRecommendationEngine,
 )
-from ai_modules.chatbot import HealthChatbot, UserHealthSnapshot
+from ai_modules.health_chatbot import HealthChatbot, UserHealthSnapshot
 from api.external_apis import (
     search_food_by_name,
     get_food_by_barcode,
