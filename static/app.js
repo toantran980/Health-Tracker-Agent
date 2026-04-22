@@ -1,28 +1,150 @@
 const outputEl = document.getElementById('output');
 const apiBaseEl = document.getElementById('apiBase');
 const activeUserEl = document.getElementById('activeUserId');
-const healthStatusEl = document.getElementById('healthStatus');
 const taskListEl = document.getElementById('taskList');
 const taskSummaryEl = document.getElementById('taskSummary');
+const toastContainerEl = document.getElementById('toastContainer');
+const chatMessagesEl = document.getElementById('chatMessages');
+
+const appMetrics = {
+  caloriesToday: 0,
+  focusScore: null,
+  tasksPlanned: 0,
+  sleepHours: null
+};
 
 const savedBase = localStorage.getItem('apiBase');
 const savedUser = localStorage.getItem('activeUserId');
-apiBaseEl.value = savedBase || window.location.origin;
-activeUserEl.value = savedUser || '';
-
-apiBaseEl.addEventListener('change', () => localStorage.setItem('apiBase', apiBaseEl.value.trim()));
-activeUserEl.addEventListener('change', () => localStorage.setItem('activeUserId', activeUserEl.value.trim()));
+if (apiBaseEl) {
+  apiBaseEl.value = savedBase || window.location.origin;
+  apiBaseEl.addEventListener('change', () => localStorage.setItem('apiBase', apiBaseEl.value.trim()));
+}
+if (activeUserEl) {
+  activeUserEl.value = savedUser || '';
+  activeUserEl.addEventListener('change', () => localStorage.setItem('activeUserId', activeUserEl.value.trim()));
+}
 
 function writeOutput(title, data) {
-  outputEl.textContent = `${title}\n\n${JSON.stringify(data, null, 2)}`;
+  if (outputEl) {
+    outputEl.textContent = `${title}\n\n${JSON.stringify(data, null, 2)}`;
+    return;
+  }
+
+  console.info(title, data);
+}
+
+function showToast(message, type = 'info') {
+  if (!toastContainerEl) {
+    console.info(`[${type}] ${message}`);
+    return;
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  toastContainerEl.appendChild(toast);
+
+  window.setTimeout(() => {
+    toast.remove();
+  }, 3200);
+}
+
+function setKpi(prefix, value, status, tone = 'neutral') {
+  const valueEl = document.getElementById(`kpi${prefix}`);
+  const statusEl = document.getElementById(`kpi${prefix}Status`);
+  const cardEl = valueEl ? valueEl.closest('.kpi-card') : null;
+
+  if (valueEl) {
+    valueEl.textContent = value;
+  }
+  if (statusEl) {
+    statusEl.textContent = status;
+  }
+  if (cardEl) {
+    cardEl.dataset.status = tone;
+  }
+}
+
+function refreshKpis() {
+  const caloriesTone = appMetrics.caloriesToday >= 2000 ? 'good' : appMetrics.caloriesToday >= 1200 ? 'warn' : 'neutral';
+  const caloriesStatus = appMetrics.caloriesToday === 0 ? 'No meals logged' : appMetrics.caloriesToday >= 2000 ? 'Daily target likely met' : 'Keep fueling';
+  setKpi('Calories', `${Math.round(appMetrics.caloriesToday)} kcal`, caloriesStatus, caloriesTone);
+
+  if (appMetrics.focusScore === null) {
+    setKpi('Focus', '-', 'Run prediction', 'neutral');
+  } else {
+    const focusTone = appMetrics.focusScore >= 7 ? 'good' : appMetrics.focusScore >= 5 ? 'warn' : 'bad';
+    const focusStatus = appMetrics.focusScore >= 7 ? 'Strong mental state' : appMetrics.focusScore >= 5 ? 'Moderate focus' : 'Low focus window';
+    setKpi('Focus', `${appMetrics.focusScore.toFixed(1)}/10`, focusStatus, focusTone);
+  }
+
+  const tasksTone = appMetrics.tasksPlanned >= 4 ? 'good' : appMetrics.tasksPlanned > 0 ? 'warn' : 'neutral';
+  const tasksStatus = appMetrics.tasksPlanned === 0 ? 'Add tasks' : appMetrics.tasksPlanned >= 4 ? 'Solid plan' : 'Could add more structure';
+  setKpi('Tasks', String(appMetrics.tasksPlanned), tasksStatus, tasksTone);
+
+  if (appMetrics.sleepHours === null) {
+    setKpi('Sleep', '-', 'Not set', 'neutral');
+  } else {
+    const sleepTone = appMetrics.sleepHours >= 7 ? 'good' : appMetrics.sleepHours >= 6 ? 'warn' : 'bad';
+    const sleepStatus = appMetrics.sleepHours >= 7 ? 'Recovery looks good' : appMetrics.sleepHours >= 6 ? 'Borderline sleep' : 'Prioritize rest';
+    setKpi('Sleep', `${appMetrics.sleepHours.toFixed(1)} h`, sleepStatus, sleepTone);
+  }
+}
+
+function setChatEmptyState() {
+  if (!chatMessagesEl) {
+    return;
+  }
+  chatMessagesEl.innerHTML = '<p class="chat-empty">Start a conversation to get personalized suggestions.</p>';
+}
+
+function appendChatMessage(role, message) {
+  if (!chatMessagesEl) {
+    return;
+  }
+
+  const emptyEl = chatMessagesEl.querySelector('.chat-empty');
+  if (emptyEl) {
+    emptyEl.remove();
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${role}`;
+  bubble.textContent = message;
+  chatMessagesEl.appendChild(bubble);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+function initQuickActions() {
+  const routeTo = (targetId, focusSelector) => {
+    const targetEl = document.getElementById(targetId);
+    if (!targetEl) {
+      return;
+    }
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (focusSelector) {
+      const focusEl = targetEl.querySelector(focusSelector);
+      if (focusEl) {
+        window.setTimeout(() => focusEl.focus(), 200);
+      }
+    }
+  };
+
+  bindClick('quickLogMeal', async () => routeTo('mealForm', 'input[name="food_name"]'));
+  bindClick('quickPredictFocus', async () => routeTo('productivityForm', 'input[name="hour_of_day"]'));
+  bindClick('quickOptimizeSchedule', async () => routeTo('scheduleForm', '.task-title'));
+  bindClick('quickAskChatbot', async () => routeTo('chatForm', 'input[name="message"]'));
 }
 
 function getApiBase() {
-  return apiBaseEl.value.trim().replace(/\/$/, '');
+  if (apiBaseEl) {
+    return apiBaseEl.value.trim().replace(/\/$/, '');
+  }
+  return (savedBase || window.location.origin).trim().replace(/\/$/, '');
 }
 
 function getActiveUserId() {
-  const userId = activeUserEl.value.trim();
+  const userId = activeUserEl ? activeUserEl.value.trim() : (localStorage.getItem('activeUserId') || '').trim();
   if (!userId) {
     throw new Error('Active User ID is required for this action.');
   }
@@ -66,17 +188,26 @@ function safeHandler(handler) {
     try {
       await handler(event);
     } catch (err) {
+      showToast(err.message || 'Something went wrong.', 'error');
       writeOutput('Error', { message: err.message || 'Unknown error' });
     }
   };
 }
 
 function bindClick(id, handler) {
-  document.getElementById(id).addEventListener('click', safeHandler(handler));
+  const el = document.getElementById(id);
+  if (!el) {
+    return;
+  }
+  el.addEventListener('click', safeHandler(handler));
 }
 
 function bindSubmit(id, handler) {
-  document.getElementById(id).addEventListener('submit', safeHandler(async (event) => {
+  const el = document.getElementById(id);
+  if (!el) {
+    return;
+  }
+  el.addEventListener('submit', safeHandler(async (event) => {
     await handler(event.target);
   }));
 }
@@ -236,6 +367,8 @@ function updateTaskSummary() {
   const tasks = collectTasks(false);
   const totalDuration = tasks.reduce((sum, task) => sum + (task.duration_minutes || 0), 0);
   taskSummaryEl.textContent = `Total tasks: ${tasks.length} | Total duration: ${totalDuration} min`;
+  appMetrics.tasksPlanned = tasks.length;
+  refreshKpis();
 }
 
 function collectTasks(strict = true) {
@@ -290,12 +423,6 @@ function initTaskBuilder() {
   updateTaskSummary();
 }
 
-bindClick('btnHealth', async () => {
-  const payload = await apiRequest('/api/health');
-  healthStatusEl.textContent = payload.status || 'ok';
-  writeOutput('Health Check', payload);
-});
-
 bindSubmit('createUserForm', async (form) => {
   const data = new FormData(form);
   const body = {
@@ -313,9 +440,12 @@ bindSubmit('createUserForm', async (form) => {
 
   const payload = await apiRequest('/api/user/create', { method: 'POST', body });
   if (payload.user && payload.user.user_id) {
-    activeUserEl.value = payload.user.user_id;
+    if (activeUserEl) {
+      activeUserEl.value = payload.user.user_id;
+    }
     localStorage.setItem('activeUserId', payload.user.user_id);
   }
+  showToast('User profile created.', 'success');
   writeOutput('User Created', payload);
 });
 
@@ -342,6 +472,8 @@ bindSubmit('mealForm', async (form) => {
 
   const payload = await apiRequest(`/api/nutrition/log-meal/${userId}`, { method: 'POST', body });
   if (payload.nutrition) {
+    appMetrics.caloriesToday += Number(payload.nutrition.calories || 0);
+    refreshKpis();
     addTrendPoint({
       calories: payload.nutrition.calories,
       protein: payload.nutrition.protein_g,
@@ -349,15 +481,18 @@ bindSubmit('mealForm', async (form) => {
       fat: payload.nutrition.fat_g
     });
   }
+  showToast('Meal logged.', 'success');
   writeOutput('Meal Logged', payload);
 });
 
 bindClick('btnAnalyze', async () => {
   await requestForActiveUser('Nutrition Analysis', (userId) => `/api/nutrition/analysis/${userId}`);
+  showToast('Nutrition analysis ready.', 'info');
 });
 
 bindClick('btnMacroRecs', async () => {
   await requestForActiveUser('Macro Recommendations', (userId) => `/api/nutrition/recommendations/${userId}`);
+  showToast('Macro recommendations loaded.', 'info');
 });
 
 bindSubmit('mealRecForm', async (form) => {
@@ -370,6 +505,7 @@ bindSubmit('mealRecForm', async (form) => {
     n: String(Number(data.get('n')))
   });
   const payload = await apiRequest(`/api/nutrition/meal-recommendations/${userId}?${params.toString()}`);
+  showToast('Meal recommendations loaded.', 'info');
   writeOutput('Meal Recommendations', payload);
 });
 
@@ -379,10 +515,12 @@ bindSubmit('scheduleForm', async () => {
     method: 'POST',
     body: { tasks }
   });
+  showToast('Schedule optimized.', 'success');
 });
 
 bindClick('btnSlots', async () => {
   await requestForActiveUser('Available Slots', (userId) => `/api/schedule/available-slots/${userId}?duration_minutes=60`);
+  showToast('Available slots loaded.', 'info');
 });
 
 bindSubmit('productivityForm', async (form) => {
@@ -402,31 +540,48 @@ bindSubmit('productivityForm', async (form) => {
 
   const payload = await apiRequest(`/api/productivity/predict/${userId}`, { method: 'POST', body });
   if (payload.predicted_focus_score !== undefined) {
+    appMetrics.focusScore = Number(payload.predicted_focus_score);
+    appMetrics.sleepHours = Number(data.get('sleep_hours'));
+    refreshKpis();
     addTrendPoint({ focus: payload.predicted_focus_score });
   }
+  showToast('Focus prediction updated.', 'success');
   writeOutput('Productivity Prediction', payload);
 });
 
 bindClick('btnOptimalTime', async () => {
   await requestForActiveUser('Optimal Study Time', (userId) => `/api/productivity/optimal-time/${userId}`);
+  showToast('Optimal time generated.', 'info');
 });
 
 bindSubmit('chatForm', async (form) => {
   const userId = getActiveUserId();
   const data = new FormData(form);
+  const message = String(data.get('message') || '').trim();
+  if (!message) {
+    throw new Error('Message is required.');
+  }
+
+  appendChatMessage('user', message);
   const body = {
-    message: data.get('message')
+    message
   };
   const payload = await apiRequest(`/api/chat/${userId}`, { method: 'POST', body });
+  appendChatMessage('assistant', payload.reply || 'No response from chatbot.');
+  showToast('Chatbot replied.', 'success');
+  form.reset();
   writeOutput('Chatbot Reply', payload);
 });
 
 bindClick('btnResetChat', async () => {
   await requestForActiveUser('Chatbot Reset', (userId) => `/api/chat/${userId}/reset`, { method: 'POST' });
+  setChatEmptyState();
+  showToast('Chat reset complete.', 'info');
 });
 
 bindClick('btnInsights', async () => {
   await requestForActiveUser('Health Insights', (userId) => `/api/insights/${userId}`);
+  showToast('Insights generated.', 'info');
 });
 
 bindClick('btnKnowledgeRecs', async () => {
@@ -446,9 +601,12 @@ bindClick('btnKnowledgeRecs', async () => {
     method: 'POST',
     body
   });
+  showToast('Knowledge recommendations ready.', 'info');
 });
 
-// Trigger an initial health check so the user immediately sees server status.
+// Initialize interactive dashboard widgets.
 initTaskBuilder();
 initCharts();
-document.getElementById('btnHealth').click();
+initQuickActions();
+setChatEmptyState();
+refreshKpis();

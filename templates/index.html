@@ -13,25 +13,39 @@
       <p class="eyebrow">AI Health + Study Assistant</p>
       <h1>Health Tracker Frontend</h1>
       <p class="subtitle">Manage users, meals, productivity, scheduling, and chatbot interactions from one dashboard.</p>
-      <div class="status-row">
-        <button id="btnHealth" class="btn">Check API Health</button>
-        <span id="healthStatus" class="pill">Unknown</span>
-      </div>
     </header>
 
-    <section class="panel">
-      <h2>Session</h2>
-      <div class="grid two">
-        <label>
-          API Base URL
-          <input id="apiBase" type="text" placeholder="http://localhost:5001">
-        </label>
-        <label>
-          Active User ID
-          <input id="activeUserId" type="text" placeholder="user_1">
-        </label>
+    <section class="kpi-strip" aria-label="Daily snapshot">
+      <article class="kpi-card" data-status="neutral">
+        <p class="kpi-label">Calories Today</p>
+        <p id="kpiCalories" class="kpi-value">0 kcal</p>
+        <p id="kpiCaloriesStatus" class="kpi-status">No meals logged</p>
+      </article>
+      <article class="kpi-card" data-status="neutral">
+        <p class="kpi-label">Focus Score</p>
+        <p id="kpiFocus" class="kpi-value">-</p>
+        <p id="kpiFocusStatus" class="kpi-status">Run prediction</p>
+      </article>
+      <article class="kpi-card" data-status="neutral">
+        <p class="kpi-label">Tasks Planned</p>
+        <p id="kpiTasks" class="kpi-value">0</p>
+        <p id="kpiTasksStatus" class="kpi-status">Add tasks</p>
+      </article>
+      <article class="kpi-card" data-status="neutral">
+        <p class="kpi-label">Sleep Hours</p>
+        <p id="kpiSleep" class="kpi-value">-</p>
+        <p id="kpiSleepStatus" class="kpi-status">Not set</p>
+      </article>
+    </section>
+
+    <section class="panel quick-actions-panel">
+      <h2>Quick Actions</h2>
+      <div class="quick-actions-grid">
+        <button id="quickLogMeal" class="btn" type="button">Log Meal</button>
+        <button id="quickPredictFocus" class="btn" type="button">Predict Focus</button>
+        <button id="quickOptimizeSchedule" class="btn" type="button">Optimize Schedule</button>
+        <button id="quickAskChatbot" class="btn primary" type="button">Ask Chatbot</button>
       </div>
-      <p class="hint">If running this page from the same Flask app, leave base URL as current origin.</p>
     </section>
 
     <section class="panel">
@@ -150,7 +164,10 @@
       <div class="grid two">
         <form id="chatForm" class="subpanel">
           <h3>Health Chatbot</h3>
-          <label>Message<input name="message" type="text" value="Give me a healthy dinner suggestion for tonight."></label>
+          <div id="chatMessages" class="chat-messages" aria-live="polite">
+            <p class="chat-empty">Start a conversation to get personalized suggestions.</p>
+          </div>
+          <label class="chat-input-wrap">Message<input name="message" type="text" value="Give me a healthy dinner suggestion for tonight."></label>
           <div class="inline-fields">
             <button class="btn primary" type="submit">Send</button>
             <button id="btnResetChat" class="btn" type="button">Reset Chat</button>
@@ -165,11 +182,6 @@
           </div>
         </div>
       </div>
-    </section>
-
-    <section class="panel output-panel">
-      <h2>Response</h2>
-      <pre id="output">Run any action to see API responses here.</pre>
     </section>
 
     <section class="panel">
@@ -190,6 +202,8 @@
       </div>
     </section>
   </main>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/static/app.js"></script>
