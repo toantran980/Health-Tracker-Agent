@@ -1,323 +1,114 @@
-# Installation & Setup Guide
+# Setup Guide
+
+This guide reflects the current project state (Flask API + built-in frontend dashboard).
 
 ## Prerequisites
 
-- Python 3.10 or higher
-- pip (Python package manager)
+- Python 3.10+
+- pip
+- PowerShell (Windows)
 
-## Installation
+## Install
 
-### 1. Clone/Download the Project
+1. Open PowerShell at the project root.
+1. Create and activate virtual environment.
+1. Install requirements.
 
-```bash
-cd c:\Users\toant\OneDrive\Desktop\CPSC481-Artificial-Intelligence\Project\Health-Agent
-```
-
-### 2. Create Virtual Environment (Optional but Recommended)
-
-```bash
-# On Windows
+```powershell
+cd <path-to-Health-Tracker-Agent>
 python -m venv venv
-venv\Scripts\activate
-
-# On macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-## Running the Application
+## Run
 
-### Option A: Run Flask API Server
-
-```bash
+```powershell
 python main.py
 ```
 
-The server will start at `http://localhost:5000`
+Default address: `http://localhost:5001`
 
-### Option B: Run Examples
+## Open in Browser
 
-```bash
-python examples.py
+- Frontend: `http://localhost:5001/`
+- Health endpoint: `http://localhost:5001/api/health`
+
+## Run Tests
+
+```powershell
+python -m unittest tests/test_ai_modules.py -v
 ```
 
-This demonstrates all key features of the system.
+## Main Endpoints
 
-### Option C: Run Unit Tests
+### User
 
-```bash
-python -m pytest tests/test_ai_modules.py -v
-```
-
-Or:
-
-```bash
-python tests/test_ai_modules.py
-```
-
-## API Endpoints
-
-### User Management
-
-- `POST /api/user/create` - Create new user
-- `GET /api/user/<user_id>` - Get user profile
-
-### Insights
-
-- `GET /api/insights/<user_id>` - Get comprehensive health insights
+- `POST /api/user/create`
+- `GET /api/user/<user_id>`
 
 ### Nutrition
 
-- `POST /api/nutrition/log-meal` - Log a meal
-- `GET /api/nutrition/analysis/<user_id>` - Get nutrition report
-- `GET /api/nutrition/recommendations/<user_id>` - Get macro recommendations
+- `POST /api/nutrition/log-meal/<user_id>`
+- `GET /api/nutrition/analysis/<user_id>`
+- `GET /api/nutrition/recommendations/<user_id>`
+- `GET /api/nutrition/meal-recommendations/<user_id>`
 
-### Scheduling
+### Schedule
 
-- `GET /api/schedule/available-slots/<user_id>` - Find available study slots
-- `POST /api/schedule/optimize/<user_id>` - Optimize weekly schedule
+- `POST /api/schedule/optimize/<user_id>`
+- `GET /api/schedule/available-slots/<user_id>`
 
 ### Productivity
 
-- `POST /api/productivity/predict/<user_id>` - Predict focus score
-- `GET /api/productivity/optimal-time/<user_id>` - Get optimal study time
+- `POST /api/productivity/predict/<user_id>`
+- `GET /api/productivity/optimal-time/<user_id>`
 
-### Recommendations
+### Chat and Insights
 
-- `POST /api/recommendations/<user_id>` - Get AI recommendations
+- `POST /api/chat/<user_id>`
+- `POST /api/chat/<user_id>/reset`
+- `GET /api/insights/<user_id>`
+- `POST /api/recommendations/<user_id>`
 
-### System
+### External APIs
 
-- `GET /api/health` - Health check
+- `GET /api/food/search`
+- `GET /api/food/barcode/<barcode>`
+- `POST /api/food/log-text/<user_id>`
+- `GET /api/exercise/search`
+- `GET /api/exercisedb/search`
+- `GET /api/wger/<endpoint>`
+- `GET /api/weather/context`
 
-## Project Structure
+## Optional .env Keys
 
-```
-Health-Agent/
-├── models/                    # Data models
-│   ├── __init__.py
-│   ├── user_profile.py       # User profile & goals
-│   ├── activity.py           # Study sessions & activities
-│   └── meal.py               # Meals & nutrition info
-│
-├── ai_modules/               # AI & ML implementations
-│   ├── __init__.py
-│   ├── knowledge_base.py     # Rule-based reasoning
-│   ├── scheduler_optimizer.py # CSP solver
-│   ├── productivity_predictor.py # ML model
-│   ├── nutrition_analyzer.py  # Pattern analysis
-│   └── recommendation_engine.py # Recommendations
-│
-├── api/                       # Flask API
-│   ├── __init__.py
-│   └── routes.py             # API endpoints
-│
-├── data/                      # Data utilities
-│   ├── __init__.py
-│   └── sample_data.py        # Sample food database
-│
-├── tests/                     # Unit tests
-│   ├── __init__.py
-│   └── test_ai_modules.py    # Comprehensive tests
-│
-├── main.py                    # Application entry point
-├── examples.py                # Usage examples
-├── requirements.txt           # Dependencies
-└── SETUP.md                   # This file
-```
-
-## Usage Examples
-
-### 1. Create User
-
-```python
-from models.user_profile import UserProfile, Goal
-
-user = UserProfile(
-    user_id="user_001",
-    name="John Doe",
-    age=22,
-    weight_kg=75,
-    height_cm=180,
-    goals=[Goal.ENERGY_OPTIMIZATION, Goal.MUSCLE_GAIN]
-)
-```
-
-### 2. Predict Study Productivity
-
-```python
-from ai_modules import ProductivityPredictor, Features
-
-predictor = ProductivityPredictor()
-features = Features(
-    hour_of_day=10,
-    day_of_week=2,
-    sleep_quality=8.0,
-    sleep_hours=8.0,
-    nutrition_score=80.0,
-    energy_level=7,
-    previous_session_duration=60,
-    task_difficulty=6
-)
-focus_score = predictor.predict(features)
-print(f"Expected Focus: {focus_score}/10")
-```
-
-### 3. Optimize Study Schedule
-
-```python
-from ai_modules import ScheduleOptimizer
-from datetime import datetime, timedelta
-
-optimizer = ScheduleOptimizer()
-tasks = [
-    {
-        "subject": "Math",
-        "duration_min": 90,
-        "difficulty": 8,
-        "deadline": datetime.now() + timedelta(days=2)
-    }
-]
-schedule = optimizer.optimize_schedule(tasks)
-```
-
-### 4. Analyze Nutrition
-
-```python
-from ai_modules import NutritionAnalyzer
-from models.meal import NutritionInfo
-
-target = NutritionInfo(calories=2000, protein_g=150, carbs_g=250, fat_g=65)
-analyzer = NutritionAnalyzer(target)
-report = analyzer.get_nutrition_report()
-```
-
-### 5. Get AI Recommendations
-
-```python
-from ai_modules import KnowledgeBase
-
-kb = KnowledgeBase(user)
-kb.add_facts({
-    "daily_calories": 2500,
-    "energy_level": 5,
-    "sleep_hours": 6
-})
-recommendations = kb.get_top_recommendations(n=3)
-```
-
-## AI Modules Overview
-
-### Knowledge Base (Rule-based Reasoning)
-
-- Inference engine using forward chaining
-- 7+ built-in rules for health optimization
-- Extensible rule system
-- Confidence scoring for recommendations
-
-### Schedule Optimizer (CSP Solver)
-
-- Constraint Satisfaction Problem solver with backtracking
-- Productivity-aware time slot allocation
-- Task prioritization (difficulty, deadline, duration)
-- Supports scheduling constraints
-
-### Productivity Predictor (ML)
-
-- Linear and non-linear prediction models
-- Features: sleep, nutrition, energy, time of day, task difficulty
-- Recommended session duration estimation
-- Optimal study time suggestions
-
-### Nutrition Analyzer (Pattern Recognition)
-
-- Macro balance analysis
-- Adherence tracking
-- Anomaly detection
-- Meal pattern identification
-- Correlation analysis with performance
-
-### Recommendation Engines
-
-- Content-based meal filtering
-- Constraint-based meal selection
-- Activity timing optimization
-- Dietary preference satisfaction
-
-## Evaluation Metrics Implemented
-
-1. **Study Effectiveness Score** = (Focus × Duration × Completion) / 100
-2. **Nutrition Adherence Rate** = % of days within ±10% of targets
-3. **ML Model Accuracy** = MAE < 1.5, Cross-validation > 75%
-4. **Pattern Correlation** = Pearson correlation for lifestyle factors
-5. **Schedule Optimization Score** = Based on productivity factors
+External features depend on API keys in `.env` (for example Nutritionix, USDA, RapidAPI). Core features run without them.
 
 ## Troubleshooting
 
-### Import Errors
+### Execution policy issue on PowerShell
 
-Ensure all files are in correct directories and dependencies are installed:
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+```
 
-```bash
+### Port already in use
+
+Set a different port before run:
+
+```powershell
+$env:PORT=5002
+python main.py
+```
+
+### Import or dependency errors
+
+```powershell
 pip install -r requirements.txt
 ```
 
-### Flask Port Already in Use
+## Notes
 
-Change port in `main.py`:
-
-```python
-app.run(port=5001)  # Use different port
-```
-
-### Missing Data
-
-Sample data available in `data/sample_data.py`:
-
-```python
-from data.sample_data import SAMPLE_FOODS, create_sample_user
-```
-
-## Performance Notes
-
-- CSP solver runs ~50 trials for optimization (configurable)
-- ML models use simplified linear regression for speed
-- Production deployments should use proper database (not in-memory)
-- Scale up sample size for better ML model accuracy
-
-## Future Enhancements
-
-## Future Enhancements
-
-- PostgreSQL integration to persist DailyNutritionLog and UserProfile
-  across sessions, enabling longitudinal analysis beyond the current
-  in-memory history list, etc.
-- Collaborative filtering (SVD/matrix factorisation) to extend
-  MealRecommendationEngine beyond single-user content-based scoring
-  once a multi-user rating dataset is available
-- Wearable API integration (Apple HealthKit, Fitbit) to auto-populate
-  ActivityLog and energy metrics, removing manual data entry friction
-- Computer vision food recognition to replace manual FoodItem lookup
-  with photo-based NutritionInfo estimation
-- Adaptive macro target recalibration: use weekly correlate_nutrition_
-  performance() output to automatically adjust UserProfile targets
-  rather than keeping them static
-- Anomaly-triggered notifications: surface detect_nutritional_anomalies()
-  Z-score alerts and adherence rate drops directly to the user in real time
-- FastAPI REST layer to expose NutritionAnalyzer and
-  MealRecommendationEngine as endpoints for mobile or web clients
-
-## Contributing
-
-Extend the system by:
-
-1. Adding new rules in `knowledge_base.py`
-2. Adding new predictive models in `productivity_predictor.py`
-3. Extending schedulers in `scheduler_optimizer.py`
-4. Adding new API endpoints in `api/__init__.py`
+- In-memory stores are used currently; restarting clears runtime data.
+- Food database is loaded at startup from `data/dataset_loader_v2.py`.

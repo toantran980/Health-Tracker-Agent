@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Health & Wellness Tracker</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="page-bg"></div>
+  <main class="container">
+    <header class="hero">
+      <p class="eyebrow">AI Health + Study Assistant</p>
+      <h1>Health Tracker Frontend</h1>
+      <p class="subtitle">Manage users, meals, productivity, scheduling, and chatbot interactions from one dashboard.</p>
+      <div class="status-row">
+        <button id="btnHealth" class="btn">Check API Health</button>
+        <span id="healthStatus" class="pill">Unknown</span>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2>Session</h2>
+      <div class="grid two">
+        <label>
+          API Base URL
+          <input id="apiBase" type="text" placeholder="http://localhost:5001">
+        </label>
+        <label>
+          Active User ID
+          <input id="activeUserId" type="text" placeholder="user_1">
+        </label>
+      </div>
+      <p class="hint">If running this page from the same Flask app, leave base URL as current origin.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Create User</h2>
+      <form id="createUserForm" class="grid three">
+        <label>Name<input name="name" type="text" value="Alex"></label>
+        <label>Age<input name="age" type="number" value="23"></label>
+        <label>Sex
+          <select name="biological_sex">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </label>
+        <label>Weight (kg)<input name="weight_kg" type="number" step="0.1" value="70"></label>
+        <label>Height (cm)<input name="height_cm" type="number" value="175"></label>
+        <label>Goal
+          <select name="goal">
+            <option value="general_wellness">General Wellness</option>
+            <option value="weight_loss">Weight Loss</option>
+            <option value="muscle_gain">Muscle Gain</option>
+            <option value="better_focus">Better Focus</option>
+          </select>
+        </label>
+        <label>Target Calories<input name="target_calories" type="number" value="2200"></label>
+        <label>Protein (g)<input name="target_protein_g" type="number" step="0.1" value="140"></label>
+        <label>Carbs (g)<input name="target_carbs_g" type="number" step="0.1" value="240"></label>
+        <label>Fat (g)<input name="target_fat_g" type="number" step="0.1" value="70"></label>
+        <div class="actions span-3">
+          <button class="btn primary" type="submit">Create User</button>
+          <button id="btnGetUser" class="btn" type="button">Get Active User</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Nutrition</h2>
+      <div class="grid two">
+        <form id="mealForm" class="subpanel">
+          <h3>Log Meal</h3>
+          <label>Meal Type
+            <select name="meal_type">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch" selected>Lunch</option>
+              <option value="dinner">Dinner</option>
+              <option value="snack">Snack</option>
+            </select>
+          </label>
+          <label>Food Name<input name="food_name" type="text" value="Chicken Rice"></label>
+          <label>Calories<input name="calories" type="number" value="550"></label>
+          <label>Protein (g)<input name="protein_g" type="number" step="0.1" value="30"></label>
+          <label>Carbs (g)<input name="carbs_g" type="number" step="0.1" value="65"></label>
+          <label>Fat (g)<input name="fat_g" type="number" step="0.1" value="18"></label>
+          <button class="btn primary" type="submit">Log Meal</button>
+        </form>
+
+        <div class="subpanel">
+          <h3>Analysis + Meal Recs</h3>
+          <div class="inline-fields">
+            <button id="btnAnalyze" class="btn" type="button">Get Nutrition Analysis</button>
+            <button id="btnMacroRecs" class="btn" type="button">Get Macro Recs</button>
+          </div>
+          <form id="mealRecForm">
+            <div class="grid two compact">
+              <label>Target Calories<input name="target_calories" type="number" value="650"></label>
+              <label>Target Protein<input name="target_protein" type="number" step="0.1" value="35"></label>
+              <label>Mode
+                <select name="mode">
+                  <option value="constraint">Constraint</option>
+                  <option value="content">Content</option>
+                  <option value="hybrid">Hybrid</option>
+                </select>
+              </label>
+              <label>Count<input name="n" type="number" value="5"></label>
+            </div>
+            <button class="btn" type="submit">Get Meal Recommendations</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Schedule + Productivity</h2>
+      <div class="grid two">
+        <form id="scheduleForm" class="subpanel">
+          <h3>Optimize Schedule</h3>
+          <div class="task-builder-header">
+            <p class="task-builder-title">Task Builder</p>
+            <button id="btnAddTask" class="btn" type="button">Add Task</button>
+          </div>
+          <div id="taskList" class="task-list"></div>
+          <p id="taskSummary" class="hint">Total tasks: 0 | Total duration: 0 min</p>
+          <button class="btn primary" type="submit">Optimize</button>
+          <button id="btnSlots" class="btn" type="button">Get Available Slots</button>
+        </form>
+
+        <form id="productivityForm" class="subpanel">
+          <h3>Predict Productivity</h3>
+          <div class="grid two compact">
+            <label>Hour<input name="hour_of_day" type="number" value="10"></label>
+            <label>Day (0=Mon)<input name="day_of_week" type="number" value="0"></label>
+            <label>Sleep Quality<input name="sleep_quality" type="number" step="0.1" value="7.5"></label>
+            <label>Sleep Hours<input name="sleep_hours" type="number" step="0.1" value="8"></label>
+            <label>Nutrition Score<input name="nutrition_score" type="number" step="0.1" value="78"></label>
+            <label>Energy Level<input name="energy_level" type="number" value="7"></label>
+            <label>Prev Duration<input name="previous_session_duration" type="number" value="60"></label>
+            <label>Difficulty<input name="task_difficulty" type="number" value="6"></label>
+          </div>
+          <button class="btn primary" type="submit">Predict</button>
+          <button id="btnOptimalTime" class="btn" type="button">Get Optimal Study Time</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Chatbot + Insights</h2>
+      <div class="grid two">
+        <form id="chatForm" class="subpanel">
+          <h3>Health Chatbot</h3>
+          <label>Message<input name="message" type="text" value="Give me a healthy dinner suggestion for tonight."></label>
+          <div class="inline-fields">
+            <button class="btn primary" type="submit">Send</button>
+            <button id="btnResetChat" class="btn" type="button">Reset Chat</button>
+          </div>
+        </form>
+
+        <div class="subpanel">
+          <h3>Other Actions</h3>
+          <div class="inline-fields">
+            <button id="btnInsights" class="btn" type="button">Get Health Insights</button>
+            <button id="btnKnowledgeRecs" class="btn" type="button">Get KB Recommendations</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel output-panel">
+      <h2>Response</h2>
+      <pre id="output">Run any action to see API responses here.</pre>
+    </section>
+
+    <section class="panel">
+      <h2>Analytics Trends</h2>
+      <div class="grid three charts-grid">
+        <div class="subpanel chart-panel">
+          <h3>Calories</h3>
+          <canvas id="caloriesChart" height="200"></canvas>
+        </div>
+        <div class="subpanel chart-panel">
+          <h3>Macros (g)</h3>
+          <canvas id="macrosChart" height="200"></canvas>
+        </div>
+        <div class="subpanel chart-panel">
+          <h3>Focus Score</h3>
+          <canvas id="focusChart" height="200"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

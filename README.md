@@ -1,232 +1,193 @@
 # AI Health & Wellness Tracker
 
-## Project Overview
+AI Health & Wellness Tracker is a Flask-based project that combines nutrition tracking, study schedule optimization, productivity prediction, and rule-based wellness recommendations. It includes a REST API and a built-in frontend dashboard.
 
-**AI Health & Wellness Tracker** is an intelligent personal health management system that helps users optimize their daily routines across three key dimensions: **diet management**, **study schedules**, and **overall time efficiency**. The system uses custom-built AI reasoning, optimization algorithms, and machine learning to provide personalized recommendations and adaptive scheduling.
+## What Is Included
 
-This is a project with core AI logic implemented by the team, not relying solely on external APIs. The system is implemented as a Python-based REST API that can be integrated into mobile applications, web platforms, or used directly via API calls.
+- Flask backend API with user, nutrition, schedule, productivity, chatbot, and external API routes
+- Built-in frontend at `/` (served by Flask)
+- Live trend charts (Chart.js) for calories, macros, and focus score
+- Task Builder UI for schedule optimization (no raw JSON needed)
+- AI modules:
+  - `KnowledgeBase` (rule-based recommendations)
+  - `ScheduleOptimizer` (CSP + heuristics)
+  - `ProductivityPredictor` (focus score + session duration)
+  - `NutritionAnalyzer`
+  - `MealRecommendationEngine`
 
----
+## Tech Stack
 
-## Problem Statement
+- Python 3.10+
+- Flask
+- scikit-learn, xgboost, pandas, numpy
+- Chart.js (frontend charts)
 
-- **Fragmented health data** (diet, exercise, sleep) scattered across multiple apps
-- **Inefficient time management** leading to procrastination and poor study outcomes
-- **Inconsistent nutrition tracking** with no intelligent feedback or optimization
-- **Lack of personalized insights** that connect study performance to lifestyle factors
-- **No adaptive scheduling** that adjusts to user behavior and patterns
+## Project Structure
 
----
-
-## Core Features
-
-### 1. **Smart Diet Tracker**
-
-- **Food Logging**: Log meals with nutritional data (calories, macros, micronutrients)
-- **AI Nutritional Analysis**:
-  - Pattern detection for eating habits
-  - Recommendation engine based on health goals and dietary preferences
-  - Meal optimization suggestions (balance macro ratios, caloric intake)
-- **Health Goal Alignment**: Track progress toward goals (weight loss, muscle gain, energy optimization)
-
-### 2. **Adaptive Study Schedule Optimizer**
-
-- **Schedule Conflict Resolution**: AI algorithm resolves scheduling conflicts and optimizes time allocation
-- **Productivity Prediction**: ML model predicts optimal study times based on:
-  - Historical study session data
-  - Time of day patterns
-  - Task complexity and estimated duration
-  - Cognitive load factors
-- **Dynamic Rescheduling**: Automatically adjusts schedules when constraints change
-- **Study Session Quality Scoring**: Tracks focus metrics (self-reported or device-based) and correlates with outcomes
-
-### 3. **Time Efficiency Dashboard**
-
-- **Time Block Allocation**: Intelligent distribution of time across diet, exercise, study, rest
-- **Context-Aware Recommendations**: Suggests activities based on energy levels and available time
-- **Weekly/Monthly Reports**: Analytics on time usage, efficiency trends, and improvement areas
-
-### 4. **Wellness Integration**
-
-- **Sleep Tracking**: Import sleep data, correlate with study performance and diet
-- **Energy Level Monitoring**: Track subjective energy and correlate with lifestyle factors
-- **Behavioral Insights**: Identify patterns (e.g., "High protein intake on study days → 10% better focus")
-
----
-
-## AI & Reasoning Components
-
-### 1. **Optimization Algorithms**
-
-- **Constraint Satisfaction Problem (CSP)**: Resolve scheduling conflicts while maximizing study efficiency
-  - Constraints: deadlines, class times, sleep requirements, meal times
-  - Optimization: longest/hardest tasks during peak productivity hours
-- **Heuristic-Based Scheduling**:
-  - First-Fit Decreasing (FFD) for task scheduling
-  - Weighted Priority scheduling based on deadline urgency and task complexity
-
-### 2. **Machine Learning Models**
-
-- **Study Productivity Predictor**:
-
-  - Features: time of day, day of week, sleep quality, nutrition score, previous study duration
-  - Output: predicted focus level (1-10 scale) and optimal session duration
-  - Algorithm: Regression model (Linear/Gradient Boosting) trained on user historical data
-- **Meal Recommendation Engine**:
-
-  - Content-based filtering: Similar meals to previous high-satisfaction meals
-  - Collaborative concepts: Suggest meals based on similar users' patterns
-  - Constraint satisfaction: Meet macro/micronutrient targets
-
-### 3. **Knowledge Representation & Reasoning**
-
-- **User Health Profile**: Rule-based system encoding:
-  - Goals: weight loss / muscle gain / energy optimization
-  - Constraints: allergies, dietary preferences, time availability
-  - Current state: progress toward goals, adherence metrics
-- **Inference Engine**: Forward chaining to derive daily recommendations
-  - If (goal = weight loss) AND (avg_daily_intake > target) THEN recommend_lower_calorie_meals()
-  - If (study_session_duration < 30min) AND (energy_level > 7) THEN suggest_longer_session()
-
-### 4. **Pattern Recognition & Anomaly Detection**
-
-- **Behavioral Clustering**: Identify similar study/eating patterns to recommend best practices
-- **Anomaly Detection**: Flag unusual patterns (e.g., sudden decrease in study hours, caloric intake spikes)
-- **Trend Analysis**: Moving averages to smooth noise and identify real trends
-
----
-
-## Technical Architecture
-
-### Tech Stack
-
-- **Backend**: Python (Flask/FastAPI) with scikit-learn, pandas, numpy
-- **Database**: SQLite/PostgreSQL for user data, activity logs
-- **AI/ML**: scikit-learn, XGBoost for predictive models
-- **API**: RESTful API for integration with external applications
-
-### Core Modules
-
-```
-health-agent/
-├── data/
-│   └── sample_data/
-├── ai_modules/
-│   ├── scheduler_optimizer.py      # CSP solver for scheduling
-│   ├── productivity_predictor.py    # ML model for study optimization
-│   ├── nutrition_analyzer.py        # Nutritional pattern analysis
-│   ├── recommendation_engine.py     # Meal & activity recommendations
-│   └── knowledge_base.py            # Rule-based reasoning
-├── api/
-│   └── routes.py                    # REST endpoints
-└── tests/
-    └── test_ai_modules.py
+```text
+Health-Tracker-Agent/
+|-- main.py
+|-- requirements.txt
+|-- README.md
+|-- api/
+|   |-- routes.py
+|   `-- external_apis.py
+|-- ai_modules/
+|-- models/
+|-- data/
+|-- templates/
+|   `-- index.html
+|-- static/
+|   |-- app.js
+|   `-- styles.css
+`-- tests/
+    `-- test_ai_modules.py
 ```
 
----
+## Setup (Windows PowerShell)
 
-## Quantitative Evaluation Metrics
+1. Open PowerShell in the project root.
+1. Create a virtual environment (optional if you already have one):
 
-### 1. **Study Optimization Performance**
+```powershell
+python -m venv venv
+```
 
-- **Metric**: Study Session Effectiveness Score
-  - Formula: `(Focus Score × Duration × Content Retention) / 100`
-  - **Baseline**: Unoptimized schedule (random study times)
-  - **Target**: 30% improvement in effectiveness within 4 weeks
-  - **Measurement**: User self-reported focus scores + exam performance tracking
+1. Activate virtual environment:
 
-### 2. **Nutrition Adherence**
+```powershell
+.\venv\Scripts\Activate.ps1
+```
 
-- **Metric**: Daily Goal Adherence Rate
-  - Percentage of days meals align with nutritional targets (±10%)
-  - **Baseline**: Pre-AI tracking adherence rates
-  - **Target**: 70% adherence with recommendations vs. 45% baseline
+1. Install dependencies:
 
-### 3. **Time Efficiency**
+```powershell
+pip install -r requirements.txt
+```
 
-- **Metric**: Productive Hours Per Week
-  - Total hours spent on high-priority tasks (study, exercises, meal prep)
-  - **Baseline**: Self-reported productivity
-  - **Target**: 15% increase in productive hours through optimized scheduling
+## Run the Project
 
-### 4. **ML Model Accuracy**
+Start the server:
 
-- **Productivity Predictor**:
-  - MAE (Mean Absolute Error): < 1.5 points on 10-point focus scale
-  - Cross-validation accuracy: > 75%
-- **Meal Satisfaction Prediction**:
-  - Precision@5: > 70% (top 5 recommendations match user preferences)
+```powershell
+python main.py
+```
 
-### 5. **User Engagement**
+Open in browser:
 
-- **Metric**: Consistency Score
-  - Percentage of planned activities completed
-  - **Target**: > 80% completion rate for scheduled tasks
+- Frontend dashboard: `http://localhost:5001/`
+- Health check: `http://localhost:5001/api/health`
 
-### 6. **Behavioral Insight Accuracy**
+Note: the server runs on port `5001` by default.
 
-- **Metric**: Correlation Strength
-  - Correlation between meal quality and study performance (measured by exam scores/grades)
-  - Correlation between sleep quality and focus levels
-  - **Target**: Identify at least 3 statistically significant patterns (p < 0.05) per user
+## Frontend Dashboard
 
----
+The frontend is served by Flask and includes:
 
-## How It Works: User Journey
+- User creation and profile fetch
+- Meal logging and nutrition analysis
+- Macro recommendations and meal recommendations
+- Schedule optimization with row-based Task Builder
+- Productivity prediction and optimal time suggestion
+- Health chatbot and session reset
+- Knowledge base recommendations and health insights
+- Trend charts:
+  - Calories trend
+  - Macros trend (protein, carbs, fat)
+  - Focus trend
 
-1. **Onboarding**: User sets health goals (weight, fitness, academic performance), current diet/sleep habits
-2. **Daily Logging**: User logs meals (simplified via barcode/image recognition + AI categorization), study hours, sleep
-3. **AI Analysis**:
-   - Productivity predictor suggests optimal study times for the week
-   - Meal recommendation engine suggests balanced meals matching goals
-   - Scheduler resolves conflicts and optimizes time allocation
-4. **Adaptive Feedback**:
-   - As user provides feedback (focus scores, meal satisfaction), models retrain
-   - System identifies and highlights behavioral patterns
-5. **Weekly Insights**: Dashboard shows progress, correlations, and improvement recommendations
+## API Endpoints
 
----
+### User
 
-## Implementation Timeline
+- `POST /api/user/create`
+- `GET /api/user/<user_id>`
 
-- **Phase 1 (Weeks 1)**: Data collection, model training pipeline, basic UI
-- **Phase 2 (Weeks 2)**: AI modules implementation (scheduler, productivity predictor)
-- **Phase 3 (Weeks 3)**: Integration, evaluation metrics, user testing, Optimization, documentation, final evaluation
+### Nutrition
 
----
+- `POST /api/nutrition/log-meal/<user_id>`
+- `GET /api/nutrition/analysis/<user_id>`
+- `GET /api/nutrition/recommendations/<user_id>`
+- `GET /api/nutrition/meal-recommendations/<user_id>`
 
-## Success Criteria
+### Schedule
 
-✅ Core AI algorithms operational (scheduling optimizer, predictors)
-✅ Minimum 30% improvement in study effectiveness for test users
-✅ ML models achieve target accuracy metrics
-✅ System identifies at least 3 statistically significant lifestyle patterns
-✅ User engagement rate > 80% task completion
-✅ Well-documented code with unit tests for all AI modules
+- `POST /api/schedule/optimize/<user_id>`
+- `GET /api/schedule/available-slots/<user_id>`
 
----
+### Productivity
 
-## Future Enhancements
+- `POST /api/productivity/predict/<user_id>`
+- `GET /api/productivity/optimal-time/<user_id>`
 
-- Computer vision for food recognition
-- IoT integration (smartwatch data for real-time energy tracking)
-- Collaborative filtering between users for better meal recommendations
-- Advanced NLP for analyzing study notes and predicting comprehension
-- Real-time biometric feedback (heart rate variability as stress indicator)
+### Recommendations and Insights
 
----
+- `POST /api/recommendations/<user_id>`
+- `GET /api/insights/<user_id>`
 
-## Team Roles
+### Chatbot
 
-- **AI/ML Lead**: Develops predictive models, optimization algorithms
-- **Backend Engineer**: API development, database design, data processing
-- **QA/Evaluation**: Metrics tracking, A/B testing, user feedback analysis (may ignore)
+- `POST /api/chat/<user_id>`
+- `POST /api/chat/<user_id>/reset`
 
----
+### External Data
 
-## References & Related Work
+- `GET /api/food/search?q=<term>&limit=<n>`
+- `GET /api/food/barcode/<barcode>`
+- `POST /api/food/log-text/<user_id>`
+- `GET /api/exercise/search?q=<term>`
+- `GET /api/exercisedb/search?q=<term>`
+- `GET /api/wger/<endpoint>`
+- `GET /api/weather/context?lat=<lat>&lon=<lon>`
 
-- Constraint Satisfaction Problems in Scheduling (Russell & Norvig, AI: A Modern Approach)
-- Time Management & Productivity Optimization Literature
-- Nutritional AI and recommendation systems
-- Behavioral pattern recognition in health data
+### System
+
+- `GET /api/health`
+
+## Task Payload Compatibility
+
+Schedule optimization now accepts both shapes below (backend normalizes automatically):
+
+1. Frontend-style tasks:
+
+```json
+{
+  "title": "Essay Draft",
+  "duration_minutes": 60,
+  "difficulty": 6,
+  "deadline_days": 2
+}
+```
+
+1. Optimizer-style tasks:
+
+```json
+{
+  "name": "Essay Draft",
+  "duration_min": 60,
+  "difficulty": 6,
+  "deadline": "2030-01-01T10:00:00"
+}
+```
+
+## Run Tests
+
+```powershell
+python -m unittest tests/test_ai_modules.py -v
+```
+
+## Environment Variables (Optional)
+
+Some external API features require keys in `.env`:
+
+- Nutritionix (NLP meal parsing)
+- USDA (food search)
+- ExerciseDB / RapidAPI
+
+Core local features still run without these keys.
+
+## Notes
+
+- Data is currently stored in-memory while the server is running.
+- Restarting the server resets users, logs, and sessions.
+- Food database is loaded from `dataset_loader_v2` during startup.

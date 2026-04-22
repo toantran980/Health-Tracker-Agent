@@ -6,13 +6,14 @@ All endpoints return JSON.  Global in-memory dicts act as the data
 store; swap for a real DB when ready.
 """
 
-from flask import Flask, Blueprint, request, jsonify
-from datetime import datetime
+import os
+
+from flask import Flask, request, jsonify, render_template
+from datetime import datetime, timedelta
 from typing import Dict
 
 from models.user_profile import UserProfile, Goal, BiologicalSex
 from models.meal import NutritionInfo, Meal, MealType, FoodItem, DailyNutritionLog
-from models.activity import StudySession, ScheduledActivity, ActivityType
 from ai_modules import (
     KnowledgeBase,
     ScheduleOptimizer,
@@ -23,7 +24,6 @@ from ai_modules import (
 )
 from ai_modules.health_chatbot import HealthChatbot, UserHealthSnapshot
 from api.external_apis import (
-    search_food_by_name,
     get_food_by_barcode,
     log_natural_language_meal,
     search_exercise,
@@ -31,7 +31,6 @@ from api.external_apis import (
     proxy_wger_endpoint,
     get_weather_context,
     search_all_sources,
-    food_facts_to_fooditem,
     nutritionix_to_fooditem,
 )
 #from data.dataset_loader import load_kaggle_food_dataset
@@ -44,7 +43,13 @@ from data.dataset_loader_v2 import load_food_database
 GLOBAL_FOOD_DB_V2 = load_food_database() 
 
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, 'templates'),
+    static_folder=os.path.join(BASE_DIR, 'static'),
+    static_url_path='/static',
+)
 
 # ── In-memory stores (replace with DB in production) ──────────────────────
 users:               Dict[str, UserProfile]              = {}
@@ -53,6 +58,12 @@ knowledge_bases:     Dict[str, KnowledgeBase]            = {}
 nutrition_analyzers: Dict[str, NutritionAnalyzer]        = {}
 meal_recommenders:   Dict[str, MealRecommendationEngine] = {}
 bot_sessions:        Dict[str, HealthChatbot]            = {}
+
+
+@app.route('/', methods=['GET'])
+def index():
+    """Serve the single-page frontend application."""
+    return render_template('index.html')
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -77,6 +88,74 @@ def _require_user(user_id: str):
     if not user:
         return None, (jsonify({"error": "User not found"}), 404)
     return user, None
+
+
+def _sync_analyzer_daily_log(user_id: str, date_str: str, daily_log: DailyNutritionLog) -> None:
+    """Replace or append a daily log in the user's analyzer history."""
+    analyzer = nutrition_analyzers.get(user_id)
+    if not analyzer:
+        return
+
+    existing = next(
+        (i for i, log in enumerate(analyzer.history) if log.date.date().isoformat() == date_str),
+        None,
+    )
+    if existing is not None:
+        analyzer.history[existing] = daily_log
+    else:
+        analyzer.add_daily_log(daily_log)
+
+
+def _attach_meal_to_user_log(user_id: str, meal: Meal) -> DailyNutritionLog:
+    """Attach a meal to the corresponding daily log and keep analyzer history synced."""
+    date_str = meal.timestamp.date().isoformat()
+    daily_log = _get_or_create_daily_log(user_id, date_str)
+    daily_log.meals.append(meal)
+    _sync_analyzer_daily_log(user_id, date_str, daily_log)
+    return daily_log
+
+
+def _normalize_schedule_tasks(raw_tasks):
+    """Map frontend-friendly schedule task payloads to ScheduleOptimizer's expected shape."""
+    normalized = []
+    for task in raw_tasks or []:
+        name = task.get('name') or task.get('title') or 'Untitled Task'
+        duration_min = task.get('duration_min', task.get('duration_minutes', 60))
+        difficulty = task.get('difficulty', 5)
+        deadline = task.get('deadline')
+        deadline_days = task.get('deadline_days')
+
+        if deadline:
+            try:
+                deadline_dt = datetime.fromisoformat(deadline)
+            except ValueError:
+                deadline_dt = datetime.now() + timedelta(days=7)
+        elif deadline_days is not None:
+            try:
+                deadline_dt = datetime.now() + timedelta(days=int(deadline_days))
+            except (TypeError, ValueError):
+                deadline_dt = datetime.now() + timedelta(days=7)
+        else:
+            deadline_dt = datetime.now() + timedelta(days=7)
+
+        try:
+            duration_min = int(duration_min)
+        except (TypeError, ValueError):
+            duration_min = 60
+
+        try:
+            difficulty = float(difficulty)
+        except (TypeError, ValueError):
+            difficulty = 5.0
+
+        normalized.append({
+            'name': str(name),
+            'duration_min': max(duration_min, 1),
+            'difficulty': difficulty,
+            'deadline': deadline_dt,
+        })
+
+    return normalized
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -187,23 +266,7 @@ def log_meal(user_id):
         notes      = data.get('notes', ''),
     )
 
-    # ── Attach to today's DailyNutritionLog ─────────────────────────────
-    date_str  = ts.date().isoformat()
-    daily_log = _get_or_create_daily_log(user_id, date_str)
-    daily_log.meals.append(meal)
-
-    # ── Feed updated log into NutritionAnalyzer ──────────────────────────
-    analyzer = nutrition_analyzers.get(user_id)
-    if analyzer:
-        # Replace or add the log for this date in analyzer history
-        existing = next(
-            (i for i, l in enumerate(analyzer.history) if l.date.date().isoformat() == date_str),
-            None
-        )
-        if existing is not None:
-            analyzer.history[existing] = daily_log
-        else:
-            analyzer.add_daily_log(daily_log)
+    _attach_meal_to_user_log(user_id, meal)
 
     total = meal.get_total_nutrition()
     return jsonify({
@@ -320,7 +383,7 @@ def optimize_schedule(user_id):
 
     data      = request.json or {}
     optimizer = ScheduleOptimizer(user.earliest_study_time, user.latest_study_time)
-    tasks     = data.get('tasks', [])
+    tasks     = _normalize_schedule_tasks(data.get('tasks', []))
     optimized = optimizer.optimize_schedule(tasks)
 
     return jsonify({
@@ -515,18 +578,17 @@ def chat(user_id):
 
     snapshot = UserHealthSnapshot(
         name                   = user.name,
+        weight_lbs             = round(user.weight_kg * 2.20462, 1),
         calories_today         = data.get("calories_today",      0),
-        calorie_target         = user.target_calories,
         protein_g              = data.get("protein_g",           0),
-        protein_target_g       = user.target_protein_g,
         carbs_g                = data.get("carbs_g",             0),
         fat_g                  = data.get("fat_g",               0),
         water_ml               = data.get("water_ml",            0),
         study_hours_today      = data.get("study_hours_today",   0),
         focus_score            = data.get("focus_score"),
         sleep_hours_last_night = data.get("sleep_hours"),
-        health_goal            = user.goals[0].value if user.goals else "general wellness",
-        dietary_restrictions   = data.get("dietary_restrictions", []),
+        health_goal            = user.goals[0].value if user.goals else "general_wellness",
+        dietary_restrictions   = data.get("dietary_restrictions", user.dietary_restrictions),
         active_insights        = data.get("active_insights",     []),
     )
 
@@ -628,20 +690,7 @@ def food_log_text(user_id):
         notes      = f"NLP parsed: {text}",
     )
 
-    date_str  = meal.timestamp.date().isoformat()
-    daily_log = _get_or_create_daily_log(user_id, date_str)
-    daily_log.meals.append(meal)
-
-    analyzer = nutrition_analyzers.get(user_id)
-    if analyzer:
-        existing = next(
-            (i for i, l in enumerate(analyzer.history) if l.date.date().isoformat() == date_str),
-            None
-        )
-        if existing is not None:
-            analyzer.history[existing] = daily_log
-        else:
-            analyzer.add_daily_log(daily_log)
+    _attach_meal_to_user_log(user_id, meal)
 
     total = meal.get_total_nutrition()
     return jsonify({
