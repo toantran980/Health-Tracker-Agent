@@ -28,7 +28,7 @@ class KnowledgeBase:
     def _initialize_rules(self):
         """Initialize built-in rules for the knowledge base"""
         
-        # Rule: If weight loss goal and daily intake > target, recommend calorie reduction
+        # Weight-loss calorie rule
         self.add_rule(Rule(
             name="weight_loss_calorie_reduction",
             condition=lambda: (Goal.WEIGHT_LOSS in self.user_profile.goals and 
@@ -42,7 +42,7 @@ class KnowledgeBase:
             priority=9
         ))
         
-        # Rule: If muscle gain goal and low protein, recommend protein increase
+        # Muscle-gain protein rule
         self.add_rule(Rule(
             name="muscle_gain_protein",
             condition=lambda: (Goal.MUSCLE_GAIN in self.user_profile.goals and 
@@ -56,7 +56,7 @@ class KnowledgeBase:
             priority=8
         ))
         
-        # Rule: If energy optimization goal and low sleep, recommend earlier bedtime
+        # Sleep support rule
         self.add_rule(Rule(
             name="energy_optimization_sleep",
             condition=lambda: (Goal.ENERGY_OPTIMIZATION in self.user_profile.goals and 
@@ -70,7 +70,7 @@ class KnowledgeBase:
             priority=8
         ))
         
-        # Rule: If high study difficulty and low energy, suggest splitting sessions
+        # Split hard tasks at low energy
         self.add_rule(Rule(
             name="high_difficulty_low_energy",
             condition=lambda: (self.facts.get("upcoming_difficulty", 0) > 7 and 
@@ -84,7 +84,7 @@ class KnowledgeBase:
             priority=7
         ))
         
-        # Rule: If low macro balance and consistent meal patterns, suggest meal modifications
+        # Macro balance correction
         self.add_rule(Rule(
             name="macro_imbalance_correction",
             condition=lambda: self.facts.get("macro_balance", "balanced") == "unbalanced",
@@ -97,7 +97,7 @@ class KnowledgeBase:
             priority=6
         ))
         
-        # Rule: If study session < 25 min and energy high, encourage longer session
+        # Extend short sessions at high energy
         self.add_rule(Rule(
             name="short_session_high_energy",
             condition=lambda: (self.facts.get("recent_session_duration", 0) < 25 and 
@@ -111,7 +111,7 @@ class KnowledgeBase:
             priority=6
         ))
         
-        # Rule: If consistent good meals on study days, reinforce the pattern
+        # Reinforce positive meal-study pattern
         self.add_rule(Rule(
             name="positive_nutrition_pattern",
             condition=lambda: (self.facts.get("correlation_nutrition_study", 0) > 0.6 and

@@ -40,9 +40,7 @@ def init_provider():
 MAX_HISTORY_PAIRS = 20
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# NUTRITION ENGINE
-# ═══════════════════════════════════════════════════════════════════════════
+# Nutrition engine
 
 ACTIVITY_MULTIPLIERS  = {"sedentary": 13, "light": 14, "moderate": 15, "active": 16, "very_active": 17}
 PROTEIN_PER_LB        = {"weight_loss": 0.9, "muscle_gain": 1.0, "general_wellness": 0.8, "maintenance": 0.8}
@@ -71,9 +69,7 @@ class NutritionEngine:
         return f"{t['calories']} kcal | P:{t['protein_g']}g | C:{t['carbs_g']}g | F:{t['fat_g']}g"
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# USER HEALTH SNAPSHOT
-# ═══════════════════════════════════════════════════════════════════════════
+# User health snapshot
 
 @dataclass
 class UserHealthSnapshot:
@@ -124,9 +120,7 @@ class UserHealthSnapshot:
         return "\n".join(lines)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# SYSTEM PROMPT
-# ═══════════════════════════════════════════════════════════════════════════
+# System prompt
 
 SYSTEM_PROMPT_TEMPLATE = """You are VitaAI, a friendly AI assistant in a health and wellness tracker. \
 You can help with anything — health, nutrition, study, coding, or general chat.
@@ -149,9 +143,7 @@ Rules: warm and concise tone | never diagnose | respect dietary restrictions | \
 use snapshot only for personal questions, ignore it for general ones."""
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# CHATBOT CLASS
-# ═══════════════════════════════════════════════════════════════════════════
+# Chatbot class
 
 class HealthChatbot:
     """
@@ -208,9 +200,7 @@ class HealthChatbot:
             self.history = self.history[-max_messages:]
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# QUICK TEST — python ai_modules/chatbot.py
-# ═══════════════════════════════════════════════════════════════════════════
+# Quick test: python ai_modules/chatbot.py
 
 if __name__ == "__main__":
     snapshot = UserHealthSnapshot(

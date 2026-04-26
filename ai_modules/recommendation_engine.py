@@ -1,15 +1,11 @@
 import math
-from typing import List, Dict, Optional
+from typing import List, Dict
 from datetime import datetime
 from models.user_profile import UserProfile, Goal
 from models.meal import FoodItem, NutritionInfo
 
 
-# ---------------------------------------------------------------------------
-# Goal-specific weights
-# Each weight tuple: (calories, protein, carbs, fat, satisfaction)
-# Must sum to 1.0 across the first four + satisfaction.
-# ---------------------------------------------------------------------------
+# Goal-specific macro weights
 GOAL_WEIGHTS: Dict[str, Dict[str, float]] = {
     "MUSCLE_GAIN": {"calories": 0.15, "protein": 0.55, "carbs": 0.10, "fat": 0.10, "satisfaction": 0.10},
     "WEIGHT_LOSS": {"calories": 0.50, "protein": 0.20, "carbs": 0.10, "fat": 0.10, "satisfaction": 0.10},
@@ -47,9 +43,7 @@ class MealRecommendationEngine:
         # normalisation is consistent for every call.
         self.db_stats = self.compute_db_stats()
 
-    # ------------------------------------------------------------------ #
-    #  Public data-ingestion methods                                        #
-    # ------------------------------------------------------------------ #
+    # Public data ingestion
 
     def rate_meal(self, food_id: str, rating: float) -> None:
         """Store a user rating (1-10) for a given food."""
@@ -65,9 +59,7 @@ class MealRecommendationEngine:
             "timestamp": datetime.now(),
         })
 
-    # ------------------------------------------------------------------ #
-    #  Vector helpers                                                       #
-    # ------------------------------------------------------------------ #
+    # Vector helpers
 
     def compute_db_stats(self) -> Dict[str, Dict[str, float]]:
         """
@@ -128,9 +120,7 @@ class MealRecommendationEngine:
         raw = [target_calories, target_protein, target_carbs, target_fat]
         return self.minmax_normalize(raw)
 
-    # ------------------------------------------------------------------ #
-    #  Goal-weight resolution                                              #
-    # ------------------------------------------------------------------ #
+    # Goal weight resolution
 
     def resolve_weights(self) -> Dict[str, float]:
         """
@@ -144,9 +134,7 @@ class MealRecommendationEngine:
             return GOAL_WEIGHTS["WEIGHT_LOSS"]
         return DEFAULT_WEIGHTS
 
-    # ------------------------------------------------------------------ #
-    #  Constraint check                                                     #
-    # ------------------------------------------------------------------ #
+    # Constraint checks
 
     def satisfies_dietary_constraints(self, food: FoodItem) -> bool:
         """Return True iff the food respects all profile restrictions."""
@@ -161,9 +149,7 @@ class MealRecommendationEngine:
                 return False
         return True
 
-    # ------------------------------------------------------------------ #
-    #  Recommendation methods                                              #
-    # ------------------------------------------------------------------ #
+    # Recommendation methods
 
     def get_content_based_recommendations(self, n: int = 5) -> List[Dict]:
         """
@@ -359,9 +345,7 @@ class MealRecommendationEngine:
             for food, score in blended[:n]
         ]
 
-    # ------------------------------------------------------------------ #
-    #  Default / fallback                                                   #
-    # ------------------------------------------------------------------ #
+    # Default fallback
 
     def get_default_recommendations(self, n: int) -> List[Dict]:
         """
@@ -384,149 +368,7 @@ class MealRecommendationEngine:
             }
             for f in suitable[:n]
         ]
-    
-class ActivityRecommendationEngine:
-    """
-    Recommends physical activities based on the user's energy level,
-    available time, and active health goals.
- 
-    AI logic overview
-    -----------------
-    1. Goal filtering:  prioritise activity types that serve the user's
-                        active Goal (cardio for weight loss, resistance for
-                        muscle gain, balanced for maintenance).
-    2. Energy gating:   high-intensity activities are only suggested when
-                        energy level is sufficient (>= 7/10).
-    3. Duration scaling: session length scales with available_minutes so
-                         recommendations are always actionable.
-    4. Weather hints:   optional list of hint strings from Open-Meteo
-                        (e.g. "Rainy today") can redirect outdoor → indoor.
-    """
- 
-    # Activity catalogue: (name, intensity 1-10, type, indoor_alternative)
-    ACTIVITIES = [
-        {"name": "Running",           "intensity": 8, "type": "cardio",     "indoor": False, "alt": "Treadmill running"},
-        {"name": "Cycling",           "intensity": 7, "type": "cardio",     "indoor": False, "alt": "Stationary bike"},
-        {"name": "Swimming",          "intensity": 7, "type": "cardio",     "indoor": True,  "alt": "Swimming"},
-        {"name": "HIIT",              "intensity": 9, "type": "cardio",     "indoor": True,  "alt": "HIIT"},
-        {"name": "Jump rope",         "intensity": 8, "type": "cardio",     "indoor": True,  "alt": "Jump rope"},
-        {"name": "Brisk walking",     "intensity": 4, "type": "cardio",     "indoor": False, "alt": "Treadmill walking"},
-        {"name": "Weight training",   "intensity": 7, "type": "strength",   "indoor": True,  "alt": "Weight training"},
-        {"name": "Bodyweight circuit","intensity": 6, "type": "strength",   "indoor": True,  "alt": "Bodyweight circuit"},
-        {"name": "Resistance bands",  "intensity": 5, "type": "strength",   "indoor": True,  "alt": "Resistance bands"},
-        {"name": "Yoga",              "intensity": 3, "type": "flexibility", "indoor": True,  "alt": "Yoga"},
-        {"name": "Stretching",        "intensity": 2, "type": "flexibility", "indoor": True,  "alt": "Stretching"},
-        {"name": "Pilates",           "intensity": 4, "type": "flexibility", "indoor": True,  "alt": "Pilates"},
-    ]
- 
-    def __init__(self, user_profile: UserProfile):
-        self.user_profile = user_profile
- 
-    # ------------------------------------------------------------------ #
-    #  Goal resolution                                                      #
-    # ------------------------------------------------------------------ #
- 
-    def preferred_types(self) -> List[str]:
-        """Return activity types ordered by relevance to the user's goal."""
-        if Goal.MUSCLE_GAIN in self.user_profile.goals:
-            return ["strength", "cardio", "flexibility"]
-        if Goal.WEIGHT_LOSS in self.user_profile.goals:
-            return ["cardio", "strength", "flexibility"]
-        return ["cardio", "strength", "flexibility"]   # balanced default
- 
-    # ------------------------------------------------------------------ #
-    #  Public recommendation method                                         #
-    # ------------------------------------------------------------------ #
- 
-    def recommend(
-        self,
-        energy_level: int = 5,
-        available_minutes: int = 30,
-        weather_hints: Optional[List[str]] = None,
-        n: int = 3,
-    ) -> List[Dict]:
-        """
-        Return up to n activity recommendations.
- 
-        Parameters
-        ----------
-        energy_level      : int  — user's self-reported energy (1–10)
-        available_minutes : int  — how long the user can exercise
-        weather_hints     : list — hint strings from get_weather_context()
-                                   e.g. ["Rainy today — suggest indoor workout alternatives."]
-        n                 : int  — max recommendations to return
-        """
-        weather_hints = weather_hints or []
-        force_indoor  = any("indoor" in h.lower() or "rainy" in h.lower() for h in weather_hints)
- 
-        # Gate max intensity by energy level
-        max_intensity = max(1, energy_level)
- 
-        preferred_types = self.preferred_types()
- 
-        # Score each activity
-        scored: List[tuple] = []
-        for act in self.ACTIVITIES:
-            if act["intensity"] > max_intensity:
-                continue   # too demanding for current energy
- 
-            # Resolve indoor/outdoor
-            name = act["alt"] if (force_indoor and not act["indoor"]) else act["name"]
- 
-            # Goal-type priority score (0, 1, or 2 — higher is better)
-            try:
-                type_priority = len(preferred_types) - preferred_types.index(act["type"])
-            except ValueError:
-                type_priority = 0
- 
-            # Intensity fit: prefer activities close to 70 % of max energy
-            ideal_intensity = max(1, int(energy_level * 0.7))
-            intensity_fit   = 1.0 - abs(act["intensity"] - ideal_intensity) / 10.0
- 
-            score = type_priority + intensity_fit
-            scored.append((act, name, score))
- 
-        scored.sort(key=lambda x: x[2], reverse=True)
- 
-        results = []
-        for act, display_name, score in scored[:n]:
-            # Scale duration: high-intensity → shorter; low-intensity → longer
-            intensity_ratio = act["intensity"] / 10.0
-            duration = max(10, int(available_minutes * (1.0 - intensity_ratio * 0.3)))
- 
-            results.append({
-                "name":               display_name,
-                "type":               act["type"],
-                "intensity":          act["intensity"],
-                "duration_minutes":   duration,
-                "indoor":             act["indoor"] or force_indoor,
-                "goal_aligned":       act["type"] == preferred_types[0],
-                "reason":             self.reason(act["type"], energy_level, force_indoor),
-            })
- 
-        return results
- 
-    # ------------------------------------------------------------------ #
-    #  Helper                                                               #
-    # ------------------------------------------------------------------ #
- 
-    def reason(self, activity_type: str, energy: int, indoor: bool) -> str:
-        parts = []
-        if activity_type == "strength":
-            parts.append("Supports muscle development")
-        elif activity_type == "cardio":
-            parts.append("Boosts calorie burn and cardiovascular health")
-        else:
-            parts.append("Improves flexibility and recovery")
- 
-        if energy >= 7:
-            parts.append("energy level is high — good time for an intense session")
-        elif energy >= 4:
-            parts.append("moderate energy — steady effort recommended")
-        else:
-            parts.append("low energy — light movement aids recovery")
- 
-        if indoor:
-            parts.append("adjusted for indoor conditions")
- 
-        return "; ".join(parts) + "."
+
+
+# Backward-compatible re-export for existing imports.
+from .activity_recommendation_engine import ActivityRecommendationEngine

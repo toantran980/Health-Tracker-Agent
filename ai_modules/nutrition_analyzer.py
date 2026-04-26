@@ -10,17 +10,13 @@ class NutritionAnalyzer:
         self.target_nutrition = target_nutrition
         self.history: List[DailyNutritionLog] = []
 
-    # ------------------------------------------------------------------ #
-    #  Data ingestion                                                       #
-    # ------------------------------------------------------------------ #
+    # Data ingestion
 
     def add_daily_log(self, log: DailyNutritionLog) -> None:
         """Append a daily nutrition log to history."""
         self.history.append(log)
 
-    # ------------------------------------------------------------------ #
-    #  Vector helpers                                                       #
-    # ------------------------------------------------------------------ #
+    # Vector helpers
 
     def to_vector(self, info: NutritionInfo) -> List[float]:
         """Return a 4-D macro vector: [calories, protein_g, carbs_g, fat_g]."""
@@ -44,9 +40,7 @@ class NutritionAnalyzer:
         vb = self.normalize_vector(self.to_vector(b))
         return sum(x * y for x, y in zip(va, vb))
 
-    # ------------------------------------------------------------------ #
-    #  Core statistics                                                      #
-    # ------------------------------------------------------------------ #
+    # Core statistics
 
     def get_weekly_average(self, days: int = 7) -> NutritionInfo:
         """Return average nutrition over the most recent *days* logs."""
@@ -78,9 +72,7 @@ class NutritionAnalyzer:
         )
         return (adherent / len(recent)) * 100
 
-    # ------------------------------------------------------------------ #
-    #  Anomaly detection (Z-score, holdout baseline)                        #
-    # ------------------------------------------------------------------ #
+    # Anomaly detection
 
     def detect_nutritional_anomalies(self, sensitivity: float = 2.0) -> List[Dict]:
         """
@@ -119,9 +111,7 @@ class NutritionAnalyzer:
                 })
         return anomalies
 
-    # ------------------------------------------------------------------ #
-    #  Meal pattern recognition                                             #
-    # ------------------------------------------------------------------ #
+    # Meal patterns
 
     def identify_meal_patterns(self) -> Dict:
         """
@@ -165,9 +155,7 @@ class NutritionAnalyzer:
             return "high_carb"
         return "balanced"
 
-    # ------------------------------------------------------------------ #
-    #  Macro recommendations                                               #
-    # ------------------------------------------------------------------ #
+    # Macro recommendations
 
     def get_macro_recommendations(self, goal: Optional[str] = None) -> Dict[str, str]:
         """
@@ -217,9 +205,7 @@ class NutritionAnalyzer:
 
         return recommendations
 
-    # ------------------------------------------------------------------ #
-    #  Pearson correlation — diet adherence vs. performance                #
-    # ------------------------------------------------------------------ #
+    # Diet-performance correlation
 
     def correlate_nutrition_performance(self, focus_scores: List[int]) -> float:
         """Pearson r between daily diet-adherence ratio and external focus scores"""
@@ -265,9 +251,7 @@ class NutritionAnalyzer:
             f"focus performance (r = {r:.2f})."
         )
 
-    # ------------------------------------------------------------------ #
-    #  Weighted adherence score (goal-aware, used by report)               #
-    # ------------------------------------------------------------------ #
+    # Weighted adherence score
 
     def weighted_adherence_score(self, log: DailyNutritionLog, goal: Optional[str] = None) -> float:
         """
@@ -298,9 +282,7 @@ class NutritionAnalyzer:
             weights["fat"]      * fit(actual.fat_g,     target.fat_g)
         )
 
-    # ------------------------------------------------------------------ #
-    #  Comprehensive report                                                 #
-    # ------------------------------------------------------------------ #
+    # Comprehensive report
 
     def get_nutrition_report(
         self,

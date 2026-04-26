@@ -2,55 +2,10 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 """Constraint Satisfaction Problem (CSP) Solver for Schedule Optimization"""
 from typing import List, Dict, Tuple, Optional, Callable
-from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from models.activity import ScheduledActivity, ActivityType
-from enum import Enum
+from models.activity import ScheduledActivity
 import math
-
-
-class Constraint(Enum):
-    """Types of constraints"""
-    HARD = "hard"   # Must be satisfied
-    SOFT = "soft"   # Preferred but can be violated
-
-
-@dataclass
-class TimeSlot:
-    """Represents a time slot in a schedule"""
-    start_hour: float
-    end_hour: float
-    day_name: str
-    is_available: bool = True
-    productivity_factor: float = 1.0
-
-    def duration_hours(self) -> float:
-        return self.end_hour - self.start_hour
-
-    def overlaps_with(self, other: "TimeSlot") -> bool:
-        """Check if two time slots overlap"""
-        return (
-            self.day_name == other.day_name
-            and not (self.end_hour <= other.start_hour or self.start_hour >= other.end_hour)
-        )
-
-    def __repr__(self) -> str:
-        start = self.fmt(self.start_hour)
-        end = self.fmt(self.end_hour)
-        return f"{self.day_name} {start}-{end}"
-
-    @staticmethod
-    def fmt(hour: float) -> str:
-        h = int(hour)
-        m = int((hour - h) * 60)
-        return f"{h:02d}:{m:02d}"
-
-
-@dataclass
-class ConstraintEntry:
-    name: str
-    func: Callable
-    ctype: Constraint
+from ai_modules.scheduler_types import Constraint, TimeSlot, ConstraintEntry
 
 
 class ScheduleOptimizer:
@@ -72,9 +27,7 @@ class ScheduleOptimizer:
         self.scheduled_activities: List[ScheduledActivity] = []
         self.constraints: List[ConstraintEntry] = []
 
-    # ------------------------------------------------------------------ #
-    # Public API                                                           #
-    # ------------------------------------------------------------------ #
+    # Public API
 
     def add_constraint(self, name: str, func: Callable, is_hard: bool = True):
         """Register a constraint function: func(task, slot) -> bool"""
@@ -144,9 +97,7 @@ class ScheduleOptimizer:
         available.sort(key=lambda s: s.productivity_factor, reverse=True)
         return available[:max_slots]
 
-    # ------------------------------------------------------------------ #
-    # Internal helpers                                                     #
-    # ------------------------------------------------------------------ #
+    # Internal helpers
 
     def productivity_at(self, hour: float) -> float:
         """Interpolate productivity for fractional hours."""
@@ -209,7 +160,7 @@ class ScheduleOptimizer:
         if not remaining:
             return current  # All tasks assigned
 
-        # MRV: pick the task with fewest valid candidate slots given current schedule
+        # MRV: choose the task with the fewest valid slots
         def mrv_key(idx_task):
             idx, task = idx_task
             return sum(

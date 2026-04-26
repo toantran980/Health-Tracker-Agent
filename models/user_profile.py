@@ -29,9 +29,7 @@ class BiologicalSex(Enum):
 class UserProfile:
     """Comprehensive user profile for health and study tracking."""
 
-    # ------------------------------------------------------------------ #
-    #  Identity                                                             #
-    # ------------------------------------------------------------------ #
+    # Identity
     user_id:    str
     name:       str
     age:        int
@@ -39,29 +37,21 @@ class UserProfile:
     height_cm:  float
     biological_sex: BiologicalSex = BiologicalSex.MALE   # affects BMR formula
 
-    # ------------------------------------------------------------------ #
-    #  Health goals                                                         #
-    # ------------------------------------------------------------------ #
+    # Health goals
     goals: List[Goal] = field(default_factory=lambda: [Goal.GENERAL_WELLNESS])
 
-    # ------------------------------------------------------------------ #
-    #  Dietary preferences                                                  #
-    # ------------------------------------------------------------------ #
+    # Dietary preferences
     dietary_restrictions: List[str] = field(default_factory=list)  # "vegan", "gluten_free", …
     allergies:            List[str] = field(default_factory=list)
     preferred_cuisine:    List[str] = field(default_factory=list)
 
-    # ------------------------------------------------------------------ #
-    #  Daily nutritional targets                                            #
-    # ------------------------------------------------------------------ #
+    # Daily nutrition targets
     target_calories:  int   = 2000
     target_protein_g: float = 50.0
     target_carbs_g:   float = 250.0
     target_fat_g:     float = 65.0
 
-    # ------------------------------------------------------------------ #
-    #  Study / work schedule preferences                                    #
-    # ------------------------------------------------------------------ #
+    # Study and work schedule
     work_hours_per_day:           int = 8
     study_hours_per_day:          int = 2
     max_study_session_duration:   int = 120   # minutes
@@ -69,29 +59,21 @@ class UserProfile:
     earliest_study_time:          int = 8     # 24-hour clock
     latest_study_time:            int = 22    # 24-hour clock
 
-    # ------------------------------------------------------------------ #
-    #  Current metrics                                                      #
-    # ------------------------------------------------------------------ #
+    # Current metrics
     current_sleep_hours:  float = 8.0
     current_energy_level: int   = 5    # 1-10 scale
     current_weight_kg:    float = 0.0  # initialised in __post_init__
 
-    # ------------------------------------------------------------------ #
-    #  Behavioural history                                                  #
-    # ------------------------------------------------------------------ #
+    # Behavioral history
     daily_logs: List[Dict] = field(default_factory=list)
     created_at: datetime   = field(default_factory=datetime.now)
 
-    # ------------------------------------------------------------------ #
-    #  Post-init                                                            #
-    # ------------------------------------------------------------------ #
+    # Post-init
     def __post_init__(self) -> None:
         if self.current_weight_kg == 0.0:
             self.current_weight_kg = self.weight_kg
 
-    # ------------------------------------------------------------------ #
-    #  Physiological calculations                                           #
-    # ------------------------------------------------------------------ #
+    # Physiological calculations
     def get_bmr(self) -> float:
         """
         Basal Metabolic Rate via the Mifflin-St Jeor equation.
@@ -163,9 +145,7 @@ class UserProfile:
             "fat_g":     round(tdee * fat_pct     / 9, 1),   # 9 kcal/g
         }
 
-    # ------------------------------------------------------------------ #
-    #  Serialisation                                                        #
-    # ------------------------------------------------------------------ #
+    # Serialization
     def to_dict(self) -> Dict:
         return {
             "user_id":               self.user_id,

@@ -3,13 +3,10 @@ from models.meal import FoodItem, NutritionInfo
 from models.user_profile import UserProfile, Goal, BiologicalSex
 
 
-# ---------------------------------------------------------------------------
-#  Food database — 25 items with clear nutritional contrast so the
-#  recommendation engine produces meaningfully different results across goals.
-# ---------------------------------------------------------------------------
+# Food database: 25 items with varied nutrition profiles
 SAMPLE_FOODS = [
 
-    # ── High protein, low carb ──────────────────────────────────────────────
+    # High protein, low carb
     FoodItem(
         food_id="chicken_breast",
         name="Grilled Chicken Breast (150g)",
@@ -74,7 +71,7 @@ SAMPLE_FOODS = [
         satisfaction_score=7.5,
     ),
 
-    # ── Complex carbs ───────────────────────────────────────────────────────
+    # Complex carbs
     FoodItem(
         food_id="brown_rice",
         name="Brown Rice (1 cup cooked)",
@@ -130,7 +127,7 @@ SAMPLE_FOODS = [
         satisfaction_score=8.0,
     ),
 
-    # ── Healthy fats ────────────────────────────────────────────────────────
+    # Healthy fats
     FoodItem(
         food_id="avocado",
         name="Avocado (0.5 fruit)",
@@ -168,7 +165,7 @@ SAMPLE_FOODS = [
         satisfaction_score=7.0,
     ),
 
-    # ── Vegetables ──────────────────────────────────────────────────────────
+    # Vegetables
     FoodItem(
         food_id="broccoli",
         name="Broccoli (2 cups steamed)",
@@ -197,7 +194,7 @@ SAMPLE_FOODS = [
         satisfaction_score=7.0,
     ),
 
-    # ── Legumes / plant protein ─────────────────────────────────────────────
+    # Legumes and plant protein
     FoodItem(
         food_id="black_beans",
         name="Black Beans (1 cup cooked)",
@@ -226,7 +223,7 @@ SAMPLE_FOODS = [
         satisfaction_score=6.5,
     ),
 
-    # ── High calorie / energy dense (important contrast for WEIGHT_LOSS goal)
+    # High-calorie options for contrast
     FoodItem(
         food_id="protein_shake",
         name="Whey Protein Shake (1 scoop + water)",
@@ -248,10 +245,7 @@ SAMPLE_FOODS = [
 ]
 
 
-# ---------------------------------------------------------------------------
-#  Sample users — two profiles with contrasting goals so recommendation
-#  engine output differs visibly in demos.
-# ---------------------------------------------------------------------------
+# Sample users with contrasting goals
 
 def create_sample_user() -> UserProfile:
     """

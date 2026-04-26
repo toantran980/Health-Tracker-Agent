@@ -9,7 +9,7 @@ from api.blueprints.helpers import require_user, normalize_schedule_tasks, error
 schedule_bp = Blueprint('schedule', __name__)
 
 
-# ── Schedule Optimisation ──────────────────────────────────────────────────
+# Schedule optimization
 
 @schedule_bp.route('/api/schedule/optimize/<user_id>', methods=['POST'])
 def optimize_schedule(user_id):
@@ -54,7 +54,7 @@ def get_available_slots(user_id):
     }), 200
 
 
-# ── Productivity Prediction ────────────────────────────────────────────────
+# Productivity prediction
 
 @schedule_bp.route('/api/productivity/predict/<user_id>', methods=['POST'])
 def predict_productivity(user_id):
@@ -110,7 +110,7 @@ def get_optimal_study_time(user_id):
     }), 200
 
 
-# ── Knowledge Base Recommendations ────────────────────────────────────────
+# Knowledge base recommendations
 
 @schedule_bp.route('/api/recommendations/<user_id>', methods=['POST'])
 def get_recommendations(user_id):
