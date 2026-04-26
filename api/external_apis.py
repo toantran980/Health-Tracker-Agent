@@ -23,7 +23,7 @@ TTL_LONG = 3600    # 60 min
 _TTL_CACHE: dict[str, tuple[float, object]] = {}
 
 
-def _cache_get(key: str):
+def cache_get(key: str):
     cached = _TTL_CACHE.get(key)
     if not cached:
         return None
@@ -34,7 +34,7 @@ def _cache_get(key: str):
     return value
 
 
-def _cache_set(key: str, value: object, ttl_seconds: int) -> object:
+def cache_set(key: str, value: object, ttl_seconds: int) -> object:
     _TTL_CACHE[key] = (time.time() + ttl_seconds, value)
     return value
 
@@ -53,7 +53,7 @@ RAPIDAPI_KEY     = os.getenv("EXERCISEDB_API_KEY", "")
 def search_food_by_name(query: str, page_size: int = 5) -> list[dict]:
     """Search foods by name via Open Food Facts."""
     cache_key = f"off:search:{query.strip().lower()}:{page_size}"
-    cached = _cache_get(cache_key)
+    cached = cache_get(cache_key)
     if cached is not None:
         return cached
 
@@ -76,7 +76,7 @@ def search_food_by_name(query: str, page_size: int = 5) -> list[dict]:
             if p.get("product_name")
             and p.get("nutriments", {}).get("energy-kcal_100g", 0) > 0
         ]
-        return _cache_set(cache_key, results, TTL_SHORT)
+        return cache_set(cache_key, results, TTL_SHORT)
 
     except requests.exceptions.Timeout:
         logger.warning("[OpenFoodFacts] Timeout for query: %s", query)
@@ -89,7 +89,7 @@ def search_food_by_name(query: str, page_size: int = 5) -> list[dict]:
 def get_food_by_barcode(barcode: str) -> dict | None:
     """Look up a single product by EAN-13 / UPC barcode."""
     cache_key = f"off:barcode:{barcode.strip()}"
-    cached = _cache_get(cache_key)
+    cached = cache_get(cache_key)
     if cached is not None:
         return cached
 
@@ -102,7 +102,7 @@ def get_food_by_barcode(barcode: str) -> dict | None:
         if data.get("status") != 1:
             return None
         result = parse_food_facts_product(data["product"])
-        return _cache_set(cache_key, result, TTL_LONG)
+        return cache_set(cache_key, result, TTL_LONG)
 
     except requests.exceptions.RequestException as e:
         logger.warning("[OpenFoodFacts] Barcode lookup error: %s", e)
@@ -130,7 +130,7 @@ def parse_food_facts_product(p: dict) -> dict:
 def search_usda_food(query: str, page_size: int = 5) -> list[dict]:
     """Search USDA FoodData Central for food items."""
     cache_key = f"usda:search:{query.strip().lower()}:{page_size}"
-    cached = _cache_get(cache_key)
+    cached = cache_get(cache_key)
     if cached is not None:
         return cached
 
@@ -145,7 +145,7 @@ def search_usda_food(query: str, page_size: int = 5) -> list[dict]:
         resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         results = resp.json().get("foods", [])
-        return _cache_set(cache_key, results, TTL_MEDIUM)
+        return cache_set(cache_key, results, TTL_MEDIUM)
 
     except requests.exceptions.RequestException as e:
         logger.warning("[USDA] API error: %s", e)
@@ -157,7 +157,7 @@ def search_usda_food(query: str, page_size: int = 5) -> list[dict]:
 def search_exercise(name: str, language: int = 2) -> list[dict]:
     """Search the Wger exercise database by name."""
     cache_key = f"wger:search:{name.strip().lower()}:{language}"
-    cached = _cache_get(cache_key)
+    cached = cache_get(cache_key)
     if cached is not None:
         return cached
 
@@ -176,7 +176,7 @@ def search_exercise(name: str, language: int = 2) -> list[dict]:
             }
             for s in resp.json().get("suggestions", [])
         ]
-        return _cache_set(cache_key, results, TTL_MEDIUM)
+        return cache_set(cache_key, results, TTL_MEDIUM)
 
     except requests.exceptions.RequestException as e:
         logger.warning("[Wger] Search error: %s", e)
@@ -206,7 +206,7 @@ def proxy_wger_endpoint(endpoint: str, params: dict = None) -> dict:
 def search_exercisedb(name: str) -> list[dict]:
     """Search exercises via ExerciseDB (RapidAPI)."""
     cache_key = f"exercisedb:search:{name.strip().lower()}"
-    cached = _cache_get(cache_key)
+    cached = cache_get(cache_key)
     if cached is not None:
         return cached
 
@@ -233,7 +233,7 @@ def search_exercisedb(name: str) -> list[dict]:
             }
             for item in data[:10]
         ]
-        return _cache_set(cache_key, results, TTL_MEDIUM)
+        return cache_set(cache_key, results, TTL_MEDIUM)
 
     except requests.exceptions.RequestException as e:
         logger.warning("[ExerciseDB] API error: %s", e)
@@ -256,7 +256,7 @@ def get_weather_context(latitude: float, longitude: float) -> dict:
     }
 
     cache_key = f"weather:context:{round(latitude, 3)}:{round(longitude, 3)}"
-    cached = _cache_get(cache_key)
+    cached = cache_get(cache_key)
     if cached is not None:
         return cached
 
@@ -287,7 +287,7 @@ def get_weather_context(latitude: float, longitude: float) -> dict:
             "high_uv":            uv_index >= 6,
             "recommendation_hints": weather_hints(is_raining, uv_index, temp),
         }
-        return _cache_set(cache_key, result, TTL_SHORT)
+        return cache_set(cache_key, result, TTL_SHORT)
 
     except requests.exceptions.RequestException as e:
         logger.warning("[Weather] API error: %s", e)

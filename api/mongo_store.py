@@ -66,7 +66,7 @@ class MongoStore:
         return cls(uri, db_name)
 
     def save_user(self, user_doc: dict[str, Any]) -> None:
-        if not self.enabled or not self._db:
+        if not self.enabled or self._db is None:
             return
         doc = dict(user_doc)
         doc["updated_at"] = datetime.utcnow()
@@ -77,17 +77,17 @@ class MongoStore:
         )
 
     def get_user(self, user_id: str) -> dict[str, Any] | None:
-        if not self.enabled or not self._db:
+        if not self.enabled or self._db is None:
             return None
         return self._db["users"].find_one({"user_id": user_id}, {"_id": 0})
 
     def count_users(self) -> int:
-        if not self.enabled or not self._db:
+        if not self.enabled or self._db is None:
             return 0
         return int(self._db["users"].count_documents({}))
 
     def save_daily_log(self, user_id: str, date_str: str, log_doc: dict[str, Any]) -> None:
-        if not self.enabled or not self._db:
+        if not self.enabled or self._db is None:
             return
         doc = dict(log_doc)
         doc.update({"user_id": user_id, "date": date_str, "updated_at": datetime.utcnow()})
@@ -98,7 +98,7 @@ class MongoStore:
         )
 
     def get_daily_logs(self, user_id: str) -> list[dict[str, Any]]:
-        if not self.enabled or not self._db:
+        if not self.enabled or self._db is None:
             return []
         cursor = self._db["daily_logs"].find({"user_id": user_id}, {"_id": 0}).sort("date", 1)
         return list(cursor)

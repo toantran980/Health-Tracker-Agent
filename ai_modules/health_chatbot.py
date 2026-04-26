@@ -21,7 +21,7 @@ client   = None
 model    = None
 provider = None
 
-def _init_provider():
+def init_provider():
     global client, model, provider
     if client is not None:
         return
@@ -167,7 +167,7 @@ class HealthChatbot:
         self.history: list[dict] = []
 
     def chat(self, user_message: str) -> str:
-        _init_provider()
+        init_provider()
         self.history.append({"role": "user", "content": user_message})
         self._trim_history()
 
