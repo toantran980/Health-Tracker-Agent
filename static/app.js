@@ -180,25 +180,37 @@ function appendChatMessage(role, message) {
   chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 }
 
+function switchTab(targetSectionId) {
+  document.querySelectorAll('.tab-section').forEach(sec => {
+    sec.classList.toggle('tab-hidden', sec.id !== targetSectionId);
+  });
+  document.querySelectorAll('.hero-link[data-target]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.target === targetSectionId);
+  });
+}
+
+function initTabs() {
+  document.querySelectorAll('.hero-link[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.target));
+  });
+}
+
 function initQuickActions() {
-  const routeTo = (targetId, focusSelector) => {
-    const targetEl = document.getElementById(targetId);
-    if (!targetEl) {
-      return;
-    }
-    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const routeTo = (sectionId, focusSelector) => {
+    switchTab(sectionId);
     if (focusSelector) {
-      const focusEl = targetEl.querySelector(focusSelector);
+      const sec = document.getElementById(sectionId);
+      const focusEl = sec && sec.querySelector(focusSelector);
       if (focusEl) {
-        window.setTimeout(() => focusEl.focus(), 200);
+        window.setTimeout(() => focusEl.focus(), 80);
       }
     }
   };
 
-  bindClick('quickLogMeal', async () => routeTo('mealForm', 'input[name="food_name"]'));
-  bindClick('quickPredictFocus', async () => routeTo('productivityForm', 'input[name="hour_of_day"]'));
-  bindClick('quickOptimizeSchedule', async () => routeTo('scheduleForm', '.task-title'));
-  bindClick('quickAskChatbot', async () => routeTo('chatForm', 'input[name="message"]'));
+  bindClick('quickLogMeal', async () => routeTo('section-nutrition', 'input[name="food_name"]'));
+  bindClick('quickPredictFocus', async () => routeTo('section-schedule', 'input[name="hour_of_day"]'));
+  bindClick('quickOptimizeSchedule', async () => routeTo('section-schedule', null));
+  bindClick('quickAskChatbot', async () => routeTo('section-chat', 'input[name="message"]'));
 }
 
 function getApiBase() {
@@ -697,6 +709,7 @@ bindClick('btnKnowledgeRecs', async () => {
 });
 
 // Initialize interactive dashboard widgets.
+initTabs();
 initTaskBuilder();
 initCharts();
 initQuickActions();
