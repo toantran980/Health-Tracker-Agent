@@ -5,16 +5,18 @@ from __future__ import annotations
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 from dotenv import load_dotenv
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING
 from pymongo.errors import PyMongoError
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+UTC = timezone.utc
 
 
 class MongoStore:
@@ -27,7 +29,7 @@ class MongoStore:
         self._db = None
 
         max_retries = int(os.getenv("MONGO_CONNECT_RETRIES", "5"))
-        retry_delay_seconds = float(os.getenv("MONGO_CONNECT_RETRY_DELAY", "2"))
+        retry_delay = float(os.getenv("MONGO_CONNECT_RETRY_DELAY", "2"))
         last_error: PyMongoError | None = None
 
         for attempt in range(1, max_retries + 1):
@@ -37,27 +39,29 @@ class MongoStore:
                 db.command("ping")
                 self._db = db
                 self.enabled = True
-
-                users = self._db["users"]
-                daily_logs = self._db["daily_logs"]
-                users.create_index("user_id", unique=True)
-                daily_logs.create_index([("user_id", 1), ("date", 1)], unique=True)
+                self._ensure_indexes()
                 logger.info("[MongoDB] Connected on attempt %d", attempt)
                 break
             except PyMongoError as exc:
                 last_error = exc
                 if attempt < max_retries:
                     logger.warning(
-                        "[MongoDB] Connection attempt %d/%d failed: %s. Retrying in %.1fs",
-                        attempt,
-                        max_retries,
-                        exc,
-                        retry_delay_seconds,
+                        "[MongoDB] Attempt %d/%d failed: %s. Retrying in %.1fs",
+                        attempt, max_retries, exc, retry_delay,
                     )
-                    time.sleep(retry_delay_seconds)
+                    time.sleep(retry_delay)
 
-        if not self.enabled and last_error is not None:
-            logger.warning("[MongoDB] Disabled after %d retries: %s", max_retries, last_error)
+        if not self.enabled:
+            logger.warning(
+                "[MongoDB] Disabled after %d attempts: %s",
+                max_retries, last_error,
+            )
+
+    def _ensure_indexes(self) -> None:
+        self._db["users"].create_index("user_id", unique=True)
+        self._db["daily_logs"].create_index(
+            [("user_id", ASCENDING), ("date", ASCENDING)], unique=True
+        )
 
     @classmethod
     def from_env(cls) -> "MongoStore":
@@ -65,40 +69,84 @@ class MongoStore:
         db_name = os.getenv("MONGO_DB_NAME", "health_tracker")
         return cls(uri, db_name)
 
-    def save_user(self, user_doc: dict[str, Any]) -> None:
+    # ------------------------------------------------------------------ #
+    #  Users                                                               #
+    # ------------------------------------------------------------------ #
+
+    def save_user(self, user_doc: dict[str, Any]) -> bool:
+        """Upsert a user document. Returns True on success, False otherwise."""
         if not self.enabled or self._db is None:
-            return
-        doc = dict(user_doc)
-        doc["updated_at"] = datetime.utcnow()
-        self._db["users"].update_one(
-            {"user_id": doc["user_id"]},
-            {"$set": doc, "$setOnInsert": {"created_at": datetime.utcnow()}},
-            upsert=True,
-        )
+            return False
+        now = datetime.now(UTC)
+        doc = {**user_doc, "updated_at": now}
+        try:
+            self._db["users"].update_one(
+                {"user_id": doc["user_id"]},
+                {"$set": doc, "$setOnInsert": {"created_at": now}},
+                upsert=True,
+            )
+            return True
+        except PyMongoError:
+            logger.exception("[MongoDB] save_user failed for user_id=%s", user_doc.get("user_id"))
+            return False
 
     def get_user(self, user_id: str) -> dict[str, Any] | None:
         if not self.enabled or self._db is None:
             return None
-        return self._db["users"].find_one({"user_id": user_id}, {"_id": 0})
+        try:
+            return self._db["users"].find_one({"user_id": user_id}, {"_id": 0})
+        except PyMongoError:
+            logger.exception("[MongoDB] get_user failed for user_id=%s", user_id)
+            return None
 
     def count_users(self) -> int:
         if not self.enabled or self._db is None:
             return 0
-        return int(self._db["users"].count_documents({}))
+        try:
+            return int(self._db["users"].count_documents({}))
+        except PyMongoError:
+            logger.exception("[MongoDB] count_users failed")
+            return 0
 
-    def save_daily_log(self, user_id: str, date_str: str, log_doc: dict[str, Any]) -> None:
+    # ------------------------------------------------------------------ #
+    #  Daily logs                                                          #
+    # ------------------------------------------------------------------ #
+
+    def save_daily_log(
+        self, user_id: str, date_str: str, log_doc: dict[str, Any]
+    ) -> bool:
+        """Upsert a daily log entry. Returns True on success, False otherwise."""
         if not self.enabled or self._db is None:
-            return
-        doc = dict(log_doc)
-        doc.update({"user_id": user_id, "date": date_str, "updated_at": datetime.utcnow()})
-        self._db["daily_logs"].update_one(
-            {"user_id": user_id, "date": date_str},
-            {"$set": doc, "$setOnInsert": {"created_at": datetime.utcnow()}},
-            upsert=True,
-        )
+            return False
+        now = datetime.now(UTC)
+        doc = {**log_doc, "user_id": user_id, "date": date_str, "updated_at": now}
+        try:
+            self._db["daily_logs"].update_one(
+                {"user_id": user_id, "date": date_str},
+                {"$set": doc, "$setOnInsert": {"created_at": now}},
+                upsert=True,
+            )
+            return True
+        except PyMongoError:
+            logger.exception(
+                "[MongoDB] save_daily_log failed for user_id=%s date=%s", user_id, date_str
+            )
+            return False
 
-    def get_daily_logs(self, user_id: str) -> list[dict[str, Any]]:
+    def get_daily_logs(
+        self, user_id: str, limit: int = 90
+    ) -> list[dict[str, Any]]:
+        """Return daily logs sorted ascending by date, capped at `limit` entries."""
         if not self.enabled or self._db is None:
             return []
-        cursor = self._db["daily_logs"].find({"user_id": user_id}, {"_id": 0}).sort("date", 1)
-        return list(cursor)
+        try:
+            cursor = (
+                self._db["daily_logs"]
+                .find({"user_id": user_id}, {"_id": 0})
+                .sort("date", ASCENDING)
+                .limit(limit)
+            )
+            return list(cursor)
+        except PyMongoError:
+            logger.exception("[MongoDB] get_daily_logs failed for user_id=%s", user_id)
+            return []

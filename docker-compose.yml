@@ -15,6 +15,8 @@ services:
       MONGO_DB_NAME: health_tracker
     ports:
       - "5001:5001"
+    volumes:
+      - .:/app                        # ← ADD THIS
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/api/health', timeout=3)"]
       interval: 15s

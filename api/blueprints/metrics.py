@@ -1,5 +1,5 @@
 import csv
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from ai_modules.productivity_predictor import ProductivityPredictor, Features
 import os
 
@@ -7,8 +7,11 @@ metrics_bp = Blueprint('metrics', __name__, url_prefix='/api/metrics')
 
 @metrics_bp.route('/productivity_predictor', methods=['GET'])
 def productivity_predictor_metrics():
-    """Return MAE for ProductivityPredictor using evaluation CSV (if available)"""
-    csv_path = os.path.join(os.path.dirname(__file__), '../../tests/productivity_predictor_eval.csv')
+    """Return MAE for ProductivityPredictor using evaluation CSV (configurable path)"""
+    # Use ?file=... query parameter for evaluation file path
+    csv_path = request.args.get('file')
+    if not csv_path:
+        return jsonify({"error": "No evaluation file specified. Pass ?file=/path/to/eval.csv as a query parameter."}), 400
     test_cases = []
     try:
         with open(csv_path, newline='') as csvfile:
@@ -27,7 +30,7 @@ def productivity_predictor_metrics():
                 expected = int(row["expected_focus_score"])
                 test_cases.append((features, expected))
     except Exception as e:
-        return jsonify({"error": f"Could not load evaluation data: {e}"}), 500
+        return jsonify({"error": f"Could not load evaluation data: {e}", "csv_path": csv_path}), 500
 
     predictor = ProductivityPredictor()
     errors = []
@@ -39,5 +42,6 @@ def productivity_predictor_metrics():
         "model": "ProductivityPredictor",
         "metric": "MAE",
         "mae": mae,
-        "n": len(errors)
+        "n": len(errors),
+        "csv_path": csv_path
     })
