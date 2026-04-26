@@ -15,6 +15,16 @@ from api.blueprints.helpers import (
 nutrition_bp = Blueprint('nutrition', __name__)
 
 
+def clean_report(obj):
+    """Recursively remove None values from report dicts/lists."""
+    if isinstance(obj, dict):
+        return {k: clean_report(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_report(v) for v in obj if v is not None]
+    else:
+        return obj
+
+
 @nutrition_bp.route('/api/nutrition/log-meal/<user_id>', methods=['POST'])
 def log_meal(user_id):
     """
@@ -30,19 +40,19 @@ def log_meal(user_id):
     if err:
         return err
 
-    data = request.json or {}
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
 
-    raw_items  = data.get('food_items', [])
+    raw_items = data.get('food_items', [])
     food_items = []
     for item in raw_items:
         food_items.append(FoodItem(
             food_id=f"manual_{datetime.now().timestamp()}",
             name=item.get('name', 'Unknown food'),
             nutrition_info=NutritionInfo(
-                calories=item.get('calories',  0),
+                calories=item.get('calories', 0),
                 protein_g=item.get('protein_g', 0),
-                carbs_g=item.get('carbs_g',   0),
-                fat_g=item.get('fat_g',     0),
+                carbs_g=item.get('carbs_g', 0),
+                fat_g=item.get('fat_g', 0),
             ),
         ))
 
@@ -50,7 +60,7 @@ def log_meal(user_id):
     meal = Meal(
         meal_id=f"meal_{datetime.now().timestamp()}",
         user_id=user_id,
-        meal_type=MealType(data.get('meal_type', 'lunch')),
+        meal_type=MealType(data.get('meal_type') or 'lunch'),
         timestamp=ts,
         food_items=food_items,
         notes=data.get('notes', ''),
@@ -104,6 +114,7 @@ def analyze_nutrition(user_id):
             )
 
     report = analyzer.get_nutrition_report(goal=goal, focus_scores=focus_scores)
+    report = clean_report(report)
     return jsonify(report), 200
 
 

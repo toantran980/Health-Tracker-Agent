@@ -104,7 +104,7 @@ class NutritionAnalyzer:
             z   = (cal - mean) / std
             if abs(z) > sensitivity:
                 anomalies.append({
-                    "date":      log.date,
+                    "date":      log.date.isoformat(),
                     "calories":  round(cal, 1),
                     "z_score":   round(abs(z), 2),
                     "direction": "over" if z > 0 else "under",
@@ -310,7 +310,7 @@ class NutritionAnalyzer:
             ),
             "adherence_rate_pct":  round(self.calculate_adherence_rate(), 1),
             "anomalies":           self.detect_nutritional_anomalies(),
-            "patterns":            self.identify_meal_patterns(),
+            "patterns":            self.safe_meal_patterns(),
             "recommendations":     self.get_macro_recommendations(goal),
         }
 
@@ -323,3 +323,16 @@ class NutritionAnalyzer:
             }
 
         return report
+
+    def safe_meal_patterns(self) -> dict:
+        """Return meal patterns with None keys/values removed."""
+        patterns = self.identify_meal_patterns()
+        result = {}
+        for k, v in patterns.items():
+            if k is None:
+                continue
+            if isinstance(v, dict):
+                result[k] = {str(dk): dv for dk, dv in v.items() if dk is not None}
+            else:
+                result[k] = v
+        return result

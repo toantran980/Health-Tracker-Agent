@@ -318,8 +318,8 @@ class MealRecommendationEngine:
 
         Returns top-n foods ranked by blended score.
         """
-        content_recs    = {r["food_id"]: r["score"] for r in self.get_content_based_recommendations(n=len(self.food_database))}
-        constraint_recs = {r["food_id"]: r["fit_score"] for r in self.get_constraint_based_recommendations(target_calories, target_protein, target_carbs, target_fat, n=len(self.food_database))}
+        content_recs    = {r["food_id"]: r.get("score", r.get("fit_score", 0)) for r in self.get_content_based_recommendations(n=len(self.food_database))}
+        constraint_recs = {r["food_id"]: r.get("fit_score", 0) for r in self.get_constraint_based_recommendations(target_calories, target_protein, target_carbs, target_fat, n=len(self.food_database))}
 
         all_ids = set(content_recs) | set(constraint_recs)
         blended: List[tuple] = []
