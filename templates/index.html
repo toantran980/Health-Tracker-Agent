@@ -41,6 +41,16 @@
     </header>
 
     <section class="kpi-strip" aria-label="Daily snapshot">
+          <section class="panel" id="model-metrics-panel" style="margin-top: 1.5rem;">
+            <h2>Model Evaluation Metrics</h2>
+            <div id="modelMetrics" class="metrics-grid">
+              <div class="metric-card">
+                <p class="metric-label">Productivity Predictor MAE</p>
+                <p id="metricProductivityMAE" class="metric-value">-</p>
+                <p id="metricProductivityN" class="metric-status">Loading...</p>
+              </div>
+            </div>
+          </section>
       <article class="kpi-card" data-status="neutral">
         <p class="kpi-label">Calories Today</p>
         <p id="kpiCalories" class="kpi-value">0 kcal</p>

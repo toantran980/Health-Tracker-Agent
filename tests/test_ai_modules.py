@@ -1,3 +1,56 @@
+class TestProductivityPredictorQuantitative(unittest.TestCase):
+    """Quantitative evaluation for ProductivityPredictor (Mean Absolute Error)"""
+    def setUp(self):
+        self.predictor = ProductivityPredictor()
+        # Example test set: (features, expected_focus_score)
+        self.test_cases = [
+            (Features(10, 2, 7.0, 8.0, 75.0, 7, 60, 5), 8),
+            (Features(14, 3, 6.0, 6.0, 60.0, 5, 45, 7), 6),
+            (Features(9, 1, 8.0, 9.0, 85.0, 8, 30, 3), 9),
+            (Features(20, 5, 5.0, 5.0, 50.0, 4, 90, 8), 4),
+            (Features(16, 0, 7.5, 7.0, 70.0, 6, 50, 6), 7),
+        ]
+
+    def test_mean_absolute_error(self):
+        """Compute MAE for focus score predictions"""
+        errors = []
+        for features, expected in self.test_cases:
+            pred = self.predictor.predict(features)
+            errors.append(abs(pred - expected))
+        mae = sum(errors) / len(errors)
+        print(f"\n[Quantitative Evaluation] ProductivityPredictor MAE: {mae:.2f}")
+        # Assert MAE is within a reasonable range for a simple model
+        self.assertLess(mae, 3.0)
+class TestProductivityPredictorQuantitative(unittest.TestCase):
+    """Quantitative evaluation for ProductivityPredictor (Mean Absolute Error, data-driven)"""
+    def setUp(self):
+        self.predictor = ProductivityPredictor()
+        self.test_cases = []
+        with open("tests/productivity_predictor_eval.csv", newline="") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                features = Features(
+                    int(row["hour_of_day"]),
+                    int(row["day_of_week"]),
+                    float(row["sleep_quality"]),
+                    float(row["sleep_hours"]),
+                    float(row["nutrition_score"]),
+                    int(row["energy_level"]),
+                    int(row["previous_session_duration"]),
+                    int(row["task_difficulty"])
+                )
+                expected = int(row["expected_focus_score"])
+                self.test_cases.append((features, expected))
+
+    def test_mean_absolute_error(self):
+        """Compute MAE for focus score predictions (data-driven)"""
+        errors = []
+        for features, expected in self.test_cases:
+            pred = self.predictor.predict(features)
+            errors.append(abs(pred - expected))
+        mae = sum(errors) / len(errors)
+        print(f"\n[Quantitative Evaluation] ProductivityPredictor MAE: {mae:.2f}")
+        self.assertLess(mae, 3.0)
 """Comprehensive tests for AI Health Tracker modules"""
 import unittest
 from datetime import datetime, timedelta

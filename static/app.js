@@ -1,3 +1,26 @@
+// Fetch and display model evaluation metrics
+async function fetchModelMetrics() {
+  const maeEl = document.getElementById('metricProductivityMAE');
+  const nEl = document.getElementById('metricProductivityN');
+  if (!maeEl || !nEl) return;
+  try {
+    const res = await fetch('/api/metrics/productivity_predictor');
+    if (!res.ok) throw new Error('Failed to fetch metrics');
+    const data = await res.json();
+    if (data.mae !== undefined && data.n !== undefined) {
+      maeEl.textContent = data.mae !== null ? data.mae.toFixed(2) : '-';
+      nEl.textContent = `Test cases: ${data.n}`;
+    } else {
+      maeEl.textContent = '-';
+      nEl.textContent = 'No data';
+    }
+  } catch (err) {
+    maeEl.textContent = '-';
+    nEl.textContent = 'Error loading metrics';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', fetchModelMetrics);
 const outputEl = document.getElementById('output');
 const apiBaseEl = document.getElementById('apiBase');
 const activeUserEl = document.getElementById('activeUserId');
