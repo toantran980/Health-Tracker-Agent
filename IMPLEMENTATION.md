@@ -53,13 +53,14 @@ Key files and folders:
 
 ## Core Components
 
-### API Layer
+## API Layer
 
 - Flask routes are split by domain under [api/blueprints](api/blueprints).
 - In-memory caches are used for live runtime objects.
 - When MongoDB is available, users and daily meal logs are persisted and rehydrated.
 - Error responses are standardized as `{"error": "...", "code": "..."}`.
-- External API wrappers include lightweight TTL caching for frequent lookups.
+- External API wrappers include lightweight TTL caching (USDA, Open Food Facts, Wger, Open-Meteo).
+- **Removed:** Nutritionix NLP (required paid keys); use food search instead.
 
 ### AI Modules
 

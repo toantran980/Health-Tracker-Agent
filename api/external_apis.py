@@ -38,13 +38,10 @@ def _cache_set(key: str, value: object, ttl_seconds: int) -> object:
     _TTL_CACHE[key] = (time.time() + ttl_seconds, value)
     return value
 
-NUTRITIONIX_APP_ID  = os.getenv("NUTRITIONIX_APP_ID",  "")
-NUTRITIONIX_APP_KEY = os.getenv("NUTRITIONIX_APP_KEY", "")
-USDA_API_KEY        = os.getenv("USDA_API_KEY",        "DEMO_KEY")
+USDA_API_KEY = os.getenv("USDA_API_KEY", "DEMO_KEY")
 
-FOOD_FACTS_BASE  = "https://world.openfoodfacts.org"
-NUTRITIONIX_BASE = "https://trackapi.nutritionix.com/v2"
-WGER_BASE        = "https://wger.de/api/v2"
+FOOD_FACTS_BASE = "https://world.openfoodfacts.org"
+WGER_BASE       = "https://wger.de/api/v2"
 OPEN_METEO_BASE  = "https://api.open-meteo.com/v1"
 USDA_BASE        = "https://api.nal.usda.gov/fdc/v1"
 EXERCISEDB_HOST  = "exercisedb.p.rapidapi.com"
@@ -152,51 +149,6 @@ def search_usda_food(query: str, page_size: int = 5) -> list[dict]:
 
     except requests.exceptions.RequestException as e:
         logger.warning("[USDA] API error: %s", e)
-        return []
-
-
-# Nutritionix NLP
-
-def log_natural_language_meal(text: str) -> list[dict]:
-    """Parse a plain-English meal description into nutrition entries."""
-    if not NUTRITIONIX_APP_ID or not NUTRITIONIX_APP_KEY:
-        logger.warning(
-            "[Nutritionix] Skipping because keys are missing in .env"
-        )
-        return []
-
-    url     = f"{NUTRITIONIX_BASE}/natural/nutrients"
-    headers = {
-        "x-app-id":    NUTRITIONIX_APP_ID,
-        "x-app-key":   NUTRITIONIX_APP_KEY,
-        "Content-Type": "application/json",
-    }
-
-    try:
-        resp = requests.post(
-            url,
-            json={"query": text},
-            headers=headers,
-            timeout=REQUEST_TIMEOUT,
-        )
-        resp.raise_for_status()
-
-        return [
-            {
-                "name":      f["food_name"],
-                "quantity":  f["serving_qty"],
-                "unit":      f["serving_unit"],
-                "calories":  round(f["nf_calories"], 1),
-                "protein_g": round(f.get("nf_protein",              0), 1),
-                "carbs_g":   round(f.get("nf_total_carbohydrate",   0), 1),
-                "fat_g":     round(f.get("nf_total_fat",            0), 1),
-                "fiber_g":   round(f.get("nf_dietary_fiber",        0), 1),
-            }
-            for f in resp.json().get("foods", [])
-        ]
-
-    except requests.exceptions.RequestException as e:
-        logger.warning("[Nutritionix] API error: %s", e)
         return []
 
 
@@ -375,23 +327,6 @@ def food_facts_to_fooditem(api_dict: dict) -> FoodItem:
     )
 
 
-def nutritionix_to_fooditem(api_dict: dict) -> FoodItem:
-    """Convert a Nutritionix NLP result dict to a FoodItem."""
-    return FoodItem(
-        food_id=f"nix_{uuid.uuid4().hex[:8]}",
-        name=api_dict.get("name", "Unknown"),
-        nutrition_info=NutritionInfo(
-            calories=  api_dict.get("calories",  0),
-            protein_g= api_dict.get("protein_g", 0),
-            carbs_g=   api_dict.get("carbs_g",   0),
-            fat_g=     api_dict.get("fat_g",     0),
-            fiber_g=   api_dict.get("fiber_g",   0),
-        ),
-        category="external",
-        tags=["nlp_parsed", "nutritionix"],
-    )
-
-
 def usda_to_fooditem(usda_dict: dict) -> FoodItem:
     """Convert a USDA FoodData Central search result to a FoodItem."""
     # Build a nutrient-name to value lookup.
@@ -487,17 +422,3 @@ if __name__ == "__main__":
               f"C:{item.nutrition_info.carbs_g}g "
               f"F:{item.nutrition_info.fat_g}g")
 
-    # Nutritionix NLP test only runs when keys are set.
-    if NUTRITIONIX_APP_ID and NUTRITIONIX_APP_KEY:
-        print("\n=== Nutritionix — NLP Meal Parsing ===")
-        meals = log_natural_language_meal("2 boiled eggs and a banana")
-        for m in meals:
-            print(f"  {m['name']}: {m['calories']} kcal | "
-                  f"P:{m['protein_g']}g C:{m['carbs_g']}g F:{m['fat_g']}g")
-        # Convert first result to FoodItem.
-        if meals:
-            fi = nutritionix_to_fooditem(meals[0])
-            print(f"  → FoodItem: {fi.name} ({fi.food_id})")
-    else:
-        print("\n=== Nutritionix NLP ===")
-        print("  Skipped — add NUTRITIONIX_APP_ID and NUTRITIONIX_APP_KEY to .env")

@@ -522,8 +522,6 @@ function initTaskBuilder() {
     updateTaskSummary();
   });
 
-  taskListEl.appendChild(createTaskRow({ title: 'Math Revision', duration_minutes: 90, difficulty: 7, deadline_days: 2 }));
-  taskListEl.appendChild(createTaskRow({ title: 'Essay Draft', duration_minutes: 60, difficulty: 6, deadline_days: 1 }));
   updateTaskSummary();
 }
 

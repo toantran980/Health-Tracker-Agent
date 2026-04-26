@@ -5,7 +5,7 @@ AI Health & Wellness Tracker is a Flask-based project that combines nutrition tr
 ## What Is Included
 
 - Flask backend API split by domain blueprints (user, nutrition, schedule, chat, external, health)
-- Built-in frontend at `/` (served by Flask)
+- Built-in frontend dashboard with tab-based section navigation
 - Live trend charts (Chart.js) for calories, macros, and focus score
 - Task Builder UI for schedule optimization (no raw JSON needed)
 - Standardized API error envelope: `{"error": "...", "code": "..."}`

@@ -44,12 +44,13 @@ Server default: `http://localhost:5001`
 
 ## 5) Quick Demo Flow
 
-1. Create user from dashboard.
-1. Log one meal.
+1. Create user from **User** tab.
+1. Switch to **Nutrition** tab, log one meal.
 1. Run nutrition analysis and macro recommendations.
-1. Add tasks in Task Builder and optimize schedule.
+1. Switch to **Schedule** tab, add tasks and optimize.
 1. Run productivity prediction.
-1. Send one chatbot message.
+1. Switch to **Chatbot** tab, send one message.
+1. View **Trends** tab for charts (updates as you log data).
 
 ## 6) Useful Commands
 
