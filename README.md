@@ -4,10 +4,13 @@ AI Health & Wellness Tracker is a Flask-based project that combines nutrition tr
 
 ## What Is Included
 
-- Flask backend API with user, nutrition, schedule, productivity, chatbot, and external API routes
+- Flask backend API split by domain blueprints (user, nutrition, schedule, chat, external, health)
 - Built-in frontend at `/` (served by Flask)
 - Live trend charts (Chart.js) for calories, macros, and focus score
 - Task Builder UI for schedule optimization (no raw JSON needed)
+- Standardized API error envelope: `{"error": "...", "code": "..."}`
+- TTL caching for external weather/food/exercise lookups
+- Docker healthchecks + MongoDB connection retry on startup
 - AI modules:
   - `KnowledgeBase` (rule-based recommendations)
   - `ScheduleOptimizer` (CSP + heuristics)
@@ -31,7 +34,9 @@ Health-Tracker-Agent/
 |-- README.md
 |-- api/
 |   |-- routes.py
-|   `-- external_apis.py
+|   |-- external_apis.py
+|   |-- mongo_store.py
+|   `-- blueprints/
 |-- ai_modules/
 |-- models/
 |-- data/
@@ -80,6 +85,16 @@ Open in browser:
 
 Note: the server runs on port `5001` by default.
 
+## Run With Docker
+
+This repository includes `Dockerfile` and `docker-compose.yml` for running the app with MongoDB.
+
+```powershell
+docker compose up --build -d
+```
+
+Then open `http://localhost:5001/`.
+
 ## Frontend Dashboard
 
 The frontend is served by Flask and includes:
@@ -91,6 +106,8 @@ The frontend is served by Flask and includes:
 - Productivity prediction and optimal time suggestion
 - Health chatbot and session reset
 - Knowledge base recommendations and health insights
+- Loading states and disabled controls during API calls
+- Inline status banner for clearer API errors
 - Trend charts:
   - Calories trend
   - Macros trend (protein, carbs, fat)
@@ -98,77 +115,23 @@ The frontend is served by Flask and includes:
 
 ## API Endpoints
 
-### User
+Main endpoint groups:
 
-- `POST /api/user/create`
-- `GET /api/user/<user_id>`
+- User profile management
+- Nutrition logging, analysis, and meal recommendations
+- Schedule optimization
+- Productivity prediction
+- Recommendations and insights
+- Chatbot interactions
+- External food, exercise, and weather data
+- System health checks
 
-### Nutrition
-
-- `POST /api/nutrition/log-meal/<user_id>`
-- `GET /api/nutrition/analysis/<user_id>`
-- `GET /api/nutrition/recommendations/<user_id>`
-- `GET /api/nutrition/meal-recommendations/<user_id>`
-
-### Schedule
-
-- `POST /api/schedule/optimize/<user_id>`
-- `GET /api/schedule/available-slots/<user_id>`
-
-### Productivity
-
-- `POST /api/productivity/predict/<user_id>`
-- `GET /api/productivity/optimal-time/<user_id>`
-
-### Recommendations and Insights
-
-- `POST /api/recommendations/<user_id>`
-- `GET /api/insights/<user_id>`
-
-### Chatbot
-
-- `POST /api/chat/<user_id>`
-- `POST /api/chat/<user_id>/reset`
-
-### External Data
-
-- `GET /api/food/search?q=<term>&limit=<n>`
-- `GET /api/food/barcode/<barcode>`
-- `POST /api/food/log-text/<user_id>`
-- `GET /api/exercise/search?q=<term>`
-- `GET /api/exercisedb/search?q=<term>`
-- `GET /api/wger/<endpoint>`
-- `GET /api/weather/context?lat=<lat>&lon=<lon>`
-
-### System
-
-- `GET /api/health`
+For implementation details and route behavior, see [IMPLEMENTATION.md](IMPLEMENTATION.md).
 
 ## Task Payload Compatibility
 
-Schedule optimization now accepts both shapes below (backend normalizes automatically):
-
-1. Frontend-style tasks:
-
-```json
-{
-  "title": "Essay Draft",
-  "duration_minutes": 60,
-  "difficulty": 6,
-  "deadline_days": 2
-}
-```
-
-1. Optimizer-style tasks:
-
-```json
-{
-  "name": "Essay Draft",
-  "duration_min": 60,
-  "difficulty": 6,
-  "deadline": "2030-01-01T10:00:00"
-}
-```
+Schedule optimization accepts both frontend-style and optimizer-style task payloads.
+See [QUICKSTART.md](QUICKSTART.md) for usage flow.
 
 ## Run Tests
 
@@ -188,6 +151,7 @@ Core local features still run without these keys.
 
 ## Notes
 
-- Data is currently stored in-memory while the server is running.
-- Restarting the server resets users, logs, and sessions.
+- User profiles and daily meal logs are persisted in MongoDB when available.
+- If MongoDB is unavailable, the app falls back to in-memory storage.
 - Food database is loaded from `dataset_loader_v2` during startup.
+- External API responses are cached in-memory with short TTLs to reduce latency.

@@ -5,6 +5,7 @@ const taskListEl = document.getElementById('taskList');
 const taskSummaryEl = document.getElementById('taskSummary');
 const toastContainerEl = document.getElementById('toastContainer');
 const chatMessagesEl = document.getElementById('chatMessages');
+const statusBannerEl = document.getElementById('statusBanner');
 
 const appMetrics = {
   caloriesToday: 0,
@@ -47,6 +48,70 @@ function showToast(message, type = 'info') {
   window.setTimeout(() => {
     toast.remove();
   }, 3200);
+}
+
+function showStatusBanner(message, type = 'error') {
+  if (!statusBannerEl) {
+    return;
+  }
+  statusBannerEl.textContent = message;
+  statusBannerEl.classList.remove('hidden', 'error', 'info', 'success');
+  statusBannerEl.classList.add(type);
+}
+
+function clearStatusBanner() {
+  if (!statusBannerEl) {
+    return;
+  }
+  statusBannerEl.textContent = '';
+  statusBannerEl.classList.add('hidden');
+  statusBannerEl.classList.remove('error', 'info', 'success');
+}
+
+function setElementBusy(el, busy, fallbackLabel = 'Working...') {
+  if (!el) {
+    return;
+  }
+
+  if (busy) {
+    if (!el.dataset.originalLabel) {
+      el.dataset.originalLabel = (el.textContent || '').trim();
+    }
+    el.classList.add('is-loading');
+    el.disabled = true;
+    const original = el.dataset.originalLabel || '';
+    el.textContent = original ? `${original}...` : fallbackLabel;
+    return;
+  }
+
+  el.classList.remove('is-loading');
+  el.disabled = false;
+  if (el.dataset.originalLabel) {
+    el.textContent = el.dataset.originalLabel;
+    delete el.dataset.originalLabel;
+  }
+}
+
+function setFormBusy(formEl, busy) {
+  if (!formEl) {
+    return;
+  }
+  formEl.dataset.busy = busy ? 'true' : 'false';
+  const controls = formEl.querySelectorAll('button, input, select, textarea');
+  controls.forEach((node) => {
+    const tag = node.tagName.toLowerCase();
+    if (tag === 'button') {
+      if (!busy && node.classList.contains('is-loading')) {
+        setElementBusy(node, false);
+      } else if (busy && node.type === 'submit') {
+        setElementBusy(node, true);
+      } else {
+        node.disabled = busy;
+      }
+    } else {
+      node.disabled = busy;
+    }
+  });
 }
 
 function setKpi(prefix, value, status, tone = 'neutral') {
@@ -166,30 +231,57 @@ async function apiRequest(path, options = {}) {
   }
 
   const res = await fetch(url, config);
+  const raw = await res.text();
   let payload;
   try {
-    payload = await res.json();
+    payload = raw ? JSON.parse(raw) : {};
   } catch {
-    payload = { raw: await res.text() };
+    payload = { raw };
   }
 
   if (!res.ok) {
     const msg = payload && payload.error ? payload.error : `HTTP ${res.status}`;
-    throw new Error(msg);
+    const err = new Error(msg);
+    err.code = payload && payload.code ? payload.code : 'HTTP_ERROR';
+    err.status = res.status;
+    throw err;
   }
   return payload;
 }
 
-function safeHandler(handler) {
+function safeHandler(handler, contextEl = null) {
   return async (event) => {
     if (event) {
       event.preventDefault();
     }
+
+    const formEl = event && event.target instanceof HTMLFormElement ? event.target : null;
+    const submitter = event && event.submitter ? event.submitter : null;
+    const busyEl = submitter || contextEl;
+
     try {
+      if (formEl) {
+        setFormBusy(formEl, true);
+      } else {
+        setElementBusy(busyEl, true);
+      }
+      clearStatusBanner();
       await handler(event);
     } catch (err) {
-      showToast(err.message || 'Something went wrong.', 'error');
-      writeOutput('Error', { message: err.message || 'Unknown error' });
+      const errorPayload = {
+        message: err.message || 'Unknown error',
+        code: err.code || 'UNKNOWN_ERROR',
+        status: err.status || null
+      };
+      showToast(`${errorPayload.message} (${errorPayload.code})`, 'error');
+      showStatusBanner(`${errorPayload.message} [${errorPayload.code}]`, 'error');
+      writeOutput('Error', errorPayload);
+    } finally {
+      if (formEl) {
+        setFormBusy(formEl, false);
+      } else {
+        setElementBusy(busyEl, false);
+      }
     }
   };
 }
@@ -199,7 +291,7 @@ function bindClick(id, handler) {
   if (!el) {
     return;
   }
-  el.addEventListener('click', safeHandler(handler));
+  el.addEventListener('click', safeHandler(handler, el));
 }
 
 function bindSubmit(id, handler) {
@@ -209,7 +301,7 @@ function bindSubmit(id, handler) {
   }
   el.addEventListener('submit', safeHandler(async (event) => {
     await handler(event.target);
-  }));
+  }, el));
 }
 
 async function requestForActiveUser(title, pathFactory, options = {}) {

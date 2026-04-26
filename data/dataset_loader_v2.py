@@ -1,16 +1,14 @@
-"""
-data/loader.py
-Loads food database from sample data + all 6 Kaggle CSV files.
-
-Total expected: 2,730+ real foods across all sources.
-"""
+"""Load and merge food data from sample entries and nutrition CSV files."""
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import logging
 import uuid
 import pandas as pd
 from models.meal import FoodItem, NutritionInfo
+
+logger = logging.getLogger(__name__)
 
 # ── All CSV files ────────────────────────────────────────────
 GROUP_FILES = [
@@ -61,11 +59,11 @@ def load_group_files() -> list[FoodItem]:
             df = pd.read_csv(path)
             df = df.drop(columns=["Unnamed: 0.1", "Unnamed: 0"], errors="ignore")
             all_dfs.append(df)
-            print(f"  [Loader] {path.split('/')[-1]} — {len(df)} rows")
+            logger.info("  [Loader] %s — %d rows", path.split('/')[-1], len(df))
         except FileNotFoundError:
-            print(f"  [Loader] Not found: {path}")
+            logger.warning("  [Loader] Not found: %s", path)
         except Exception as e:
-            print(f"  [Loader] Error reading {path}: {e}")
+            logger.warning("  [Loader] Error reading %s: %s", path, e)
 
     if not all_dfs:
         return []
@@ -114,7 +112,7 @@ def load_nutrients_file() -> list[FoodItem]:
         df = df[df["Calories"] > 0]
         df = df.drop_duplicates(subset=["Food"])
 
-        print(f"  [Loader] nutrients_csvfile.csv — {len(df)} rows")
+        logger.info("  [Loader] nutrients_csvfile.csv — %d rows", len(df))
 
         foods = []
         for _, row in df.iterrows():
@@ -139,10 +137,10 @@ def load_nutrients_file() -> list[FoodItem]:
         return foods
 
     except FileNotFoundError:
-        print(f"  [Loader] Not found: {NUTRIENTS_FILE}")
+        logger.warning("  [Loader] Not found: %s", NUTRIENTS_FILE)
         return []
     except Exception as e:
-        print(f"  [Loader] Error reading nutrients file: {e}")
+        logger.warning("  [Loader] Error reading nutrients file: %s", e)
         return []
 
 
@@ -169,12 +167,12 @@ def load_food_database() -> list[FoodItem]:
             if key not in seen_names:
                 foods.append(food)
                 seen_names.add(key)
-        print(f"[Loader] sample_data        — {len(SAMPLE_FOODS)} foods")
+        logger.info("[Loader] sample_data — %d foods", len(SAMPLE_FOODS))
     except (ImportError, AttributeError):
-        print("[Loader] No sample_data found, skipping")
+        logger.warning("[Loader] No sample_data found, skipping")
 
     # ── Layer 2: GROUP CSV files ─────────────────────────────
-    print("[Loader] Loading GROUP files...")
+    logger.info("[Loader] Loading GROUP files...")
     group_foods = load_group_files()
     added = 0
     for food in group_foods:
@@ -183,10 +181,10 @@ def load_food_database() -> list[FoodItem]:
             foods.append(food)
             seen_names.add(key)
             added += 1
-    print(f"[Loader] GROUP files total  — {added} unique foods added")
+    logger.info("[Loader] GROUP files total — %d unique foods added", added)
 
     # ── Layer 3: nutrients_csvfile ───────────────────────────
-    print("[Loader] Loading nutrients file...")
+    logger.info("[Loader] Loading nutrients file...")
     nutrient_foods = load_nutrients_file()
     added = 0
     for food in nutrient_foods:
@@ -195,9 +193,9 @@ def load_food_database() -> list[FoodItem]:
             foods.append(food)
             seen_names.add(key)
             added += 1
-    print(f"[Loader] nutrients_csvfile  — {added} unique foods added")
+    logger.info("[Loader] nutrients_csvfile — %d unique foods added", added)
 
-    print(f"\n[Loader] Total food database: {len(foods)} items")
+    logger.info("[Loader] Total food database: %d items", len(foods))
     return foods
 
 

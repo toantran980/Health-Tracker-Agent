@@ -8,11 +8,36 @@
 </head>
 <body>
   <div class="page-bg"></div>
+  <div class="noise-layer" aria-hidden="true"></div>
   <main class="container">
+    <section class="panel command-deck" aria-label="Connection and output console">
+      <div class="command-grid">
+        <label>API Base URL<input id="apiBase" type="text" placeholder="http://127.0.0.1:5000"></label>
+        <label>Active User ID<input id="activeUserId" type="text" placeholder="Create a user to auto-fill"></label>
+        <p class="hint deck-hint">Tip: these fields persist in your browser so you can continue from your last session.</p>
+      </div>
+      <div class="subpanel output-panel">
+        <div class="output-header">
+          <h3>Live API Output</h3>
+          <span class="pill">JSON stream</span>
+        </div>
+        <pre id="output">Run any action to see the response payload here.</pre>
+      </div>
+    </section>
+
+    <section id="statusBanner" class="status-banner hidden" aria-live="assertive" aria-atomic="true"></section>
+
     <header class="hero">
       <p class="eyebrow">AI Health + Study Assistant</p>
       <h1>Health Tracker Frontend</h1>
       <p class="subtitle">Manage users, meals, productivity, scheduling, and chatbot interactions from one dashboard.</p>
+      <nav class="hero-nav" aria-label="Page sections">
+        <a href="#section-user" class="hero-link">User</a>
+        <a href="#section-nutrition" class="hero-link">Nutrition</a>
+        <a href="#section-schedule" class="hero-link">Schedule</a>
+        <a href="#section-chat" class="hero-link">Chatbot</a>
+        <a href="#section-trends" class="hero-link">Trends</a>
+      </nav>
     </header>
 
     <section class="kpi-strip" aria-label="Daily snapshot">
@@ -48,7 +73,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section id="section-user" class="panel">
       <h2>Create User</h2>
       <form id="createUserForm" class="grid three">
         <label>Name<input name="name" type="text" value="Alex"></label>
@@ -80,7 +105,7 @@
       </form>
     </section>
 
-    <section class="panel">
+    <section id="section-nutrition" class="panel">
       <h2>Nutrition</h2>
       <div class="grid two">
         <form id="mealForm" class="subpanel">
@@ -126,7 +151,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section id="section-schedule" class="panel">
       <h2>Schedule + Productivity</h2>
       <div class="grid two">
         <form id="scheduleForm" class="subpanel">
@@ -159,7 +184,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section id="section-chat" class="panel">
       <h2>Chatbot + Insights</h2>
       <div class="grid two">
         <form id="chatForm" class="subpanel">
@@ -184,7 +209,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section id="section-trends" class="panel">
       <h2>Analytics Trends</h2>
       <div class="grid three charts-grid">
         <div class="subpanel chart-panel">

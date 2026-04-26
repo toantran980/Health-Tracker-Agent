@@ -1,33 +1,8 @@
-"""
-external_apis.py
-
-Free external API wrappers for the Health & Wellness Tracker.
-
-APIs Used
----------
-Open Food Facts   : food search + barcode lookup (no key needed)
-USDA FoodData     : high-accuracy nutrition data (free key or DEMO_KEY)
-Nutritionix NLP   : natural language meal parsing (free 500 calls/day)
-Wger              : exercise database (no key needed)
-Open-Meteo        : weather context (no key needed)
-
-All functions return safe defaults on failure so the app never crashes
-during a demo due to network issues or missing keys.
-
-Setup
------
-Create a .env file in the project root:
-
-    NUTRITIONIX_APP_ID=your_id_here
-    NUTRITIONIX_APP_KEY=your_key_here
-    USDA_API_KEY=your_key_here        # optional — DEMO_KEY works for testing
-
-Sign up:
-    Nutritionix : https://www.nutritionix.com/food-api
-    USDA        : https://fdc.nal.usda.gov/api-guide.html
-"""
+"""External API wrappers with safe fallbacks and lightweight TTL caching."""
 
 import os
+import logging
+import time
 import uuid
 import requests
 from dotenv import load_dotenv
@@ -35,13 +10,33 @@ from dotenv import load_dotenv
 from models.meal import FoodItem, NutritionInfo
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
-# ============================================================
-# CONFIGURATION
-# ============================================================
+# Configuration
 
 REQUEST_TIMEOUT = 10   # seconds — applies to every API call
 
+TTL_SHORT = 300    # 5 min
+TTL_MEDIUM = 900   # 15 min
+TTL_LONG = 3600    # 60 min
+
+_TTL_CACHE: dict[str, tuple[float, object]] = {}
+
+
+def _cache_get(key: str):
+    cached = _TTL_CACHE.get(key)
+    if not cached:
+        return None
+    expires_at, value = cached
+    if expires_at <= time.time():
+        _TTL_CACHE.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(key: str, value: object, ttl_seconds: int) -> object:
+    _TTL_CACHE[key] = (time.time() + ttl_seconds, value)
+    return value
 
 NUTRITIONIX_APP_ID  = os.getenv("NUTRITIONIX_APP_ID",  "")
 NUTRITIONIX_APP_KEY = os.getenv("NUTRITIONIX_APP_KEY", "")
@@ -56,22 +51,15 @@ EXERCISEDB_HOST  = "exercisedb.p.rapidapi.com"
 RAPIDAPI_KEY     = os.getenv("EXERCISEDB_API_KEY", "")
 
 
-# ============================================================
-# 1. OPEN FOOD FACTS
-#    No API key needed. 3M+ products worldwide.
-#    Docs: https://world.openfoodfacts.org/data
-# ============================================================
+# Open Food Facts
 
 def search_food_by_name(query: str, page_size: int = 5) -> list[dict]:
-    """
-    Search foods by name via Open Food Facts.
+    """Search foods by name via Open Food Facts."""
+    cache_key = f"off:search:{query.strip().lower()}:{page_size}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
 
-    Filters out products with missing calorie data to prevent
-    zero-nutrition entries from corrupting recommendation scoring.
-
-    Returns:
-        List of parsed nutrition dicts, or [] on failure.
-    """
     url    = f"{FOOD_FACTS_BASE}/cgi/search.pl"
     params = {
         "search_terms":  query,
@@ -85,28 +73,29 @@ def search_food_by_name(query: str, page_size: int = 5) -> list[dict]:
         resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         products = resp.json().get("products", [])
-        return [
+        results = [
             parse_food_facts_product(p)
             for p in products
             if p.get("product_name")
             and p.get("nutriments", {}).get("energy-kcal_100g", 0) > 0
         ]
+        return _cache_set(cache_key, results, TTL_SHORT)
 
     except requests.exceptions.Timeout:
-        print(f"[OpenFoodFacts] Timeout for query: {query}")
+        logger.warning("[OpenFoodFacts] Timeout for query: %s", query)
         return []
     except requests.exceptions.RequestException as e:
-        print(f"[OpenFoodFacts] API error: {e}")
+        logger.warning("[OpenFoodFacts] API error: %s", e)
         return []
 
 
 def get_food_by_barcode(barcode: str) -> dict | None:
-    """
-    Look up a single product by EAN-13 / UPC barcode.
+    """Look up a single product by EAN-13 / UPC barcode."""
+    cache_key = f"off:barcode:{barcode.strip()}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
 
-    Returns:
-        Parsed nutrition dict, or None if not found.
-    """
     url = f"{FOOD_FACTS_BASE}/api/v2/product/{barcode}.json"
 
     try:
@@ -115,18 +104,16 @@ def get_food_by_barcode(barcode: str) -> dict | None:
         data = resp.json()
         if data.get("status") != 1:
             return None
-        return parse_food_facts_product(data["product"])
+        result = parse_food_facts_product(data["product"])
+        return _cache_set(cache_key, result, TTL_LONG)
 
     except requests.exceptions.RequestException as e:
-        print(f"[OpenFoodFacts] Barcode lookup error: {e}")
+        logger.warning("[OpenFoodFacts] Barcode lookup error: %s", e)
         return None
 
 
 def parse_food_facts_product(p: dict) -> dict:
-    """
-    Normalise a raw Open Food Facts product dict into a flat nutrition dict.
-    Public (no leading underscore) so converters can call it directly.
-    """
+    """Normalize a raw Open Food Facts product dict into a flat nutrition dict."""
     nutrients = p.get("nutriments", {})
     return {
         "name":              p.get("product_name", "Unknown"),
@@ -141,23 +128,15 @@ def parse_food_facts_product(p: dict) -> dict:
     }
 
 
-# ============================================================
-# 2. USDA FOODDATA CENTRAL
-#    Free — use DEMO_KEY for testing or register for higher limits.
-#    Register: https://fdc.nal.usda.gov/api-guide.html
-#    DEMO_KEY limit: 30 requests/hour, 50/day.
-# ============================================================
+# USDA FoodData Central
 
 def search_usda_food(query: str, page_size: int = 5) -> list[dict]:
-    """
-    Search USDA FoodData Central — highest accuracy for whole foods.
+    """Search USDA FoodData Central for food items."""
+    cache_key = f"usda:search:{query.strip().lower()}:{page_size}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
 
-    Preferred over Open Food Facts for items like "chicken breast"
-    or "brown rice" where USDA verified data is more reliable.
-
-    Returns:
-        List of raw USDA food dicts, or [] on failure.
-    """
     url    = f"{USDA_BASE}/foods/search"
     params = {
         "query":    query,
@@ -168,33 +147,21 @@ def search_usda_food(query: str, page_size: int = 5) -> list[dict]:
     try:
         resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
-        return resp.json().get("foods", [])
+        results = resp.json().get("foods", [])
+        return _cache_set(cache_key, results, TTL_MEDIUM)
 
     except requests.exceptions.RequestException as e:
-        print(f"[USDA] API error: {e}")
+        logger.warning("[USDA] API error: %s", e)
         return []
 
 
-# ============================================================
-# 3. NUTRITIONIX NLP
-#    Free tier: 500 calls/day.
-#    Register: https://www.nutritionix.com/food-api
-# ============================================================
+# Nutritionix NLP
 
 def log_natural_language_meal(text: str) -> list[dict]:
-    """
-    Parse a plain-English meal description into structured nutrition data.
-
-    Example:
-        log_natural_language_meal("2 scrambled eggs and a cup of oatmeal")
-
-    Returns:
-        List of per-food nutrition dicts, or [] if keys are missing / call fails.
-    """
+    """Parse a plain-English meal description into nutrition entries."""
     if not NUTRITIONIX_APP_ID or not NUTRITIONIX_APP_KEY:
-        print(
-            "[Nutritionix] Skipping — NUTRITIONIX_APP_ID / NUTRITIONIX_APP_KEY "
-            "not set in .env. Sign up free at https://www.nutritionix.com/food-api"
+        logger.warning(
+            "[Nutritionix] Skipping because keys are missing in .env"
         )
         return []
 
@@ -229,27 +196,19 @@ def log_natural_language_meal(text: str) -> list[dict]:
         ]
 
     except requests.exceptions.RequestException as e:
-        print(f"[Nutritionix] API error: {e}")
+        logger.warning("[Nutritionix] API error: %s", e)
         return []
 
 
-# ============================================================
-# 4. WGER EXERCISE DATABASE
-#    No key needed for read operations.
-#    Docs: https://wger.de/api/v2/
-# ============================================================
+# Wger exercise APIs
 
 def search_exercise(name: str, language: int = 2) -> list[dict]:
-    """
-    Search the Wger exercise database by name.
+    """Search the Wger exercise database by name."""
+    cache_key = f"wger:search:{name.strip().lower()}:{language}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
 
-    Args:
-        name:     Exercise name (e.g. "bench press").
-        language: Language ID — 2 = English.
-
-    Returns:
-        List of exercise summary dicts, or [] on failure.
-    """
     url    = f"{WGER_BASE}/exercise/search/"
     params = {"term": name, "language": language, "format": "json"}
 
@@ -257,7 +216,7 @@ def search_exercise(name: str, language: int = 2) -> list[dict]:
         resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
 
-        return [
+        results = [
             {
                 "name":        s["value"],
                 "exercise_id": s["data"]["id"],
@@ -265,43 +224,11 @@ def search_exercise(name: str, language: int = 2) -> list[dict]:
             }
             for s in resp.json().get("suggestions", [])
         ]
+        return _cache_set(cache_key, results, TTL_MEDIUM)
 
     except requests.exceptions.RequestException as e:
-        print(f"[Wger] Search error: {e}")
+        logger.warning("[Wger] Search error: %s", e)
         return []
-
-
-def get_exercise_detail(exercise_id: int) -> dict:
-    """
-    Fetch full exercise detail including primary and secondary muscles.
-
-    Returns:
-        Detail dict, or {} on failure.
-    """
-    url = f"{WGER_BASE}/exerciseinfo/{exercise_id}/"
-
-    try:
-        resp = requests.get(url, params={"format": "json"}, timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-        data = resp.json()
-
-        description = ""
-        for trans in data.get("translations", []):
-            if trans.get("language") == 2:
-                description = trans.get("description", "")
-                break
-
-        return {
-            "name":               data.get("name", ""),
-            "category":           data.get("category", {}).get("name", ""),
-            "muscles_primary":    [m["name_en"] for m in data.get("muscles",           [])],
-            "muscles_secondary":  [m["name_en"] for m in data.get("muscles_secondary", [])],
-            "description":        description,
-        }
-
-    except requests.exceptions.RequestException as e:
-        print(f"[Wger] Detail error: {e}")
-        return {}
 
 
 def proxy_wger_endpoint(endpoint: str, params: dict = None) -> dict:
@@ -309,7 +236,7 @@ def proxy_wger_endpoint(endpoint: str, params: dict = None) -> dict:
     Generic proxy to fetch data from any Wger API v2 endpoint.
     Provides access to routines, equipment, muscles, etc.
     """
-    # Quick fix to prevent double slashes if endpoint already has one
+    # Avoid double slashes in the composed endpoint URL.
     endpoint = endpoint.strip("/")
     url = f"{WGER_BASE}/{endpoint}/"
     
@@ -318,24 +245,19 @@ def proxy_wger_endpoint(endpoint: str, params: dict = None) -> dict:
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.RequestException as e:
-        print(f"[Wger] Proxy error for {endpoint}: {e}")
+        logger.warning("[Wger] Proxy error for %s: %s", endpoint, e)
         return {"error": str(e)}
 
 
-# ============================================================
-# 4.5. EXERCISEDB (RapidAPI)
-# ============================================================
+# ExerciseDB (RapidAPI)
 
 def search_exercisedb(name: str) -> list[dict]:
-    """
-    Search exercises using ExerciseDB from RapidAPI.
-    
-    Args:
-        name: Exercise name (e.g. "bench").
-        
-    Returns:
-        List of detailed exercise dicts, or [] on failure.
-    """
+    """Search exercises via ExerciseDB (RapidAPI)."""
+    cache_key = f"exercisedb:search:{name.strip().lower()}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     url = f"https://{EXERCISEDB_HOST}/exercises/name/{name}"
     headers = {
         "x-rapidapi-host": EXERCISEDB_HOST,
@@ -347,7 +269,7 @@ def search_exercisedb(name: str) -> list[dict]:
         resp.raise_for_status()
         data = resp.json()
         
-        return [
+        results = [
             {
                 "exercise_id": str(item.get("id", "")),
                 "name":        item.get("name", "").title(),
@@ -357,30 +279,20 @@ def search_exercisedb(name: str) -> list[dict]:
                 "gif_url":     item.get("gifUrl", ""),
                 "instructions": item.get("instructions", []),
             }
-            for item in data[:10]  # limit to top 10 to avoid huge payloads
+            for item in data[:10]
         ]
+        return _cache_set(cache_key, results, TTL_MEDIUM)
 
     except requests.exceptions.RequestException as e:
-        print(f"[ExerciseDB] API error: {e}")
+        logger.warning("[ExerciseDB] API error: %s", e)
         return []
 
 
 
-# ============================================================
-# 5. OPEN-METEO WEATHER
-#    No key needed. 10,000 calls/day free.
-#    Docs: https://open-meteo.com/en/docs
-# ============================================================
+# Open-Meteo weather
 
 def get_weather_context(latitude: float, longitude: float) -> dict:
-    """
-    Fetch current weather and UV index for context-aware recommendations.
-
-    Returns a safe default dict (temp 20°C, no rain) on failure so
-    callers don't need to handle None.
-    Returns:
-        Weather context dict including recommendation_hints list.
-    """
+    """Fetch current weather and UV context with safe defaults on failure."""
     _default = {
         "temperature_c":      20.0,
         "precipitation_mm":   0.0,
@@ -390,6 +302,11 @@ def get_weather_context(latitude: float, longitude: float) -> dict:
         "high_uv":            False,
         "recommendation_hints": [],
     }
+
+    cache_key = f"weather:context:{round(latitude, 3)}:{round(longitude, 3)}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
 
     url    = f"{OPEN_METEO_BASE}/forecast"
     params = {
@@ -409,7 +326,7 @@ def get_weather_context(latitude: float, longitude: float) -> dict:
         uv_index     = current.get("uv_index",        0)
         temp         = current.get("temperature_2m",  20)
 
-        return {
+        result = {
             "temperature_c":      temp,
             "precipitation_mm":   current.get("precipitation",    0),
             "uv_index":           uv_index,
@@ -418,9 +335,10 @@ def get_weather_context(latitude: float, longitude: float) -> dict:
             "high_uv":            uv_index >= 6,
             "recommendation_hints": weather_hints(is_raining, uv_index, temp),
         }
+        return _cache_set(cache_key, result, TTL_SHORT)
 
     except requests.exceptions.RequestException as e:
-        print(f"[Weather] API error: {e}")
+        logger.warning("[Weather] API error: %s", e)
         return _default
 
 
@@ -438,44 +356,10 @@ def weather_hints(is_raining: bool, uv: float, temp: float) -> list[str]:
     return hints
 
 
-def get_calorie_adjustment_from_weather(latitude: float, longitude: float) -> float:
-    """
-    Return a calorie multiplier based on ambient temperature.
-
-    Integrates with UserProfile.target_calories so recommendations
-    adapt to the user's environment:
-
-        adjusted_calories = user.target_calories * get_calorie_adjustment_from_weather(lat, lng)
-
-    Returns:
-        1.10 (cold, +10 %), 0.95 (hot, -5 %), or 1.0 (neutral / fallback).
-    """
-    try:
-        weather = get_weather_context(latitude, longitude)
-        if weather["temperature_c"] <= 5:
-            return 1.10
-        if weather["temperature_c"] >= 30:
-            return 0.95
-        return 1.0
-    except Exception:
-        return 1.0
-
-
-# ============================================================
-# FOODITEM CONVERTERS  (Engine bridge)
-#
-# These functions translate raw API dicts into FoodItem objects
-# so external data feeds directly into MealRecommendationEngine
-# and NutritionAnalyzer without any changes to those classes.
-# ============================================================
+# FoodItem converters
 
 def food_facts_to_fooditem(api_dict: dict) -> FoodItem:
-    """
-    Convert an Open Food Facts nutrition dict to a FoodItem.
-
-    Uses parse_food_facts_product output as input — call chain:
-        search_food_by_name() -> parse_food_facts_product() -> food_facts_to_fooditem()
-    """
+    """Convert an Open Food Facts nutrition dict to a FoodItem."""
     return FoodItem(
         food_id=f"off_{uuid.uuid4().hex[:8]}",
         name=api_dict.get("name", "Unknown"),
@@ -492,11 +376,7 @@ def food_facts_to_fooditem(api_dict: dict) -> FoodItem:
 
 
 def nutritionix_to_fooditem(api_dict: dict) -> FoodItem:
-    """
-    Convert a Nutritionix NLP result dict to a FoodItem.
-
-    Uses log_natural_language_meal() output as input.
-    """
+    """Convert a Nutritionix NLP result dict to a FoodItem."""
     return FoodItem(
         food_id=f"nix_{uuid.uuid4().hex[:8]}",
         name=api_dict.get("name", "Unknown"),
@@ -513,15 +393,8 @@ def nutritionix_to_fooditem(api_dict: dict) -> FoodItem:
 
 
 def usda_to_fooditem(usda_dict: dict) -> FoodItem:
-    """
-    Convert a USDA FoodData Central search result to a FoodItem.
-
-    USDA returns nutrients as a list of {nutrientName, value} objects
-    rather than a flat dict, so this function extracts by name.
-
-    Uses search_usda_food() output as input.
-    """
-    # Build a name → value lookup from the nutrients list
+    """Convert a USDA FoodData Central search result to a FoodItem."""
+    # Build a nutrient-name to value lookup.
     nutrients = {
         n["nutrientName"]: n["value"]
         for n in usda_dict.get("foodNutrients", [])
@@ -543,29 +416,14 @@ def usda_to_fooditem(usda_dict: dict) -> FoodItem:
     )
 
 
-# ============================================================
-# UNIFIED SEARCH  (recommended entry point for the main app)
-# ============================================================
+# Unified search
 
 def search_all_sources(query: str, page_size: int = 5) -> list[FoodItem]:
-    """
-    Search all available food APIs and return a deduplicated list of FoodItems.
-
-    Priority order (highest accuracy first):
-        1. USDA FoodData Central
-        2. Open Food Facts
-
-    Nutritionix is excluded here because it requires a natural-language
-    sentence rather than a keyword query — call log_natural_language_meal()
-    directly for NLP-style input.
-
-    Deduplication is name-based (case-insensitive) so the same food
-    returned by multiple APIs doesn't inflate the database.
-    """
+    """Search USDA and Open Food Facts and return deduplicated FoodItems."""
     results:    list[FoodItem] = []
     seen_names: set[str]       = set()
 
-    # ── 1. USDA — most accurate for whole foods ──────────────────────────
+    # USDA first for better whole-food nutrient quality.
     for item in search_usda_food(query, page_size):
         food = usda_to_fooditem(item)
         key  = food.name.lower().strip()
@@ -573,7 +431,7 @@ def search_all_sources(query: str, page_size: int = 5) -> list[FoodItem]:
             results.append(food)
             seen_names.add(key)
 
-    # ── 2. Open Food Facts — broader packaged product coverage ───────────
+    # Open Food Facts second for broader packaged-food coverage.
     for item in search_food_by_name(query, page_size):
         food = food_facts_to_fooditem(item)
         key  = food.name.lower().strip()
@@ -584,9 +442,7 @@ def search_all_sources(query: str, page_size: int = 5) -> list[FoodItem]:
     return results[:page_size]
 
 
-# ============================================================
-# QUICK TEST — run: python api/external_apis.py
-# ============================================================
+# Quick manual test: python api/external_apis.py
 
 if __name__ == "__main__":
 
@@ -596,7 +452,7 @@ if __name__ == "__main__":
         print(f"  {f['name']} — {f['calories_per_100g']} kcal/100g")
 
     print("\n=== Open Food Facts — Barcode Lookup ===")
-    product = get_food_by_barcode("0737628064502")   # correct 13-digit EAN
+    product = get_food_by_barcode("0737628064502")
     if product:
         print(f"  {product['name']} ({product['brand']})")
     else:
@@ -617,18 +473,9 @@ if __name__ == "__main__":
     for e in exercises[:3]:
         print(f"  {e['name']} (id: {e['exercise_id']}, category: {e['category']})")
 
-    print("\n=== Wger — Exercise Detail ===")
-    if exercises:
-        detail = get_exercise_detail(exercises[0]["exercise_id"])
-        print(f"  Name:            {detail.get('name')}")
-        print(f"  Category:        {detail.get('category')}")
-        print(f"  Primary muscles: {detail.get('muscles_primary')}")
-
     print("\n=== Open-Meteo — Weather Context ===")
-    weather = get_weather_context(3.1390, 101.6869)   # Kuala Lumpur
+    weather = get_weather_context(3.1390, 101.6869)
     print(f"  Temp: {weather['temperature_c']}°C | UV: {weather['uv_index']}")
-    adj = get_calorie_adjustment_from_weather(3.1390, 101.6869)
-    print(f"  Calorie adjustment multiplier: {adj}")
     for hint in weather["recommendation_hints"]:
         print(f"  Hint: {hint}")
 
@@ -640,14 +487,14 @@ if __name__ == "__main__":
               f"C:{item.nutrition_info.carbs_g}g "
               f"F:{item.nutrition_info.fat_g}g")
 
-    # Nutritionix NLP — only runs if keys are in .env
+    # Nutritionix NLP test only runs when keys are set.
     if NUTRITIONIX_APP_ID and NUTRITIONIX_APP_KEY:
         print("\n=== Nutritionix — NLP Meal Parsing ===")
         meals = log_natural_language_meal("2 boiled eggs and a banana")
         for m in meals:
             print(f"  {m['name']}: {m['calories']} kcal | "
                   f"P:{m['protein_g']}g C:{m['carbs_g']}g F:{m['fat_g']}g")
-        # Convert first result to FoodItem
+        # Convert first result to FoodItem.
         if meals:
             fi = nutritionix_to_fooditem(meals[0])
             print(f"  → FoodItem: {fi.name} ({fi.food_id})")

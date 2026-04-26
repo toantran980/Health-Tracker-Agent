@@ -1,0 +1,42 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: health-tracker-app
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      HOST: 0.0.0.0
+      PORT: 5001
+      DEBUG: "False"
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB_NAME: health_tracker
+    ports:
+      - "5001:5001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/api/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7.0
+    container_name: health-tracker-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
