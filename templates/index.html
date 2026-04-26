@@ -85,17 +85,17 @@
 
     <section id="section-user" class="panel tab-section">
       <h2>Create User</h2>
-      <form id="createUserForm" class="grid three">
+      <form id="createUserForm" class="grid three" novalidate>
         <label>Name<input name="name" type="text" placeholder="e.g. Alex"></label>
-        <label>Age<input name="age" type="number" placeholder="e.g. 25"></label>
+        <label>Age<input name="age" type="number" placeholder="e.g. 25" min="1" max="120"></label>
         <label>Sex
           <select name="biological_sex">
             <option value="male">Male</option>
             <option value="female">Female</option>
           </select>
         </label>
-        <label>Weight (kg)<input name="weight_kg" type="number" step="0.1" placeholder="e.g. 70"></label>
-        <label>Height (cm)<input name="height_cm" type="number" placeholder="e.g. 175"></label>
+        <label>Weight (kg)<input name="weight_kg" type="number" step="0.1" placeholder="e.g. 70" min="20" max="300"></label>
+        <label>Height (cm)<input name="height_cm" type="number" placeholder="e.g. 175" min="50" max="250"></label>
         <label>Goal
           <select name="goal">
             <option value="general_wellness">General Wellness</option>
@@ -104,15 +104,16 @@
             <option value="better_focus">Better Focus</option>
           </select>
         </label>
-        <label>Target Calories<input name="target_calories" type="number" placeholder="e.g. 2200"></label>
-        <label>Protein (g)<input name="target_protein_g" type="number" step="0.1" placeholder="e.g. 140"></label>
-        <label>Carbs (g)<input name="target_carbs_g" type="number" step="0.1" placeholder="e.g. 240"></label>
-        <label>Fat (g)<input name="target_fat_g" type="number" step="0.1" placeholder="e.g. 70"></label>
+        <label>Target Calories<input name="target_calories" type="number" placeholder="e.g. 2200" min="500" max="6000"></label>
+        <label>Protein (g)<input name="target_protein_g" type="number" step="0.1" placeholder="e.g. 140" min="0" max="500"></label>
+        <label>Carbs (g)<input name="target_carbs_g" type="number" step="0.1" placeholder="e.g. 240" min="0" max="1000"></label>
+        <label>Fat (g)<input name="target_fat_g" type="number" step="0.1" placeholder="e.g. 70" min="0" max="500"></label>
         <div class="actions span-3">
           <button class="btn primary" type="submit">Create User</button>
           <button id="btnGetUser" class="btn" type="button">Get Active User</button>
         </div>
       </form>
+      
     </section>
 
     <section id="section-nutrition" class="panel tab-section tab-hidden">

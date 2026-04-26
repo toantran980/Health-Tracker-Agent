@@ -11,7 +11,7 @@ services:
       HOST: 0.0.0.0
       PORT: 5001
       DEBUG: "False"
-      MONGO_URI: mongodb://mongo:27017
+      MONGO_URI: mongodb://health-tracker-mongo:27017/health_tracker
       MONGO_DB_NAME: health_tracker
     ports:
       - "5001:5001"
@@ -29,7 +29,7 @@ services:
     image: mongo:7.0
     container_name: health-tracker-mongo
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:

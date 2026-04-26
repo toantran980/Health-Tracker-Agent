@@ -549,25 +549,32 @@ function initTaskBuilder() {
 }
 
 bindSubmit('createUserForm', async (form) => {
-  const data = new FormData(form);
+  const name = form.elements['name'].value.trim();
+  const age = Number(form.elements['age'].value);
+  const weight_kg = Number(form.elements['weight_kg'].value);
+  const height_cm = Number(form.elements['height_cm'].value);
+
+  if (!name) throw new Error('Name is required.');
+  if (!age || age < 1) throw new Error('Valid age is required.');
+  if (!weight_kg || weight_kg < 1) throw new Error('Valid weight is required.');
+  if (!height_cm || height_cm < 1) throw new Error('Valid height is required.');
+
   const body = {
-    name: data.get('name'),
-    age: Number(data.get('age')),
-    biological_sex: data.get('biological_sex'),
-    weight_kg: Number(data.get('weight_kg')),
-    height_cm: Number(data.get('height_cm')),
-    goals: [data.get('goal')],
-    target_calories: Number(data.get('target_calories')),
-    target_protein_g: Number(data.get('target_protein_g')),
-    target_carbs_g: Number(data.get('target_carbs_g')),
-    target_fat_g: Number(data.get('target_fat_g'))
+    name,
+    age,
+    biological_sex: form.elements['biological_sex'].value || 'male',
+    weight_kg,
+    height_cm,
+    goals: [form.elements['goal'].value || 'general_wellness'],
+    target_calories:  Number(form.elements['target_calories'].value)  || 2000,
+    target_protein_g: Number(form.elements['target_protein_g'].value) || 150,
+    target_carbs_g:   Number(form.elements['target_carbs_g'].value)   || 200,
+    target_fat_g:     Number(form.elements['target_fat_g'].value)     || 65,
   };
 
   const payload = await apiRequest('/api/user/create', { method: 'POST', body });
   if (payload.user && payload.user.user_id) {
-    if (activeUserEl) {
-      activeUserEl.value = payload.user.user_id;
-    }
+    if (activeUserEl) activeUserEl.value = payload.user.user_id;
     localStorage.setItem('activeUserId', payload.user.user_id);
   }
   showToast('User profile created.', 'success');
