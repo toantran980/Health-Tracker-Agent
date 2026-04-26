@@ -2,14 +2,45 @@
 
 Use this guide to run the latest version of the project (backend + frontend dashboard).
 
-## 1) Install
+## Run With Docker (Recommended)
 
-```powershell
-cd <path-to-Health-Tracker-Agent>
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+Start app + MongoDB:
+
+
+  docker compose up --build -d
+
+
+View logs:
+
+
+  docker compose logs -f app
+
+
+Stop containers:
+
+
+  docker compose down
+
+
+Stop and remove MongoDB volume:
+
+
+  docker compose down -v
+
+
+---
+
+## 1) Install (Manual/Python)
+
+
+  cd <path-to-Health-Tracker-Agent>
+  python -m venv venv
+  # On Windows:
+  .\venv\Scripts\activate
+  # On macOS/Linux:
+  source venv/bin/activate
+  pip install -r requirements.txt
+
 
 If you already have `venv`, just activate it and run `pip install -r requirements.txt`.
 
@@ -31,9 +62,9 @@ MONGO_DB_NAME=health_tracker
 
 ## 3) Start Server
 
-```powershell
-python main.py
-```
+
+  python main.py
+
 
 Server default: `http://localhost:5001`
 
@@ -56,41 +87,15 @@ Server default: `http://localhost:5001`
 
 Run tests:
 
-```powershell
-python -m unittest tests/test_ai_modules.py -v
-```
+
+  python -m unittest tests/test_ai_modules.py -v
+
 
 Run examples script:
 
-```powershell
-python examples.py
-```
 
-## 7) Run With Docker
+  python examples.py
 
-Start app + MongoDB:
-
-```powershell
-docker compose up --build -d
-```
-
-View logs:
-
-```powershell
-docker compose logs -f app
-```
-
-Stop containers:
-
-```powershell
-docker compose down
-```
-
-Stop and remove MongoDB volume:
-
-```powershell
-docker compose down -v
-```
 
 ## Notes
 
@@ -108,27 +113,32 @@ docker compose down -v
 
 ### PowerShell execution policy issue
 
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
-```
+
+  # Only needed on Windows PowerShell:
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+
 
 ### Port already in use
 
-```powershell
-$env:PORT=5002
-python main.py
-```
+
+  # On Windows:
+  $env:PORT=5002
+  python main.py
+  # On macOS/Linux:
+  export PORT=5002
+  python main.py
+
 
 ### Import or dependency errors
 
-```powershell
-pip install -r requirements.txt
-```
+
+  pip install -r requirements.txt
+
 
 ### Docker startup delays
 
 `docker-compose.yml` includes healthchecks and startup ordering; wait until both services are healthy:
 
-```powershell
-docker compose ps
-```
+
+  docker compose ps
+
