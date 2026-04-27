@@ -1,5 +1,7 @@
 """Productivity Predictor - Machine Learning model for study optimization"""
 from typing import List, Dict, Optional, Tuple
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
 from datetime import datetime, timedelta
 import math
 from dataclasses import dataclass
@@ -18,8 +20,8 @@ class Features:
     task_difficulty: int  # 1-10
     
     def to_vector(self) -> List[float]:
-        """Convert features to vector for ML model"""
-        return [
+        """Convert features to vector for ML model, with simple interaction terms"""
+        v = [
             self.hour_of_day / 24.0,
             self.day_of_week / 7.0,
             self.sleep_quality / 10.0,
@@ -29,80 +31,80 @@ class Features:
             min(self.previous_session_duration / 120.0, 1.0),
             self.task_difficulty / 10.0
         ]
+        # Add simple interaction terms
+        v.append((self.sleep_quality / 10.0) * (self.nutrition_score / 100.0))
+        v.append((self.energy_level / 10.0) * (self.task_difficulty / 10.0))
+        v.append((self.sleep_hours / 9.0) * (self.energy_level / 10.0))
+        return v
 
 
 class ProductivityPredictor:
     """Machine Learning model for predicting study session focus scores"""
     
-    def __init__(self, model_type: str = "linear_regression"):
+    def __init__(self, model_type: str = "random_forest"):
         self.model_type = model_type
         self.weights: List[float] = [
-            0.25,  # hour_of_day - circadian rhythm
-            0.10,  # day_of_week
-            0.20,  # sleep_quality - strong impact
-            0.15,  # sleep_hours
-            0.18,  # nutrition_score
-            0.22,  # energy_level - strong impact
-            0.12,  # previous_session_duration
-            0.08   # task_difficulty
+            0.25, 0.10, 0.20, 0.15, 0.18, 0.22, 0.12, 0.08, 0.10, 0.10, 0.10
         ]
         self.bias: float = 5.0
         self.training_data: List[Tuple[Features, int]] = []
         self.is_trained: bool = False
+        self.rf_model = None
     
     def add_training_data(self, features: Features, actual_focus_score: int):
         """Add training example"""
         self.training_data.append((features, actual_focus_score))
     
     def train(self):
-        """Train model using simple linear regression"""
+        """Train model using Random Forest or closed-form linear regression"""
         if len(self.training_data) < 3:
-            # Insufficient data, use default weights
             self.is_trained = False
             return
-        
-        # Simplified training: adjust weights based on average correlation
-        n = len(self.training_data)
-        for feature_idx in range(len(self.weights)):
-            feature_values = [data[0].to_vector()[feature_idx] for data in self.training_data]
-            focus_scores = [data[1] for data in self.training_data]
-            
-            correlation = self.calculate_correlation(feature_values, focus_scores)
-            # Adjust weight based on correlation strength
-            self.weights[feature_idx] *= (1.0 + correlation * 0.1)
-        
-        # Normalize weights to sum to 1
-        total_weight = sum(self.weights)
-        self.weights = [w / total_weight for w in self.weights]
-        
-        self.is_trained = True
+        X = np.array([f.to_vector() for f, _ in self.training_data])
+        y = np.array([target for _, target in self.training_data])
+        if self.model_type == "random_forest":
+            self.rf_model = RandomForestRegressor(n_estimators=100, max_depth=6, random_state=42)
+            self.rf_model.fit(X, y)
+            self.is_trained = True
+        else:
+            # Linear regression fallback
+            X_bias = np.hstack([np.ones((X.shape[0], 1)), X])
+            try:
+                w = np.linalg.pinv(X_bias.T @ X_bias) @ X_bias.T @ y
+            except Exception:
+                self.is_trained = False
+                return
+            self.bias = float(w[0])
+            self.weights = [float(val) for val in w[1:]]
+            self.is_trained = True
     
     def predict(self, features: Features) -> int:
-        """
-        Predict focus score for given features
-        
-        Returns:
-            Focus score 1-10
-        """
         if not self.is_trained and len(self.training_data) == 0:
             return self.predict_linear(features)
-        
-        if self.model_type == "linear_regression":
+        if self.model_type == "random_forest":
+            return self.predict_rf(features)
+        elif self.model_type == "linear_regression":
             return self.predict_linear(features)
         elif self.model_type == "nonlinear":
             return self.predict_nonlinear(features)
         else:
             return self.predict_linear(features)
+
+    def predict_rf(self, features: Features) -> int:
+        if self.rf_model is not None:
+            pred = self.rf_model.predict([features.to_vector()])[0]
+            return max(1, min(10, round(pred)))
+        return self.predict_linear(features)
     
     def predict_linear(self, features: Features) -> int:
-        """Linear regression prediction"""
+        """Linear regression prediction with minor nonlinearity"""
         feature_vector = features.to_vector()
-        
-        # Weighted sum
         prediction = self.bias
         for i, feature_val in enumerate(feature_vector):
             prediction += feature_val * self.weights[i] * 10
-        
+        # Minor nonlinearity: boost for high sleep_quality and nutrition
+        if features.sleep_quality > 8 and features.nutrition_score > 80:
+            prediction += 0.5
         # Clamp to 1-10 range
         return max(1, min(10, round(prediction)))
     

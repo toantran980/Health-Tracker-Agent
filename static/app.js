@@ -571,11 +571,30 @@ bindClick('btnInsights', async () => {
 });
 
 bindClick('btnKnowledgeRecs', async () => {
+  // Try to get values from input fields; fallback to defaults if not present
+  const getVal = (id, fallback) => {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    if (el.type === 'number') return Number(el.value) || fallback;
+    if (el.type === 'checkbox') return el.checked;
+    return el.value || fallback;
+  };
+
   const body = {
-    daily_calories: 2000, daily_protein: 130, energy_level: 7, sleep_hours: 7.5,
-    upcoming_difficulty: 6, recent_session_duration: 60, macro_balance: 'balanced',
-    macro_balance_details: { protein: 'ok', carbs: 'ok', fat: 'ok' },
-    correlation_nutrition_study: 0.4, adherence_rate: 0.7
+    daily_calories: Number(getVal('kbDailyCalories', 2000)),
+    daily_protein: Number(getVal('kbDailyProtein', 130)),
+    energy_level: Number(getVal('kbEnergyLevel', 7)),
+    sleep_hours: Number(getVal('kbSleepHours', 7.5)),
+    upcoming_difficulty: Number(getVal('kbUpcomingDifficulty', 6)),
+    recent_session_duration: Number(getVal('kbRecentSessionDuration', 60)),
+    macro_balance: getVal('kbMacroBalance', 'balanced'),
+    macro_balance_details: {
+      protein: getVal('kbMacroProtein', 'ok'),
+      carbs: getVal('kbMacroCarbs', 'ok'),
+      fat: getVal('kbMacroFat', 'ok')
+    },
+    correlation_nutrition_study: Number(getVal('kbCorrelationNutritionStudy', 0.4)),
+    adherence_rate: Number(getVal('kbAdherenceRate', 0.7))
   };
   await requestForActiveUser('Knowledge Base Recommendations', (userId) => `/api/recommendations/${userId}`, {
     method: 'POST', body
