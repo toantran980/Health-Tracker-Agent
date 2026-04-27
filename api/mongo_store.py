@@ -62,6 +62,106 @@ class MongoStore:
         self._db["daily_logs"].create_index(
             [("user_id", ASCENDING), ("date", ASCENDING)], unique=True
         )
+        self._db["activities"].create_index("activity_id", unique=True)
+        self._db["recommendations"].create_index("user_id")
+        self._db["meals"].create_index("meal_id", unique=True)
+
+    # ------------------------------------------------------------------ #
+    #  Activities                                                        #
+    # ------------------------------------------------------------------ #
+    def save_activity(self, activity_doc: dict[str, Any]) -> bool:
+        """Upsert an activity document. Returns True on success, False otherwise."""
+        if not self.enabled or self._db is None:
+            return False
+        try:
+            doc = dict(activity_doc)
+            doc.pop("created_at", None)  # Remove created_at if present to avoid conflict
+            self._db["activities"].update_one(
+                {"activity_id": doc["activity_id"]},
+                {"$set": doc, "$setOnInsert": {"created_at": datetime.now(UTC)}},
+                upsert=True,
+            )
+            return True
+        except PyMongoError:
+            logger.exception("[MongoDB] save_activity failed for activity_id=%s", activity_doc.get("activity_id"))
+            return False
+
+    def get_activities(self, user_id: str, limit: int = 50) -> list[dict[str, Any]]:
+        if not self.enabled or self._db is None:
+            return []
+        try:
+            cursor = (
+                self._db["activities"]
+                .find({"user_id": user_id}, {"_id": 0})
+                .sort("created_at", ASCENDING)
+                .limit(limit)
+            )
+            return list(cursor)
+        except PyMongoError:
+            logger.exception("[MongoDB] get_activities failed for user_id=%s", user_id)
+            return []
+
+    # ------------------------------------------------------------------ #
+    #  Recommendations                                                    #
+    # ------------------------------------------------------------------ #
+    def save_recommendation(self, rec_doc: dict[str, Any]) -> bool:
+        """Insert a recommendation document. Returns True on success, False otherwise."""
+        if not self.enabled or self._db is None:
+            return False
+        try:
+            self._db["recommendations"].insert_one({**rec_doc, "created_at": datetime.now(UTC)})
+            return True
+        except PyMongoError:
+            logger.exception("[MongoDB] save_recommendation failed for user_id=%s", rec_doc.get("user_id"))
+            return False
+
+    def get_recommendations(self, user_id: str, limit: int = 20) -> list[dict[str, Any]]:
+        if not self.enabled or self._db is None:
+            return []
+        try:
+            cursor = (
+                self._db["recommendations"]
+                .find({"user_id": user_id}, {"_id": 0})
+                .sort("created_at", DESCENDING)
+                .limit(limit)
+            )
+            return list(cursor)
+        except PyMongoError:
+            logger.exception("[MongoDB] get_recommendations failed for user_id=%s", user_id)
+            return []
+
+    # ------------------------------------------------------------------ #
+    #  Meals                                                              #
+    # ------------------------------------------------------------------ #
+    def save_meal(self, meal_doc: dict[str, Any]) -> bool:
+        """Upsert a meal document. Returns True on success, False otherwise."""
+        if not self.enabled or self._db is None:
+            return False
+        try:
+            self._db["meals"].update_one(
+                {"meal_id": meal_doc["meal_id"]},
+                {"$set": meal_doc, "$setOnInsert": {"created_at": datetime.now(UTC)}},
+                upsert=True,
+            )
+            return True
+        except PyMongoError:
+            logger.exception("[MongoDB] save_meal failed for meal_id=%s", meal_doc.get("meal_id"))
+            return False
+
+    def get_meals(self, user_id: str, limit: int = 50) -> list[dict[str, Any]]:
+        if not self.enabled or self._db is None:
+            return []
+        try:
+            cursor = (
+                self._db["meals"]
+                .find({"user_id": user_id}, {"_id": 0})
+                .sort("timestamp", DESCENDING)
+                .limit(limit)
+            )
+            return list(cursor)
+        except PyMongoError:
+            logger.exception("[MongoDB] get_meals failed for user_id=%s", user_id)
+            return []
 
     @classmethod
     def from_env(cls) -> "MongoStore":

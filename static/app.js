@@ -41,10 +41,14 @@ const savedBase = localStorage.getItem('apiBase');
 const savedUser = localStorage.getItem('activeUserId');
 if (apiBaseEl) {
   apiBaseEl.value = savedBase || window.location.origin;
+  // Save on both input and change for immediate persistence
+  apiBaseEl.addEventListener('input', () => localStorage.setItem('apiBase', apiBaseEl.value.trim()));
   apiBaseEl.addEventListener('change', () => localStorage.setItem('apiBase', apiBaseEl.value.trim()));
 }
 if (activeUserEl) {
   activeUserEl.value = savedUser || '';
+  // Save on both input and change for immediate persistence
+  activeUserEl.addEventListener('input', () => localStorage.setItem('activeUserId', activeUserEl.value.trim()));
   activeUserEl.addEventListener('change', () => localStorage.setItem('activeUserId', activeUserEl.value.trim()));
 }
 
