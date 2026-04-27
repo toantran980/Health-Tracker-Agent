@@ -14,7 +14,7 @@ AI Health & Wellness Tracker is a Flask-based project that combines nutrition tr
 - AI modules:
   - `KnowledgeBase` (rule-based recommendations)
   - `ScheduleOptimizer` (CSP + heuristics)
-  - `ProductivityPredictor` (focus score + session duration)
+  - `ProductivityPredictor` (focus score + session duration, now uses Random Forest via scikit-learn for improved accuracy)
   - `NutritionAnalyzer`
   - `MealRecommendationEngine`
 
@@ -22,7 +22,7 @@ AI Health & Wellness Tracker is a Flask-based project that combines nutrition tr
 
 - Python 3.10+
 - Flask
-- scikit-learn, xgboost, pandas, numpy
+- scikit-learn (Random Forest), xgboost, pandas, numpy
 - Chart.js (frontend charts)
 
 ## Project Structure
@@ -52,7 +52,7 @@ Health-Tracker-Agent/
 ## Setup (Windows PowerShell)
 
 1. Open PowerShell in the project root.
-1. Create a virtual environment (optional if you already have one):
+2. Create a virtual environment (optional if you already have one):
 
 ```powershell
 python -m venv venv

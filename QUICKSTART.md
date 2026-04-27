@@ -1,3 +1,4 @@
+
 # Quick Start
 
 Use this guide to run the latest version of the project (backend + frontend dashboard).
@@ -6,41 +7,35 @@ Use this guide to run the latest version of the project (backend + frontend dash
 
 Start app + MongoDB:
 
-
   docker compose up --build -d
-
 
 View logs:
 
-
   docker compose logs -f app
-
 
 Stop containers:
 
-
   docker compose down
-
 
 Stop and remove MongoDB volume:
 
-
   docker compose down -v
-
 
 ---
 
 ## 1) Install (Manual/Python)
 
-
-  cd <path-to-Health-Tracker-Agent>
+  cd `<path-to-Health-Tracker-Agent>`
   python -m venv venv
-  # On Windows:
+
+# On Windows:
+
   .\venv\Scripts\activate
-  # On macOS/Linux:
+
+# On macOS/Linux:
+
   source venv/bin/activate
   pip install -r requirements.txt
-
 
 If you already have `venv`, just activate it and run `pip install -r requirements.txt`.
 
@@ -62,9 +57,7 @@ MONGO_DB_NAME=health_tracker
 
 ## 3) Start Server
 
-
   python main.py
-
 
 Server default: `http://localhost:5001`
 
@@ -76,26 +69,22 @@ Server default: `http://localhost:5001`
 ## 5) Quick Demo Flow
 
 1. Create user from **User** tab.
-1. Switch to **Nutrition** tab, log one meal.
-1. Run nutrition analysis and macro recommendations.
-1. Switch to **Schedule** tab, add tasks and optimize.
-1. Run productivity prediction.
-1. Switch to **Chatbot** tab, send one message.
-1. View **Trends** tab for charts (updates as you log data).
+2. Switch to **Nutrition** tab, log one meal.
+3. Run nutrition analysis and macro recommendations.
+4. Switch to **Schedule** tab, add tasks and optimize.
+5. Run productivity prediction.
+6. Switch to **Chatbot** tab, send one message.
+7. View **Trends** tab for charts (updates as you log data).
 
 ## 6) Useful Commands
 
 Run tests:
 
-
   python -m unittest tests/test_ai_modules.py -v
-
 
 Run examples script:
 
-
   python examples.py
-
 
 ## Notes
 
@@ -113,32 +102,28 @@ Run examples script:
 
 ### PowerShell execution policy issue
 
+# Only needed on Windows PowerShell:
 
-  # Only needed on Windows PowerShell:
   Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
-
 
 ### Port already in use
 
+# On Windows:
 
-  # On Windows:
   $env:PORT=5002
   python main.py
-  # On macOS/Linux:
+
+# On macOS/Linux:
+
   export PORT=5002
   python main.py
 
-
 ### Import or dependency errors
 
-
   pip install -r requirements.txt
-
 
 ### Docker startup delays
 
 `docker-compose.yml` includes healthchecks and startup ordering; wait until both services are healthy:
 
-
   docker compose ps
-

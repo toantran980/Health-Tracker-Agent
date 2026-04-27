@@ -66,7 +66,7 @@ Key files and folders:
 
 - [ai_modules/knowledge_base.py](ai_modules/knowledge_base.py): rule-based recommendations.
 - [ai_modules/scheduler_optimizer.py](ai_modules/scheduler_optimizer.py): schedule optimization.
-- [ai_modules/productivity_predictor.py](ai_modules/productivity_predictor.py): focus score prediction.
+- [ai_modules/productivity_predictor.py](ai_modules/productivity_predictor.py): focus score prediction (now uses Random Forest via scikit-learn for best results).
 - [ai_modules/nutrition_analyzer.py](ai_modules/nutrition_analyzer.py): nutrition trends and adherence.
 - [ai_modules/recommendation_engine.py](ai_modules/recommendation_engine.py): meal recommendations.
 
