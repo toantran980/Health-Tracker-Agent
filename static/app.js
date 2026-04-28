@@ -412,7 +412,7 @@ function initTaskBuilder() {
   updateTaskSummary();
 }
 
-// ── Create User ──────────────────────────────────────────────────────────────
+// Create User
 bindSubmit('createUserForm', async (form) => {
   const name      = form.elements['name'].value.trim();
   const age       = Number(form.elements['age'].value);
@@ -450,7 +450,7 @@ bindClick('btnGetUser', async () => {
   await requestForActiveUser('User Profile', (userId) => `/api/user/${userId}`);
 });
 
-// ── Log Meal ─────────────────────────────────────────────────────────────────
+// Log Meal
 bindSubmit('mealForm', async (form) => {
   const userId = getActiveUserId();
   const body = {
@@ -488,7 +488,7 @@ bindClick('btnMacroRecs', async () => {
   showToast('Macro recommendations loaded.', 'info');
 });
 
-// ── Meal Recommendations ──────────────────────────────────────────────────────
+// Meal Recommendations 
 bindSubmit('mealRecForm', async (form) => {
   const userId = getActiveUserId();
   const params = new URLSearchParams({
@@ -502,7 +502,7 @@ bindSubmit('mealRecForm', async (form) => {
   writeOutput('Meal Recommendations', payload);
 });
 
-// ── Schedule ──────────────────────────────────────────────────────────────────
+// Schedule 
 bindSubmit('scheduleForm', async () => {
   const tasks = collectTasks(true);
   await requestForActiveUser('Optimized Schedule', (userId) => `/api/schedule/optimize/${userId}`, {
@@ -516,7 +516,7 @@ bindClick('btnSlots', async () => {
   showToast('Available slots loaded.', 'info');
 });
 
-// ── Productivity ──────────────────────────────────────────────────────────────
+// Productivity 
 bindSubmit('productivityForm', async (form) => {
   const userId = getActiveUserId();
   const body = {
@@ -545,7 +545,7 @@ bindClick('btnOptimalTime', async () => {
   showToast('Optimal time generated.', 'info');
 });
 
-// ── Chatbot ───────────────────────────────────────────────────────────────────
+// Chatbot
 bindSubmit('chatForm', async (form) => {
   const userId  = getActiveUserId();
   const message = form.elements['message'].value.trim();
@@ -564,7 +564,7 @@ bindClick('btnResetChat', async () => {
   showToast('Chat reset complete.', 'info');
 });
 
-// ── Insights ──────────────────────────────────────────────────────────────────
+// Insights
 bindClick('btnInsights', async () => {
   await requestForActiveUser('Health Insights', (userId) => `/api/insights/${userId}`);
   showToast('Insights generated.', 'info');
@@ -602,7 +602,7 @@ bindClick('btnKnowledgeRecs', async () => {
   showToast('Knowledge recommendations ready.', 'info');
 });
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// Init
 initTabs();
 initTaskBuilder();
 initCharts();

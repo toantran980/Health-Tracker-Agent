@@ -1,4 +1,4 @@
-"""external.py — External API proxy endpoints (food, exercise, weather)."""
+"""external.py — External API proxy endpoints (food, exercise)."""
 
 from flask import Blueprint, request, jsonify
 
@@ -8,7 +8,6 @@ from api.external_apis import (
     search_exercise,
     search_exercisedb,
     proxy_wger_endpoint,
-    get_weather_context,
     search_all_sources,
 )
 
@@ -90,19 +89,3 @@ def get_exercisedb_search():
 
     results = search_exercisedb(query)
     return jsonify({"results": results, "count": len(results)}), 200
-
-
-## @external_bp.route('/api/weather/context', methods=['GET'])
-## def weather_context():
-##     """
-##     Return weather-based wellness hints via Open-Meteo.
-##
-##     Query params: lat, lon
-##     Example: /api/weather/context?lat=3.139&lon=101.686
-##     """
-##     lat = request.args.get("lat", type=float)
-##     lon = request.args.get("lon", type=float)
-##     if lat is None or lon is None:
-##         return error_response("lat and lon are required", "MISSING_COORDINATES", 400)
-##
-##     return jsonify(get_weather_context(lat, lon)), 200

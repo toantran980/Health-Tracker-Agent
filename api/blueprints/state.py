@@ -14,10 +14,9 @@ from ai_modules.health_chatbot import HealthChatbot
 from api.mongo_store import MongoStore
 from data.dataset_loader_v2 import load_food_database
 
-# Load food DB once at startup
-GLOBAL_FOOD_DB_V2 = load_food_database()
-
 import logging
+
+# Load food DB once at startup
 _log = logging.getLogger(__name__)
 
 try:

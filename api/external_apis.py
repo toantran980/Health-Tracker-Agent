@@ -14,7 +14,7 @@ from api.external_fitness_apis import (
     proxy_wger_endpoint,
     search_exercisedb,
 )
-## from api.external_weather_api import get_weather_context, weather_hints
+
 
 
 __all__ = [
@@ -25,8 +25,6 @@ __all__ = [
     "search_exercise",
     "proxy_wger_endpoint",
     "search_exercisedb",
-    # "get_weather_context",
-    # "weather_hints",
     "food_facts_to_fooditem",
     "usda_to_fooditem",
     "search_all_sources",
