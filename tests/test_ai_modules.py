@@ -63,7 +63,7 @@ from ai_modules import (
     KnowledgeBase, ScheduleOptimizer, ProductivityPredictor, Features,
     NutritionAnalyzer, BehavioralAnalyzer, TimeSlot
 )
-from ai_modules.recommendation_engine import MealRecommendationEngine
+from ai_modules.meal_recommendation_engine import MealRecommendationEngine
 
 
 class TestUserProfile(unittest.TestCase):

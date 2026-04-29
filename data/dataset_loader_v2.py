@@ -159,7 +159,7 @@ def load_food_database() -> list[FoodItem]:
     foods      = []
     seen_names = set()
 
-    # ── Layer 1: sample_data ─────────────────────────────────
+    # Layer 1: sample_data
     try:
         from data.sample_data import SAMPLE_FOODS
         for food in SAMPLE_FOODS:
@@ -171,7 +171,7 @@ def load_food_database() -> list[FoodItem]:
     except (ImportError, AttributeError):
         logger.warning("[Loader] No sample_data found, skipping")
 
-    # ── Layer 2: GROUP CSV files ─────────────────────────────
+    # Layer 2: GROUP CSV files 
     logger.info("[Loader] Loading GROUP files...")
     group_foods = load_group_files()
     added = 0
@@ -183,7 +183,7 @@ def load_food_database() -> list[FoodItem]:
             added += 1
     logger.info("[Loader] GROUP files total — %d unique foods added", added)
 
-    # ── Layer 3: nutrients_csvfile ───────────────────────────
+    # Layer 3: nutrients_csvfile
     logger.info("[Loader] Loading nutrients file...")
     nutrient_foods = load_nutrients_file()
     added = 0
@@ -199,7 +199,6 @@ def load_food_database() -> list[FoodItem]:
     return foods
 
 
-# ── Quick test — run: python data/loader.py ──────────────────
 if __name__ == "__main__":
     db = load_food_database()
     print(f"\nSample foods:")
