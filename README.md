@@ -35,7 +35,7 @@ AI Health & Wellness Tracker is a Flask-based project that combines nutrition tr
 * pandas (data analysis)
 * numpy (numerical computing)
 * requests (HTTP requests)
-* python-dotenv (environment variable management)
+* python-dotenv
 * pymongo (MongoDB integration)
 * groq (AI/ML - chatbox)
 * Chart.js (frontend charts, via CDN)
@@ -48,7 +48,7 @@ AI Health & Wellness Tracker is a Flask-based project that combines nutrition tr
 1. Open PowerShell in the project root.
 2. Create a virtual environment (optional if you already have one):
 
-```powershell
+powershell
 python -m venv venv
 ```
 
@@ -132,13 +132,6 @@ See [QUICKSTART.md](QUICKSTART.md) for usage flow.
 ```powershell
 python -m unittest tests/test_ai_modules.py -v
 ```
-
-## Some API Keys usage:
-
-Some external API features:
-
-- USDA (food search)
-- ExerciseDB / RapidAPI
 
 ## Notes
 

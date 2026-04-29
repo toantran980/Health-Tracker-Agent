@@ -25,8 +25,8 @@ docker compose up --build -d
 
 Open:
 
-- Frontend: <http://localhost:5001/>
-- Health check: <http://localhost:5001/api/health>
+- Frontend: [http://localhost:5001/](http://localhost:5001/)
+- Health check: [http://localhost:5001/api/health](http://localhost:5001/api/health)
 
 Stop:
 
@@ -34,30 +34,25 @@ Stop:
 docker compose down
 ```
 
-
-
 - Flask routes are split by domain under [api/blueprints](api/blueprints).
 - In-memory caches are used for live runtime objects.
 - When MongoDB is available, users and daily meal logs are persisted and rehydrated.
 - Error responses are standardized as `{"error": "...", "code": "..."}`.
 - External API wrappers include lightweight TTL caching (USDA, Open Food Facts, Wger, Open-Meteo).
-- **Removed:** Nutritionix NLP (required paid keys); use food search instead.
 
 ### AI Modules
 
 - [ai_modules/knowledge_base.py](ai_modules/knowledge_base.py): rule-based recommendations, behavioral analysis.
 - [ai_modules/scheduler_optimizer.py](ai_modules/scheduler_optimizer.py): schedule optimization.
-- [ai_modules/productivity_predictor.py](ai_modules/productivity_predictor.py): focus score prediction (now uses Random Forest via scikit-learn for best results).
+- [ai_modules/productivity_predictor.py](ai_modules/productivity_predictor.py): focus score prediction (uses Random Forest via scikit-learn for best results).
 - [ai_modules/nutrition_analyzer.py](ai_modules/nutrition_analyzer.py): nutrition trends and adherence.
 - [ai_modules/meal_recommendation_engine.py](ai_modules/meal_recommendation_engine.py): meal recommendations.
 - [ai_modules/activity_recommendation_engine.py](ai_modules/activity_recommendation_engine.py): activity recommendations.
+- [ai_modules/chatbox.py](ai_modules/activity_recommendation_engine.py): health base focus
 
 ### Persistence
 
 - [api/mongo_store.py](api/mongo_store.py) handles MongoDB connectivity.
-- Uses environment variables:
-  - MONGO_URI
-  - MONGO_DB_NAME
 - Falls back to in-memory behavior if MongoDB is unavailable.
 
 ## Endpoints Overview
@@ -76,7 +71,7 @@ For exact endpoint list, see [README.md](README.md).
 
 ## Validation and Testing
 
-- API health endpoint: <http://localhost:5001/api/health>
+- API health endpoint: [http://localhost:5001/api/health](http://localhost:5001/api/health)
 - Unit tests:
 
 ```powershell

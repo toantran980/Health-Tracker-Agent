@@ -47,14 +47,7 @@ Default connection used by the app:
 - `MONGO_URI=mongodb://localhost:27017`
 - `MONGO_DB_NAME=health_tracker`
 
-Optional `.env` example:
-
-```env
-MONGO_URI=mongodb://localhost:27017
-MONGO_DB_NAME=health_tracker
-```
-
-## 3) Start Server
+## **3) Start Server**
 
   python main.py
 
