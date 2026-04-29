@@ -1,4 +1,3 @@
-
 # Quick Start
 
 Use this guide to run the latest version of the project (backend + frontend dashboard).
@@ -75,6 +74,7 @@ Server default: `http://localhost:5001`
 5. Run productivity prediction.
 6. Switch to **Chatbot** tab, send one message.
 7. View **Trends** tab for charts (updates as you log data).
+8. Show final evaluation metrics relative absolute error (RAE).
 
 ## 6) Useful Commands
 

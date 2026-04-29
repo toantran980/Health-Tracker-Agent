@@ -34,26 +34,7 @@ Stop:
 docker compose down
 ```
 
-## Project Structure
 
-Key files and folders:
-
-- [main.py](main.py): app entry point
-- [api/routes.py](api/routes.py): Flask app + blueprint registration
-- [api/blueprints](api/blueprints): domain route modules and shared helpers/state
-- [api/external_apis.py](api/external_apis.py): external API wrappers
-- [api/mongo_store.py](api/mongo_store.py): MongoDB persistence helper
-- [ai_modules](ai_modules): recommendation, prediction, and rule engines
-- [models](models): user, meal, and activity models
-- [data](data): food dataset loading utilities
-- [templates/index.html](templates/index.html): frontend page
-- [static/app.js](static/app.js): frontend logic
-- [static/styles.css](static/styles.css): frontend styling
-- [tests/test_ai_modules.py](tests/test_ai_modules.py): AI module tests
-
-## Core Components
-
-## API Layer
 
 - Flask routes are split by domain under [api/blueprints](api/blueprints).
 - In-memory caches are used for live runtime objects.
@@ -64,11 +45,12 @@ Key files and folders:
 
 ### AI Modules
 
-- [ai_modules/knowledge_base.py](ai_modules/knowledge_base.py): rule-based recommendations.
+- [ai_modules/knowledge_base.py](ai_modules/knowledge_base.py): rule-based recommendations, behavioral analysis.
 - [ai_modules/scheduler_optimizer.py](ai_modules/scheduler_optimizer.py): schedule optimization.
 - [ai_modules/productivity_predictor.py](ai_modules/productivity_predictor.py): focus score prediction (now uses Random Forest via scikit-learn for best results).
 - [ai_modules/nutrition_analyzer.py](ai_modules/nutrition_analyzer.py): nutrition trends and adherence.
-- [ai_modules/recommendation_engine.py](ai_modules/recommendation_engine.py): meal recommendations.
+- [ai_modules/meal_recommendation_engine.py](ai_modules/meal_recommendation_engine.py): meal recommendations.
+- [ai_modules/activity_recommendation_engine.py](ai_modules/activity_recommendation_engine.py): activity recommendations.
 
 ### Persistence
 

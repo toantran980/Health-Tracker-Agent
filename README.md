@@ -1,6 +1,12 @@
+# **Team Members:**
+
+* Toan Tran - ttran8276@csu.fullerton.edu
+* Chris Ramon - chrisramon1@csu.fullerton.edu
+* Shaik Amin - smamin@csu.fullerton.edu
+
 # AI Health & Wellness Tracker
 
-AI Health & Wellness Tracker is a Flask-based project that combines nutrition tracking, study schedule optimization, productivity prediction, and rule-based wellness recommendations. It includes a REST API and a built-in frontend dashboard.
+AI Health & Wellness Tracker is a Flask-based project that combines nutrition tracking, personalized meal and activity recommendations, study schedule optimization, productivity prediction, behavioral pattern analysis, and rule-based wellness recommendations. It includes a REST API and a built-in frontend dashboard for interactive health and productivity management.
 
 ## What Is Included
 
@@ -9,44 +15,32 @@ AI Health & Wellness Tracker is a Flask-based project that combines nutrition tr
 - Live trend charts (Chart.js) for calories, macros, and focus score
 - Task Builder UI for schedule optimization (no raw JSON needed)
 - Standardized API error envelope: `{"error": "...", "code": "..."}`
-- TTL caching for external weather/food/exercise lookups
+- TTL caching for external food/exercise lookups
 - Docker healthchecks + MongoDB connection retry on startup
 - AI modules:
   - `KnowledgeBase` (rule-based recommendations)
+  - `BehavioralAnalyzer` (behavioral pattern analysis)
   - `ScheduleOptimizer` (CSP + heuristics)
-  - `ProductivityPredictor` (focus score + session duration, now uses Random Forest via scikit-learn for improved accuracy)
-  - `NutritionAnalyzer`
-  - `MealRecommendationEngine`
+  - `ProductivityPredictor` (focus score + session duration, now uses Random Forest via scikit-learn for improved accuracy and RAE metrics, replacing simple linear regression)
+  - `NutritionAnalyzer` (statistical analysis and anomaly detection)
+  - `MealRecommendationEngine` (personalized content-based and constraint-based meal recommendations)
+  - `ActivityRecommendationEngine` (heuristic rule-based activity recommendations)
 
 ## Tech Stack
 
-- Python 3.10+
-- Flask
-- scikit-learn (Random Forest), xgboost, pandas, numpy
-- Chart.js (frontend charts)
+* Python 3.10+ (Dockerfile uses Python 3.12)
+* Flask (web framework)
+* scikit-learn (Random Forest, ML)
+* xgboost (ML)
+* pandas (data analysis)
+* numpy (numerical computing)
+* requests (HTTP requests)
+* python-dotenv (environment variable management)
+* pymongo (MongoDB integration)
+* groq (AI/ML - chatbox)
+* Chart.js (frontend charts, via CDN)
+* HTML/CSS/JavaScript (frontend, static folder)
 
-## Project Structure
-
-```text
-Health-Tracker-Agent/
-|-- main.py
-|-- requirements.txt
-|-- README.md
-|-- api/
-|   |-- routes.py
-|   |-- external_apis.py
-|   |-- mongo_store.py
-|   `-- blueprints/
-|-- ai_modules/
-|-- models/
-|-- data/
-|-- templates/
-|   `-- index.html
-|-- static/
-|   |-- app.js
-|   `-- styles.css
-`-- tests/
-    `-- test_ai_modules.py
 ```
 
 ## Setup (Windows PowerShell)
@@ -139,15 +133,12 @@ See [QUICKSTART.md](QUICKSTART.md) for usage flow.
 python -m unittest tests/test_ai_modules.py -v
 ```
 
-## Environment Variables (Optional)
+## Some API Keys usage:
 
-Some external API features require keys in `.env`:
+Some external API features:
 
-- Nutritionix (NLP meal parsing)
 - USDA (food search)
 - ExerciseDB / RapidAPI
-
-Core local features still run without these keys.
 
 ## Notes
 
