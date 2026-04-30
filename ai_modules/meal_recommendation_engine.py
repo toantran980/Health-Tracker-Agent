@@ -368,7 +368,3 @@ class MealRecommendationEngine:
             }
             for f in suitable[:n]
         ]
-
-
-# Backward-compatible re-export for existing imports.
-from .activity_recommendation_engine import ActivityRecommendationEngine

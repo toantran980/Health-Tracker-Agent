@@ -171,16 +171,16 @@ class DailyNutritionLog:
         """
         actual = self.get_total_nutrition()
 
-        def _score(actual_val: float, target_val: float) -> float:
+        def score(actual_val: float, target_val: float) -> float:
             if target_val == 0:
                 return 1.0
             ratio = actual_val / target_val
             return max(0.0, 1.0 - abs(1.0 - ratio))
 
         scores = [
-            _score(actual.calories,  target_nutrition.calories),
-            _score(actual.protein_g, target_nutrition.protein_g),
-            _score(actual.carbs_g,   target_nutrition.carbs_g),
-            _score(actual.fat_g,     target_nutrition.fat_g),
+            score(actual.calories,  target_nutrition.calories),
+            score(actual.protein_g, target_nutrition.protein_g),
+            score(actual.carbs_g,   target_nutrition.carbs_g),
+            score(actual.fat_g,     target_nutrition.fat_g),
         ]
         return sum(scores) / len(scores)

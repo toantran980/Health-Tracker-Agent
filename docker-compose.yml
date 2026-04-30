@@ -16,7 +16,7 @@ services:
     ports:
       - "5001:5001"
     volumes:
-      - .:/app                        # ← ADD THIS
+      - .:/app                        
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/api/health', timeout=3)"]
       interval: 15s

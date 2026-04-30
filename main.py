@@ -4,8 +4,6 @@ import os
 import logging
 from flask import Flask
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 from api.routes import app
 
 # Configure logging

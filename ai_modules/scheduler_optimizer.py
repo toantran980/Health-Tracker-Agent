@@ -1,5 +1,5 @@
 import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 """Constraint Satisfaction Problem (CSP) Solver for Schedule Optimization"""
 from typing import List, Dict, Tuple, Optional, Callable
 from datetime import datetime, timedelta

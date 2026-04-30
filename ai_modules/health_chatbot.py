@@ -200,8 +200,6 @@ class HealthChatbot:
             self.history = self.history[-max_messages:]
 
 
-# Quick test: python ai_modules/chatbot.py
-
 if __name__ == "__main__":
     snapshot = UserHealthSnapshot(
         name           = "Test User",

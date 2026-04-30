@@ -1,9 +1,5 @@
 """
-train_model.py
-
 Train the ProductivityPredictor on synthetic data and evaluate MAE.
-Run from project root:
-    python train_model.py
 """
 
 import csv

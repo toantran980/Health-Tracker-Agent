@@ -10,7 +10,7 @@ from models.meal import FoodItem, NutritionInfo
 
 logger = logging.getLogger(__name__)
 
-# ── All CSV files ────────────────────────────────────────────
+# All CSV files
 GROUP_FILES = [
     "data/nutrition_data/FOOD-DATA-GROUP1.csv",
     "data/nutrition_data/FOOD-DATA-GROUP2.csv",
@@ -22,7 +22,7 @@ GROUP_FILES = [
 NUTRIENTS_FILE = "data/nutrition_data/nutrients_csvfile.csv"
 
 
-# ── Column maps ──────────────────────────────────────────────
+# Column maps 
 # GROUP files column → NutritionInfo field
 GROUP_COL_MAP = {
     "calories":  "Caloric Value",
@@ -149,9 +149,9 @@ def load_food_database() -> list[FoodItem]:
     Load full food database from all sources.
 
     Order:
-        1. Existing sample_data (your handcrafted foods)
-        2. GROUP1-5 CSV files  (2,395 foods, detailed micronutrients)
-        3. nutrients_csvfile   (335 foods, has food categories)
+        Existing sample_data (your handcrafted foods)
+        GROUP1-5 CSV files  (2,395 foods, detailed micronutrients)
+        nutrients_csvfile   (335 foods, has food categories)
 
     Deduplication is name-based so the same food from multiple
     sources doesn't appear twice.

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from dotenv import load_dotenv
-from pymongo import MongoClient, ASCENDING
+from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import PyMongoError
 
 load_dotenv()
@@ -66,9 +66,8 @@ class MongoStore:
         self._db["recommendations"].create_index("user_id")
         self._db["meals"].create_index("meal_id", unique=True)
 
-    # ------------------------------------------------------------------ #
+    
     #  Activities                                                        #
-    # ------------------------------------------------------------------ #
     def save_activity(self, activity_doc: dict[str, Any]) -> bool:
         """Upsert an activity document. Returns True on success, False otherwise."""
         if not self.enabled or self._db is None:
@@ -101,9 +100,7 @@ class MongoStore:
             logger.exception("[MongoDB] get_activities failed for user_id=%s", user_id)
             return []
 
-    # ------------------------------------------------------------------ #
-    #  Recommendations                                                    #
-    # ------------------------------------------------------------------ #
+    #  Recommendations                                                    
     def save_recommendation(self, rec_doc: dict[str, Any]) -> bool:
         """Insert a recommendation document. Returns True on success, False otherwise."""
         if not self.enabled or self._db is None:
@@ -130,9 +127,7 @@ class MongoStore:
             logger.exception("[MongoDB] get_recommendations failed for user_id=%s", user_id)
             return []
 
-    # ------------------------------------------------------------------ #
     #  Meals                                                              #
-    # ------------------------------------------------------------------ #
     def save_meal(self, meal_doc: dict[str, Any]) -> bool:
         """Upsert a meal document. Returns True on success, False otherwise."""
         if not self.enabled or self._db is None:
@@ -169,10 +164,7 @@ class MongoStore:
         db_name = os.getenv("MONGO_DB_NAME", "health_tracker")
         return cls(uri, db_name)
 
-    # ------------------------------------------------------------------ #
     #  Users                                                               #
-    # ------------------------------------------------------------------ #
-
     def save_user(self, user_doc: dict[str, Any]) -> bool:
         """Upsert a user document. Returns True on success, False otherwise."""
         if not self.enabled or self._db is None:
@@ -208,10 +200,8 @@ class MongoStore:
             logger.exception("[MongoDB] count_users failed")
             return 0
 
-    # ------------------------------------------------------------------ #
+    
     #  Daily logs                                                          #
-    # ------------------------------------------------------------------ #
-
     def save_daily_log(
         self, user_id: str, date_str: str, log_doc: dict[str, Any]
     ) -> bool:

@@ -11,14 +11,14 @@ from api.blueprints.helpers import require_user, ensure_ai_modules
 user_bp = Blueprint('user', __name__)
 
 
-def _to_int(val, default: int) -> int:
+def to_int(val, default: int) -> int:
     try:
         return int(val)
     except (TypeError, ValueError):
         return default
 
 
-def _to_float(val, default: float) -> float:
+def to_float(val, default: float) -> float:
     try:
         return float(val)
     except (TypeError, ValueError):
@@ -58,15 +58,15 @@ def create_user():
         user = UserProfile(
             user_id          = user_id,
             name             = data.get('name', 'Unknown'),
-            age              = _to_int(data.get('age'), 25),
-            weight_kg        = _to_float(data.get('weight_kg'), 70.0),
-            height_cm        = _to_float(data.get('height_cm'), 175.0),
+            age              = to_int(data.get('age'), 25),
+            weight_kg        = to_float(data.get('weight_kg'), 70.0),
+            height_cm        = to_float(data.get('height_cm'), 175.0),
             biological_sex   = bio_sex,
             goals            = [Goal(g) for g in goals_list],
-            target_calories  = _to_int(data.get('target_calories'), 2000),
-            target_protein_g = _to_float(data.get('target_protein_g'), 150.0),
-            target_carbs_g   = _to_float(data.get('target_carbs_g'), 200.0),
-            target_fat_g     = _to_float(data.get('target_fat_g'), 65.0),
+            target_calories  = to_int(data.get('target_calories'), 2000),
+            target_protein_g = to_float(data.get('target_protein_g'), 150.0),
+            target_carbs_g   = to_float(data.get('target_carbs_g'), 200.0),
+            target_fat_g     = to_float(data.get('target_fat_g'), 65.0),
         )
     except Exception as e:
         traceback.print_exc(file=sys.stderr)

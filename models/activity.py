@@ -21,7 +21,6 @@ class StudySession:
     Tracks a single study session and derives effectiveness metrics.
 
     Effectiveness formula
-    ---------------------
         effectiveness = (focus_score × actual_duration × completion_ratio) / 100
 
     where completion_ratio = min(actual / planned, 1.0).
