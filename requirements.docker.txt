@@ -5,3 +5,6 @@ scikit-learn==1.4.2
 python-dotenv==1.2.2
 groq==1.1.2
 pymongo==4.10.1
+numpy==2.4.3
+xgboost==3.2.0
+kagglehub==1.0.0
