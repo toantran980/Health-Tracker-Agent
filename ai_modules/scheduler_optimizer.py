@@ -11,12 +11,12 @@ from ai_modules.scheduler_types import Constraint, TimeSlot, ConstraintEntry
 class ScheduleOptimizer:
     """Constraint Satisfaction Problem solver for schedule optimization"""
 
-    # Productivity factors based on circadian rhythms (hour → multiplier)
+
     PRODUCTIVITY_FACTORS = {
-        8: 0.70, 9: 0.80, 10: 0.95, 11: 1.00,   # Morning ramp-up / peak
-        12: 0.70, 13: 0.60, 14: 0.70, 15: 0.85,  # Post-lunch dip
-        16: 0.90, 17: 0.95, 18: 0.85,             # Afternoon peak
-        19: 0.75, 20: 0.80, 21: 0.70, 22: 0.60,  # Evening decline
+        8: 0.70, 9: 0.80, 10: 0.95, 11: 1.00,
+        12: 0.70, 13: 0.60, 14: 0.70, 15: 0.85,
+        16: 0.90, 17: 0.95, 18: 0.85,
+        19: 0.75, 20: 0.80, 21: 0.70, 22: 0.60,
     }
 
     DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -194,9 +194,9 @@ class ScheduleOptimizer:
         def priority(task):
             deadline = task.get("deadline", default_deadline)
             days_left = max((deadline - now).total_seconds() / 86400, 0)
-            urgency = -days_left                       # Earlier deadline → higher priority
-            difficulty = -task.get("difficulty", 5)   # Harder → higher priority
-            duration = -task.get("duration_min", 60)  # Longer → schedule first (FFD)
+            urgency = -days_left
+            difficulty = -task.get("difficulty", 5)
+            duration = -task.get("duration_min", 60)
             return (urgency, difficulty, duration)
 
         return sorted(tasks, key=priority)
