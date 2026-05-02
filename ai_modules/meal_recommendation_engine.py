@@ -13,6 +13,9 @@ GOAL_WEIGHTS: Dict[str, Dict[str, float]] = {
 }
 DEFAULT_WEIGHTS = {"calories": 0.20, "protein": 0.25, "carbs": 0.20, "fat": 0.15, "satisfaction": 0.20}
 
+LIKED_THRESHOLD = 7.0
+MMR_LAMBDA = 0.7
+
 
 class MealRecommendationEngine:
     """
@@ -42,6 +45,14 @@ class MealRecommendationEngine:
         # Pre-compute per-feature min/max across the whole database once so
         # normalisation is consistent for every call.
         self.db_stats = self.compute_db_stats()
+
+        # Cache normalized vectors + id lookup so repeated scoring calls
+        # (especially hybrid which scans the DB twice) avoid recomputation.
+        self._food_by_id: Dict[str, FoodItem] = {f.food_id: f for f in self.food_database}
+        self._vector_cache: Dict[str, List[float]] = {
+            f.food_id: self.minmax_normalize(self.food_to_raw_vector(f.nutrition_info))
+            for f in self.food_database
+        }
 
     # Public data ingestion
 
@@ -111,8 +122,13 @@ class MealRecommendationEngine:
         return dot / (mag_a * mag_b) if mag_a > 0 and mag_b > 0 else 0.0
 
     def food_vector(self, food: FoodItem) -> List[float]:
-        """Return a min-max normalised 4-D vector for a food item."""
-        return self.minmax_normalize(self.food_to_raw_vector(food.nutrition_info))
+        """Return a min-max normalised 4-D vector for a food item (cached)."""
+        cached = self._vector_cache.get(food.food_id)
+        if cached is not None:
+            return cached
+        vec = self.minmax_normalize(self.food_to_raw_vector(food.nutrition_info))
+        self._vector_cache[food.food_id] = vec
+        return vec
 
     def target_vector(self, target_calories: float, target_protein: float,
                        target_carbs: float = 0.0, target_fat: float = 0.0) -> List[float]:
@@ -165,35 +181,43 @@ class MealRecommendationEngine:
         if not self.user_ratings:
             return self.get_default_recommendations(n)
 
-        liked = {fid: r for fid, r in self.user_ratings.items() if r >= 7.0}
+        liked = {fid: r for fid, r in self.user_ratings.items() if r >= LIKED_THRESHOLD}
         if not liked:
             return self.get_default_recommendations(n)
 
-        # Build a lookup map once for efficiency
-        food_by_id: Dict[str, FoodItem] = {f.food_id: f for f in self.food_database}
+        # Pre-compute liked vectors + total weight once.
+        liked_vectors = []
+        total_weight = 0.0
+        for rated_id, rating in liked.items():
+            rated_food = self._food_by_id.get(rated_id)
+            if rated_food is None:
+                continue
+            liked_vectors.append((self.food_vector(rated_food), rating / 10.0))
+            total_weight += rating / 10.0
+
+        if total_weight == 0.0:
+            return self.get_default_recommendations(n)
 
         scored: Dict[str, Dict] = {}
         for food in self.food_database:
             if food.food_id in liked:
-                continue   # skip already-rated foods                  
+                continue
             if not self.satisfies_dietary_constraints(food):
                 continue
 
             fv = self.food_vector(food)
-            total_sim = 0.0
+            total_sim = sum(self.cosine_similarity(fv, rv) * w for rv, w in liked_vectors)
 
-            for rated_id, rating in liked.items():
-                rated_food = food_by_id.get(rated_id)
-                if rated_food is None:
-                    continue
-                rv  = self.food_vector(rated_food)
-                sim = self.cosine_similarity(fv, rv)
-                total_sim += sim * (rating / 10.0)   # rating-weighted similarity
-
-            if total_sim > 0:
-                scored[food.food_id] = {"food": food, "score": total_sim}
+            # Normalise by total weight so score is in [0,1] and comparable
+            # to constraint fit_score in the hybrid blend.
+            norm_score = total_sim / total_weight
+            if norm_score > 0:
+                scored[food.food_id] = {"food": food, "score": norm_score}
 
         ranked = sorted(scored.values(), key=lambda x: x["score"], reverse=True)
+        # Skip MMR when caller asks for the full list (e.g. hybrid blend);
+        # diversity only matters when truncating to a small top-N.
+        diversified = ranked if n >= len(ranked) else self._mmr_select(ranked, n)
         return [
             {
                 "food_id":  item["food"].food_id,
@@ -202,8 +226,35 @@ class MealRecommendationEngine:
                 "score":    round(item["score"], 4),
                 "reason":   "Similar macro profile to meals you rated highly",
             }
-            for item in ranked[:n]
+            for item in diversified
         ]
+
+    def _mmr_select(self, ranked: List[Dict], n: int) -> List[Dict]:
+        """
+        Maximal Marginal Relevance selection for diversity.
+
+        Picks foods that are both highly scored AND dissimilar to already-picked
+        ones, preventing top-N from being near-duplicate items.
+        """
+        if not ranked:
+            return []
+        selected: List[Dict] = [ranked[0]]
+        candidates = ranked[1:]
+        while candidates and len(selected) < n:
+            best_idx = 0
+            best_val = -1.0
+            for i, cand in enumerate(candidates):
+                cv = self.food_vector(cand["food"])
+                max_sim = max(
+                    self.cosine_similarity(cv, self.food_vector(s["food"]))
+                    for s in selected
+                )
+                mmr = MMR_LAMBDA * cand["score"] - (1.0 - MMR_LAMBDA) * max_sim
+                if mmr > best_val:
+                    best_val = mmr
+                    best_idx = i
+            selected.append(candidates.pop(best_idx))
+        return selected
 
     def get_constraint_based_recommendations(
         self,
@@ -226,8 +277,8 @@ class MealRecommendationEngine:
         For WEIGHT_LOSS, calorie weight becomes 0.50.
         For balanced/maintenance, weights are roughly equal.
         """
-        weights = self.resolve_weights()
-        tv      = self.target_vector(target_calories, target_protein, target_carbs, target_fat)
+        base_weights = self.resolve_weights()
+        tv = self.target_vector(target_calories, target_protein, target_carbs, target_fat)
 
         targets = {
             "calories":  target_calories,
@@ -235,6 +286,17 @@ class MealRecommendationEngine:
             "carbs_g":   target_carbs,
             "fat_g":     target_fat,
         }
+
+        # Drop dimensions w/ zero target + renormalize weights so unused
+        # macros don't award free 1.0 fit and inflate scores.
+        active_dims = {"calories", "protein", "satisfaction"}
+        if target_carbs > 0:
+            active_dims.add("carbs")
+        if target_fat > 0:
+            active_dims.add("fat")
+        active_sum = sum(base_weights[k] for k in active_dims)
+        weights = {k: (base_weights[k] / active_sum if k in active_dims else 0.0)
+                   for k in base_weights}
 
         def macro_fit(actual: float, target: float) -> float:
             """Normalised proximity score in [0, 1]."""
@@ -318,18 +380,45 @@ class MealRecommendationEngine:
 
         Returns top-n foods ranked by blended score.
         """
-        content_recs    = {r["food_id"]: r.get("score", r.get("fit_score", 0)) for r in self.get_content_based_recommendations(n=len(self.food_database))}
-        constraint_recs = {r["food_id"]: r.get("fit_score", 0) for r in self.get_constraint_based_recommendations(target_calories, target_protein, target_carbs, target_fat, n=len(self.food_database))}
+        # Cold-start: no liked ratings → content branch is meaningless,
+        # fall back to pure constraint-based ranking but reshape output
+        # so callers see the standard hybrid contract (blend_score key).
+        has_liked = any(r >= LIKED_THRESHOLD for r in self.user_ratings.values())
+        if not has_liked:
+            cb = self.get_constraint_based_recommendations(
+                target_calories, target_protein, target_carbs, target_fat, n=n
+            )
+            return [
+                {
+                    "name":        r["name"],
+                    "food_id":     r["food_id"],
+                    "calories":    r["calories"],
+                    "blend_score": r["fit_score"],
+                    "reason":      "Nutrition-target match (no rating history yet)",
+                }
+                for r in cb
+            ]
+
+        db_n = len(self.food_database)
+        content_recs = {
+            r["food_id"]: r.get("score", 0.0)
+            for r in self.get_content_based_recommendations(n=db_n)
+        }
+        constraint_recs = {
+            r["food_id"]: r.get("fit_score", 0.0)
+            for r in self.get_constraint_based_recommendations(
+                target_calories, target_protein, target_carbs, target_fat, n=db_n
+            )
+        }
 
         all_ids = set(content_recs) | set(constraint_recs)
         blended: List[tuple] = []
-        food_by_id = {f.food_id: f for f in self.food_database}
 
         for fid in all_ids:
             c_score  = content_recs.get(fid, 0.0)
             cs_score = constraint_recs.get(fid, 0.0)
             combined = content_weight * c_score + constraint_weight * cs_score
-            food     = food_by_id.get(fid)
+            food     = self._food_by_id.get(fid)
             if food:
                 blended.append((food, combined))
 
