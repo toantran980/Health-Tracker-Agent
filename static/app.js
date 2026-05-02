@@ -1,22 +1,21 @@
 // Fetch and display model evaluation metrics
 async function fetchModelMetrics() {
-  const maeEl = document.getElementById('metricProductivityMAE');
-  const nEl = document.getElementById('metricProductivityN');
+  const maeEl  = document.getElementById('metricProductivityMAE');
+  const rmseEl = document.getElementById('metricProductivityRMSE');
+  const r2El   = document.getElementById('metricProductivityR2');
+  const nEl    = document.getElementById('metricProductivityN');
   if (!maeEl || !nEl) return;
   try {
-    const res = await fetch('/api/metrics/productivity_predictor');
+    const res  = await fetch('/api/metrics/productivity_predictor');
     if (!res.ok) throw new Error('Failed to fetch metrics');
     const data = await res.json();
-    if (data.mae !== undefined && data.n !== undefined) {
-      maeEl.textContent = data.mae !== null ? data.mae.toFixed(2) : '-';
-      nEl.textContent = `Test cases: ${data.n}`;
-    } else {
-      maeEl.textContent = '-';
-      nEl.textContent = 'No data';
-    }
+    maeEl.textContent  = data.mae  != null ? data.mae.toFixed(2)  : '-';
+    if (rmseEl) rmseEl.textContent = data.rmse != null ? data.rmse.toFixed(2) : '-';
+    if (r2El)   r2El.textContent   = data.r2   != null ? data.r2.toFixed(3)   : '-';
+    nEl.textContent = `Test cases: ${data.n}`;
   } catch (err) {
     maeEl.textContent = '-';
-    nEl.textContent = 'Error loading metrics';
+    nEl.textContent   = 'Error loading metrics';
   }
 }
 
@@ -340,20 +339,23 @@ function initCharts() {
     responsive: true, maintainAspectRatio: false, animation: false,
     scales: { y: { beginAtZero: true } }
   };
+
   caloriesChart = new Chart(document.getElementById('caloriesChart'), {
     type: 'line',
     data: { labels: [], datasets: [{ label: 'Calories', data: [], borderColor: '#0f6f5f', backgroundColor: 'rgba(15, 111, 95, 0.2)', tension: 0.25 }] },
-    options: commonOptions
+    options: { ...commonOptions, scales: { y: { beginAtZero: true, suggestedMax: 2000 } } }
   });
+
   macrosChart = new Chart(document.getElementById('macrosChart'), {
-    type: 'line',
-    data: { labels: [], datasets: [
-      { label: 'Protein', data: [], borderColor: '#2b7a4b', tension: 0.25 },
-      { label: 'Carbs',   data: [], borderColor: '#c07f2b', tension: 0.25 },
-      { label: 'Fat',     data: [], borderColor: '#8c4fa3', tension: 0.25 }
-    ]},
-    options: commonOptions
+  type: 'line',
+  data: { labels: [], datasets: [
+    { label: 'Protein', data: [], borderColor: '#2b7a4b', tension: 0.25 },
+    { label: 'Carbs',   data: [], borderColor: '#c07f2b', tension: 0.25 },
+    { label: 'Fat',     data: [], borderColor: '#8c4fa3', tension: 0.25 }
+  ]},
+  options: { ...commonOptions, scales: { y: { beginAtZero: true, suggestedMax: 200 } } }
   });
+
   focusChart = new Chart(document.getElementById('focusChart'), {
     type: 'line',
     data: { labels: [], datasets: [{ label: 'Focus Score', data: [], borderColor: '#1f4f8a', backgroundColor: 'rgba(31, 79, 138, 0.2)', tension: 0.25 }] },

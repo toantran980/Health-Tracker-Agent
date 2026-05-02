@@ -101,6 +101,7 @@ body {
 
 .hero {
   background: var(--surface-strong);
+  margin-top: 10px;
   border: 1px solid var(--line);
   border-radius: 24px;
   padding: 26px;
@@ -185,6 +186,19 @@ h3 {
   display: none;
 }
 
+/* ── Metrics Panel ── */
+.metrics-panel {
+  padding: 18px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* ── KPI Strip ── */
 .kpi-strip {
   margin-top: 16px;
   display: grid;
@@ -560,13 +574,13 @@ textarea {
 }
 
 .chart-panel {
-  min-height: 300px;
+  min-height: 400px;
 }
 
 .chart-panel canvas {
   display: block;
   width: 100% !important;
-  height: 220px !important;
+  height: 350px !important;
 }
 
 .toast-container {
@@ -659,7 +673,8 @@ textarea {
   }
 
   .kpi-strip,
-  .quick-actions-grid {
+  .quick-actions-grid,
+  .metrics-grid {
     grid-template-columns: 1fr 1fr;
   }
 

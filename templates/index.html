@@ -39,18 +39,30 @@
         <button class="hero-link" data-target="section-trends" type="button">Trends</button>
       </nav>
     </header>
+    
+    <section class="panel metrics-panel" id="model-metrics-panel">
+      <h2>Model Evaluation Metrics</h2>
+      <div id="modelMetrics" class="metrics-grid">
+        <article class="kpi-card" data-status="neutral">
+          <p class="kpi-label">MAE</p>
+          <p id="metricProductivityMAE" class="kpi-value">-</p>
+          <p class="kpi-status">Mean Absolute Error</p>
+        </article>
+        <article class="kpi-card" data-status="neutral">
+          <p class="kpi-label">RMSE</p>
+          <p id="metricProductivityRMSE" class="kpi-value">-</p>
+          <p class="kpi-status">Root Mean Square Error</p>
+        </article>
+        <article class="kpi-card" data-status="neutral">
+          <p class="kpi-label">R²</p>
+          <p id="metricProductivityR2" class="kpi-value">-</p>
+          <p class="kpi-status">Variance Explained</p>
+        </article>
+      </div>
+      <p id="metricProductivityN" class="kpi-status" style="margin-top: 10px;">Loading...</p>
+    </section>
 
     <section class="kpi-strip" aria-label="Daily snapshot">
-          <section class="panel" id="model-metrics-panel" style="margin-top: 1.5rem;">
-            <h2>Model Evaluation Metrics</h2>
-            <div id="modelMetrics" class="metrics-grid">
-              <div class="metric-card">
-                <p class="metric-label">Productivity Predictor MAE</p>
-                <p id="metricProductivityMAE" class="metric-value">-</p>
-                <p id="metricProductivityN" class="metric-status">Loading...</p>
-              </div>
-            </div>
-          </section>
       <article class="kpi-card" data-status="neutral">
         <p class="kpi-label">Calories Today</p>
         <p id="kpiCalories" class="kpi-value">0 kcal</p>

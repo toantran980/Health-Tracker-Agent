@@ -36,6 +36,18 @@ def compute_mae(predictor, data):
     errors = [abs(predictor.predict(f) - expected) for f, expected in data]
     return sum(errors) / len(errors) if errors else 0.0
 
+def compute_rmse(predictor, data):
+    errors = [(predictor.predict(f) - expected) ** 2 for f, expected in data]
+    return (sum(errors) / len(errors)) ** 0.5 if errors else 0.0
+
+def compute_r2(predictor, data):
+    y_true = [expected for _, expected in data]
+    y_pred = [predictor.predict(f) for f, _ in data]
+    mean_y = sum(y_true) / len(y_true) if y_true else 0.0
+    ss_tot = sum((y - mean_y) ** 2 for y in y_true)
+    ss_res = sum((y_t - y_p) ** 2 for y_t, y_p in zip(y_true, y_pred))
+    return 1 - ss_res / ss_tot if ss_tot != 0 else 0.0
+
 
 def main():
     train_path = os.path.join('data', 'training_data.csv')
@@ -54,6 +66,10 @@ def main():
     # Evaluate before training
     mae_before = compute_mae(predictor, eval_data)
     print(f"\nMAE before training: {mae_before:.4f}")
+    rmse_before = compute_rmse(predictor, eval_data)
+    r2_before = compute_r2(predictor, eval_data)
+    print(f"RMSE before training: {rmse_before:.4f}")
+    print(f"R2 before training:   {r2_before:.4f}")
 
     # Train
     print("\nTraining model...")
@@ -63,6 +79,11 @@ def main():
     # Evaluate after training
     mae_after = compute_mae(predictor, eval_data)
     print(f"MAE after training:  {mae_after:.4f}")
+    rmse_after = compute_rmse(predictor, eval_data)
+    r2_after = compute_r2(predictor, eval_data)
+    print(f"RMSE after training: {rmse_after:.4f}")
+    print(f"R2 after training:   {r2_after:.4f}")
+    print(f"Improvement (MAE):   {mae_before - mae_after:.4f}")
     print(f"Improvement:         {mae_before - mae_after:.4f}")
     print(f"\nModel info: {predictor.get_model_info()}")
 
