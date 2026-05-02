@@ -29,6 +29,7 @@ def main():
     logger.info("  GET    /api/activity-recommendations/<user_id>")
     logger.info("  GET    /api/nutrition/analysis/<user_id>")
     logger.info("  GET    /api/nutrition/meal-recommendations/<user_id>")
+    logger.info("  GET    /api/nutrition/recommendations/<user_id>")
     logger.info("  GET    /api/schedule/available-slots/<user_id>")
     logger.info("  POST   /api/schedule/optimize/<user_id>")
     logger.info("  POST   /api/productivity/predict/<user_id>")

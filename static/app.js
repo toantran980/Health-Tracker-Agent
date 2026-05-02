@@ -513,7 +513,7 @@ bindClick('btnAnalyze', async () => {
 });
 
 bindClick('btnMacroRecs', async () => {
-  await requestForActiveUser('Macro Recommendations', (userId) => `/api/nutrition/meal-recommendations/${userId}`);
+  await requestForActiveUser('Macro Recommendations', (userId) => `/api/nutrition/recommendations/${userId}`);
   showToast('Macro recommendations loaded.', 'info');
 });
 

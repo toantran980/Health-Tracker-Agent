@@ -94,15 +94,25 @@ def analyze_nutrition(user_id):
 
     analyzer = state.nutrition_analyzers.get(user_id)
     if not analyzer:
-        # Attempt to auto-initialize if missing
-        # initialize_user_ai_modules(user_id)
-        analyzer = state.nutrition_analyzers.get(user_id)
-        if not analyzer:
-            return error_response("Analyzer not initialized", "ANALYZER_NOT_INITIALIZED", 400)
+        return error_response("Analyzer not initialized", "ANALYZER_NOT_INITIALIZED", 400)
 
     goal = request.args.get('goal')
     report = analyzer.get_nutrition_report(goal=goal)
     return jsonify(clean_report(report)), 200
+
+@nutrition_bp.route('/api/nutrition/recommendations/<user_id>', methods=['GET'])
+def get_macro_recommendations(user_id):
+    """Return goal-aware macro recommendations for a user."""
+    user, err = require_user(user_id)
+    if err: return err
+
+    analyzer = state.nutrition_analyzers.get(user_id)
+    if not analyzer:
+        return error_response("Analyzer not initialized", "ANALYZER_NOT_INITIALIZED", 400)
+
+    goal = request.args.get('goal')
+    recommendations = analyzer.get_macro_recommendations(goal=goal)
+    return jsonify(clean_report(recommendations)), 200
 
 @nutrition_bp.route('/api/nutrition/meal-recommendations/<user_id>', methods=['GET'])
 def get_meal_recommendations(user_id):
