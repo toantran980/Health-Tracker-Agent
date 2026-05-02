@@ -1,3 +1,29 @@
+// Fetch activity recommendations for a user
+async function fetchActivityRecommendations(userId, n = 5) {
+  const apiBase = getApiBase();
+  const url = `${apiBase}/api/activity-recommendations/${userId}?n=${n}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch activity recommendations');
+    const data = await response.json();
+    writeOutput('Activity Recommendations', data);
+    showToast('Fetched activity recommendations!', 'success');
+    return data;
+  } catch (err) {
+    showToast('Error fetching activity recommendations', 'error');
+    console.error(err);
+  }
+}
+
+// Bind button to fetch activity recommendations
+bindClick('btnActivityRecs', async () => {
+  const userId = getActiveUserId();
+  if (!userId) {
+    showToast('No active user selected', 'error');
+    return;
+  }
+  await fetchActivityRecommendations(userId);
+});
 // Fetch and display model evaluation metrics
 async function fetchModelMetrics() {
   const maeEl  = document.getElementById('metricProductivityMAE');
@@ -456,6 +482,7 @@ bindClick('btnGetUser', async () => {
 bindSubmit('mealForm', async (form) => {
   const userId = getActiveUserId();
   const body = {
+    user_id: userId,
     meal_type: form.elements['meal_type'].value || 'lunch',
     food_items: [{
       name:      form.elements['food_name'].value || 'Unknown food',
@@ -465,7 +492,7 @@ bindSubmit('mealForm', async (form) => {
       fat_g:     Number(form.elements['fat_g'].value)     || 0,
     }]
   };
-  const payload = await apiRequest(`/api/nutrition/log-meal/${userId}`, { method: 'POST', body });
+  const payload = await apiRequest('/api/meals/log', { method: 'POST', body });
   if (payload.nutrition) {
     appMetrics.caloriesToday += Number(payload.nutrition.calories || 0);
     refreshKpis();
@@ -486,7 +513,7 @@ bindClick('btnAnalyze', async () => {
 });
 
 bindClick('btnMacroRecs', async () => {
-  await requestForActiveUser('Macro Recommendations', (userId) => `/api/nutrition/recommendations/${userId}`);
+  await requestForActiveUser('Macro Recommendations', (userId) => `/api/nutrition/meal-recommendations/${userId}`);
   showToast('Macro recommendations loaded.', 'info');
 });
 
@@ -602,6 +629,13 @@ bindClick('btnKnowledgeRecs', async () => {
     method: 'POST', body
   });
   showToast('Knowledge recommendations ready.', 'info');
+});
+
+// Activity Recommendations
+bindClick('btnActivityRecs', async () => {
+  const n = Number(document.getElementById('activityCount')?.value) || 5;
+  await requestForActiveUser('Activity Recommendations', (userId) => `/api/activity-recommendations/${userId}?n=${n}`);
+  showToast('Activity recommendations loaded.', 'info');
 });
 
 // Init

@@ -35,6 +35,7 @@
         <button class="hero-link active" data-target="section-user" type="button">User</button>
         <button class="hero-link" data-target="section-nutrition" type="button">Nutrition</button>
         <button class="hero-link" data-target="section-schedule" type="button">Schedule</button>
+        <button class="hero-link" data-target="section-activity" type="button">Activity</button>
         <button class="hero-link" data-target="section-chat" type="button">Chatbot</button>
         <button class="hero-link" data-target="section-trends" type="button">Trends</button>
       </nav>
@@ -125,7 +126,6 @@
           <button id="btnGetUser" class="btn" type="button">Get Active User</button>
         </div>
       </form>
-      
     </section>
 
     <section id="section-nutrition" class="panel tab-section tab-hidden">
@@ -204,6 +204,32 @@
           <button class="btn primary" type="submit">Predict</button>
           <button id="btnOptimalTime" class="btn" type="button">Get Optimal Study Time</button>
         </form>
+      </div>
+    </section>
+
+    <!-- ── NEW: Activity Section ── -->
+    <section id="section-activity" class="panel tab-section tab-hidden">
+      <h2>Activity Recommendations</h2>
+      <div class="grid two">
+        <div class="subpanel">
+          <h3>Get Recommendations</h3>
+          <label>Number of recommendations
+            <input id="activityCount" type="number" min="1" max="20" value="5" placeholder="e.g. 5">
+          </label>
+          <div class="inline-fields" style="margin-top: 12px;">
+            <button id="btnActivityRecs" class="btn primary" type="button">Get Activity Recommendations</button>
+          </div>
+          <p class="hint" style="margin-top: 10px;">Personalized activity suggestions based on your profile, nutrition, and productivity data.</p>
+        </div>
+        <div class="subpanel">
+          <h3>About Activity Recommendations</h3>
+          <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">
+            The AI analyzes your logged meals, focus scores, sleep hours, and goals to suggest the most suitable physical activities for your current state.
+          </p>
+          <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">
+            Results appear in the <strong>Live API Output</strong> panel at the top of the page.
+          </p>
+        </div>
       </div>
     </section>
 
