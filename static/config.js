@@ -1,0 +1,57 @@
+export const DEFAULTS = {
+  USER: {
+    BIOLOGICAL_SEX: 'male',
+    GOALS: ['general_wellness'],
+    TARGET_CALORIES: 2000,
+    TARGET_PROTEIN: 150,
+    TARGET_CARBS: 200,
+    TARGET_FAT: 65
+  },
+  MEAL: {
+    TYPE: 'lunch',
+    NAME: 'Unknown food',
+    CALORIES: 0,
+    PROTEIN: 0,
+    CARBS: 0,
+    FAT: 0
+  },
+  MEAL_REC: {
+    TARGET_CALORIES: 650,
+    TARGET_PROTEIN: 35,
+    MODE: 'constraint',
+    COUNT: 5
+  },
+  SCHEDULE: {
+    DURATION_MINUTES: 60
+  },
+  PRODUCTIVITY: {
+    HOUR_OF_DAY: 0,
+    DAY_OF_WEEK: 0,
+    SLEEP_QUALITY: 7,
+    SLEEP_HOURS: 8,
+    NUTRITION_SCORE: 75,
+    ENERGY_LEVEL: 7,
+    PREV_SESSION_DURATION: 60,
+    TASK_DIFFICULTY: 5
+  },
+  KNOWLEDGE_RECS: {
+    DAILY_CALORIES: 2000,
+    DAILY_PROTEIN: 130,
+    ENERGY_LEVEL: 7,
+    SLEEP_HOURS: 7.5,
+    UPCOMING_DIFFICULTY: 6,
+    RECENT_SESSION_DURATION: 60,
+    MACRO_BALANCE: 'balanced',
+    MACRO_DETAIL: 'ok',
+    CORRELATION_NUTRITION: 0.4,
+    ADHERENCE_RATE: 0.7
+  },
+  ACTIVITY_RECS: {
+    COUNT: 5
+  },
+  TASK: {
+    DURATION_MINUTES: 60,
+    DIFFICULTY: 5,
+    DEADLINE_DAYS: 1
+  }
+};
