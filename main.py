@@ -1,8 +1,6 @@
 """Main application entry point"""
 import sys
-import os
 import logging
-from flask import Flask
 
 from api.routes import app
 
@@ -15,9 +13,10 @@ def main():
     logger.info("Starting AI Health & Wellness Tracker")
     logger.info("Initializing Flask API server...")
 
-    port = int(os.environ.get('PORT', 5001))
-    host = os.environ.get('HOST', '0.0.0.0')
-    debug = os.environ.get('DEBUG', 'True').lower() == 'true'
+    import config
+    port = config.PORT
+    host = config.HOST
+    debug = config.DEBUG
 
     logger.info(f"Server will run at: http://{host}:{port}")
     logger.info("Available endpoints:")

@@ -15,7 +15,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+import config
+GROQ_API_KEY = config.GROQ_API_KEY
 
 client   = None
 model    = None

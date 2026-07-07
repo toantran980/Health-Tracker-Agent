@@ -1,4 +1,8 @@
-class TestProductivityPredictorQuantitative(unittest.TestCase):
+import unittest
+import csv
+from ai_modules.productivity_predictor import ProductivityPredictor, Features
+
+class TestProductivityPredictorQuantitative_Hardcoded(unittest.TestCase):
     """Quantitative evaluation for ProductivityPredictor (Mean Absolute Error)"""
     def setUp(self):
         self.predictor = ProductivityPredictor()

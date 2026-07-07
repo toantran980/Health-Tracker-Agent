@@ -28,8 +28,9 @@ class MongoStore:
         self.enabled = False
         self._db = None
 
-        max_retries = int(os.getenv("MONGO_CONNECT_RETRIES", "5"))
-        retry_delay = float(os.getenv("MONGO_CONNECT_RETRY_DELAY", "2"))
+        import config
+        max_retries = config.MONGO_CONNECT_RETRIES
+        retry_delay = config.MONGO_CONNECT_RETRY_DELAY
         last_error: PyMongoError | None = None
 
         for attempt in range(1, max_retries + 1):
@@ -160,8 +161,9 @@ class MongoStore:
 
     @classmethod
     def from_env(cls) -> "MongoStore":
-        uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-        db_name = os.getenv("MONGO_DB_NAME", "health_tracker")
+        import config
+        uri = config.MONGO_URI
+        db_name = config.MONGO_DB_NAME
         return cls(uri, db_name)
 
     #  Users                                                               #

@@ -15,8 +15,9 @@ TTL_SHORT = 300
 TTL_MEDIUM = 900
 TTL_LONG = 3600
 
-USDA_API_KEY = os.getenv("USDA_API_KEY", "DEMO_KEY")
-RAPIDAPI_KEY = os.getenv("EXERCISEDB_API_KEY", "")
+import config
+USDA_API_KEY = config.USDA_API_KEY
+RAPIDAPI_KEY = config.EXERCISEDB_API_KEY
 
 FOOD_FACTS_BASE = "https://world.openfoodfacts.org"
 WGER_BASE = "https://wger.de/api/v2"
