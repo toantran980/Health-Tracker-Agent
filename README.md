@@ -1,8 +1,10 @@
-# **Team Members:**
-
+## Contributions & Project History
+* **Original Project:**
 * Toan Tran - ttran8276@csu.fullerton.edu
 * Chris Ramon - chrisramon1@csu.fullerton.edu
 * Shaik Amin - smamin@csu.fullerton.edu
+  
+* **Solo Updates (Post-Graduation):** All commits and updates after May 15 were completed independently by me for skill development.
 
 # AI Health & Wellness Tracker
 
