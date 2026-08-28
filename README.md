@@ -5,7 +5,7 @@
 * Chris Ramon - chrisramon1@csu.fullerton.edu
 * Shaik Amin - smamin@csu.fullerton.edu
   
-**Solo Updates (Post-Graduation):** All commits and updates after May 15 were completed independently by me for skill development.
+**Solo Updates (Post-Graduation):** All commits and updates after May 15, 2026 were completed independently by me for skill development.
 
 # AI Health & Wellness Tracker
 
