@@ -44,6 +44,18 @@ below; `## Open / Next` lists only actionable items.
       limiter so clients can self-throttle.
 - [ ] **Frontend auth gate disabled-state**: disable nutrition/chat controls
       unless a session is active, instead of showing a toast on click.
+- [ ] **Unit tests for the keyless responder**: add coverage for `_local_reply`
+      keyword branches (macros, water, sleep, focus, workouts, fallback) so the
+      no-key path is locked down.
+- [ ] **Chatbot CSRF/exempt pre-auth prompt**: if a chat message triggers
+      `401 AUTH_REQUIRED`, don't just empty the reply box — prompt for login and
+      preserve the typed message until the user authenticates.
+- [ ] **Water target customization**: `water_target_ml` is hard-coded (2500);
+      expose it via the user profile and `.env` so hydrated individuals can set
+      their own target.
+- [ ] **Activity energy-after validation**: `energy_after` accepts any int;
+      clamp it to 1–10 and surface a `VALIDATION` error along with the other
+      `require_fields` checks.
 
 ## Completed
 
