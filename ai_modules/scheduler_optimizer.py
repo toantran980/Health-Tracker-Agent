@@ -1,4 +1,3 @@
-import sys, os
 
 """Constraint Satisfaction Problem (CSP) Solver for Schedule Optimization"""
 from typing import List, Dict, Tuple, Optional, Callable

@@ -27,35 +27,22 @@ below; `## Open / Next` lists only actionable items.
 | Low | Config-driven rate-limit test | Done | `test_build_limiter_from_config_memory` |
 | Medium | Keyless chatbot fallback (GROQ key optional) | Done | `ai_modules/health_chatbot.py:_local_reply`, manual CLI check |
 | Low | Cleaner auth status + login on top UI | Done | `static/main.js`, `templates/index.html` |
+| High | Keyless responder unit tests | Done | `tests/test_ai_modules.py:TestKeylessChatbotFallback` (11 tests) |
+| Medium | Chat provider indicator (Groq/local badge) | Done | `api/blueprints/chat.py`, `static/ui.js` |
+| Medium | Rate-limit response headers | Done | `api/rate_limiter.py:status`, `api/blueprints/external.py` + test |
+| Medium | Water target customization | Done | `models/user_profile.py`, `api/blueprints/user.py`, form + tests |
+| Medium | Activity `energy_after` validation | Done | `coerce_int` min/max in `activity.py` + test |
+| Medium | Frontend auth gate disabled-state | Done | `setAuthGate` in `static/main.js` |
+| Medium | Chatbot pre-auth prompt (keep message, prompt login) | Done | `static/main.js` chat handler + `ui.js` |
+| Medium | Session expiry signaling + sliding refresh | Done | `config.py`, `api/routes.py`, `TestSessionExpiry` |
+| Medium | Chat history persistence | Done | `api/mongo_store.py` + `chat.py` rehydration |
+| Medium | Local KB-powered chatbot depth | Done | `kb_reply()` in `ai_modules/health_chatbot.py` |
 
 ## Open / Next
 
-- [ ] **Local KB-powered chatbot depth**: the keyless fallback is keyword-based;
-      consider routing free-form health questions through `KnowledgeBase` rules
-      before falling back to the generic tip.
-- [ ] **Chat history persistence**: currently per-user sessions live only in
-      memory (`state.bot_sessions`); persist recent turns so a server restart
-      doesn't lose context.
-- [ ] **Session expiry signaling**: cookies are permanent; add a configurable
-      session TTL + `SESSION_PERMANENT` refresh so auth sessions can expire.
-- [ ] **Provider indicator in UI**: surface whether the chatbot answered via
-      Groq or the local responder (e.g. a small badge in the chat).
-- [ ] **Rate-limit headers**: return `X-RateLimit-Limit/Remaining/Reset` from the
-      limiter so clients can self-throttle.
-- [ ] **Frontend auth gate disabled-state**: disable nutrition/chat controls
-      unless a session is active, instead of showing a toast on click.
-- [ ] **Unit tests for the keyless responder**: add coverage for `_local_reply`
-      keyword branches (macros, water, sleep, focus, workouts, fallback) so the
-      no-key path is locked down.
-- [ ] **Chatbot CSRF/exempt pre-auth prompt**: if a chat message triggers
-      `401 AUTH_REQUIRED`, don't just empty the reply box — prompt for login and
-      preserve the typed message until the user authenticates.
-- [ ] **Water target customization**: `water_target_ml` is hard-coded (2500);
-      expose it via the user profile and `.env` so hydrated individuals can set
-      their own target.
-- [ ] **Activity energy-after validation**: `energy_after` accepts any int;
-      clamp it to 1–10 and surface a `VALIDATION` error along with the other
-      `require_fields` checks.
+Everything on the original roadmap is complete. Future work might explore:
+exposure of a real LLM key for richer answers (see `GROQ_API_KEY`), Redis-backed
+rate limiting at scale, or an activity-based water target calculation.
 
 ## Completed
 
@@ -124,3 +111,46 @@ below; `## Open / Next` lists only actionable items.
       workouts) with whole-word matching. Groq path unchanged when key present.
 - [x] **Auth UI polish**: status reads "Not logged in" (guidance on hover);
       Session Login moved to the top of the User tab above Create User.
+
+### Recently Completed
+
+- [x] **Keyless responder unit tests**: `TestKeylessChatbotFallback` covers each
+      `_local_reply` branch (macros, water, sleep, focus, protein, greeting,
+      generic fallback, substring false-positive) and history preservation.
+- [x] **Provider indicator in UI**: `/api/chat` now returns `provider`
+      (`groq`/`local`); the assistant chat bubble shows an LLM/Local badge
+      (with hover tooltip).
+- [x] **Rate-limit headers**: `RateLimiter.status()` exposes
+      `limit/remaining/reset`; external endpoints stamp `X-RateLimit-Limit/
+      Remaining/Reset` on both success and 429 responses (added
+      `test_rate_limit_headers_present_on_success_and_429`).
+- [x] **Water target customization**: `water_target_ml` is now a configurable
+      `UserProfile` field (default 2500), accepted/validated on `/api/user/create`
+      (`coerce_int` 0–10000), round-trips through Mongo (`user_from_doc`), and is
+      passed to the chatbot snapshot. Frontend `config.js`/`main.js`/`index.html`
+      add a Water (mL/day) field. Covered by `TestAuthFlow`.
+- [x] **Activity `energy_after` validation**: `/api/activity/log` rejects
+      out-of-range values via `coerce_int(minimum=1, maximum=10)` with a
+      `VALUE_OUT_OF_RANGE` 400 error. Covered by
+      `test_activity_energy_after_out_of_range_rejected`.
+- [x] **Frontend auth gate disabled-state**: `setAuthGate(authenticated)` in
+      `static/main.js` disables the nutrition/chat/schedule/form controls until a
+      session is active; toggled from `updateAuthStatus()` and the `auth-required`
+      handler (instead of only showing a toast on click).
+- [x] **Chatbot pre-auth prompt**: on `AUTH_REQUIRED` during chat, the just-appended
+      user bubble is removed (`removeLastChatMessage` in `static/ui.js`) and the
+      typed message is preserved in the input while the UI prompts for login.
+- [x] **Session expiry signaling**: `SESSION_LIFETIME_MINUTES` (default 0 =
+      permanent) + `SESSION_REFRESH` sliding TTL via `PERMANENT_SESSION_LIFETIME`
+      and `session.permanent` in `api/routes.py:apply_session_expiry`; documented in
+      `.env.example`; covered by `TestSessionExpiry`.
+- [x] **Chat history persistence**: `MongoStore.save_chat_history` /
+      `get_chat_history` / `delete_chat_history` (unique `chat_history` index);
+      `api/blueprints/chat.py` saves turns after each message and rehydrates the bot
+      via `HealthChatbot.set_history` on restart; reset wipes stored history.
+- [x] **Local KB-powered chatbot depth**: `HealthChatbot.kb_reply()` routes free-form
+      health questions through the per-user `KnowledgeBase` (facts derived from the
+      live snapshot) before falling back to the generic tip; the blueprint wires in
+      `state.knowledge_bases[user_id]`.
+- [x] **CSRF session key rename**: `_csrf_token` session key renamed to `csrf_token`
+      (`api/routes.py`, `api/blueprints/helpers.py`) — no underscore prefix.

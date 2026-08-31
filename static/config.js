@@ -5,7 +5,8 @@ export const DEFAULTS = {
     TARGET_CALORIES: 2000,
     TARGET_PROTEIN: 150,
     TARGET_CARBS: 200,
-    TARGET_FAT: 65
+    TARGET_FAT: 65,
+    WATER_TARGET: 2500
   },
   MEAL: {
     TYPE: 'lunch',

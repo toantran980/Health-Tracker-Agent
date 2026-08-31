@@ -57,6 +57,20 @@ class TestRateLimiter(unittest.TestCase):
         time.sleep(0.3)
         self.assertTrue(limiter.allow("a"))
 
+    def test_status_reports_remaining_and_reset(self):
+        limiter = RateLimiter(max_requests=3, window_seconds=60)
+        s0 = limiter.status("c")
+        self.assertEqual(s0["limit"], 3)
+        self.assertEqual(s0["remaining"], 3)
+        self.assertGreater(s0["reset"], 0)
+
+        limiter.allow("c")
+        limiter.allow("c")
+        s = limiter.status("c")
+        self.assertEqual(s["remaining"], 1)
+        self.assertGreater(s["reset"], 0)
+        self.assertLessEqual(s["reset"], 60)
+
     def test_build_limiter_from_config_memory(self):
         """build_limiter honours the config-driven defaults for memory backend."""
         limiter = build_limiter(
@@ -100,6 +114,20 @@ class TestAuthFlow(unittest.TestCase):
     def test_me_before_login(self):
         data = self.client.get("/api/auth/me").get_json()
         self.assertFalse(data["authenticated"])
+
+    def test_water_target_customization(self):
+        resp = make_client().post("/api/user/create", json=dict(self.USER, water_target_ml=3000))
+        self.assertEqual(resp.status_code, 201)
+        body = resp.get_json()
+        self.assertEqual(body["user"]["water_target_ml"], 3000)
+
+        fetched = make_client().get(f"/api/user/{body['user_id']}").get_json()
+        self.assertEqual(fetched["water_target_ml"], 3000)
+
+    def test_water_target_defaults_to_2500(self):
+        resp = make_client().post("/api/user/create", json=dict(self.USER))
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.get_json()["user"]["water_target_ml"], 2500)
 
     def test_create_requires_password_length(self):
         data = dict(self.USER, password="123")
@@ -186,6 +214,20 @@ class TestProtectedEndpoints(unittest.TestCase):
             "user_id": self.user_id, "activity_type": "study", "duration_minutes": 45,
         })
         self.assertEqual(resp.status_code, 401)
+
+    def test_authenticated_chat_returns_reply_and_provider(self):
+        login = self.client.post("/api/auth/login", json={
+            "user_id": self.user_id, "password": self.USER["password"],
+        })
+        self.assertEqual(login.status_code, 200)
+        headers = {"X-CSRF-Token": login.get_json()["csrf_token"]}
+        resp = self.client.post(f"/api/chat/{self.user_id}", headers=headers, json={"message": "hello"})
+        self.assertEqual(resp.status_code, 200)
+        body = resp.get_json()
+        self.assertIn("reply", body)
+        self.assertIn("provider", body)
+        self.assertIn(body["provider"], ("groq", "local"))
+        self.assertTrue(body["reply"].strip())
 
     def test_other_user_cannot_authenticate_for_me(self):
         other = make_client()
@@ -319,6 +361,14 @@ class TestPersistenceEndpoints(unittest.TestCase):
         self.assertEqual(trends["total_duration_minutes"], 50)
         self.assertEqual(trends["by_type"]["study"]["avg_energy_after"], 7.0)
 
+    def test_activity_energy_after_out_of_range_rejected(self):
+        resp = self.client.post("/api/activity/log", headers=self.headers, json={
+            "user_id": self.user_id, "activity_type": "study",
+            "duration_minutes": 30, "energy_after": 99,
+        })
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.get_json()["code"], "VALUE_OUT_OF_RANGE")
+
     def test_rate_limit_returns_429(self):
         with mock.patch.object(external_module, "default_limiter",
                                RateLimiter(max_requests=2, window_seconds=60)):
@@ -329,6 +379,79 @@ class TestPersistenceEndpoints(unittest.TestCase):
             r3 = self.client.get("/api/food/search?q=chicken")
             self.assertEqual(r3.status_code, 429)
             self.assertEqual(r3.get_json()["code"], "RATE_LIMITED")
+
+    def test_rate_limit_headers_present_on_success_and_429(self):
+        with mock.patch.object(external_module, "default_limiter",
+                               RateLimiter(max_requests=2, window_seconds=60)):
+            ok = self.client.get("/api/food/search?q=chicken")
+            self.assertEqual(ok.status_code, 200)
+            self.assertIn("X-RateLimit-Limit", ok.headers)
+            self.assertIn("X-RateLimit-Remaining", ok.headers)
+            self.assertIn("X-RateLimit-Reset", ok.headers)
+            self.assertEqual(ok.headers["X-RateLimit-Limit"], "2")
+            self.assertEqual(ok.headers["X-RateLimit-Remaining"], "1")
+
+            self.client.get("/api/food/search?q=chicken")  # exhausts the window
+            limited = self.client.get("/api/food/search?q=chicken")
+            self.assertEqual(limited.status_code, 429)
+            self.assertEqual(limited.headers["X-RateLimit-Remaining"], "0")
+            self.assertTrue(limited.headers["X-RateLimit-Reset"].isdigit())
+
+
+class TestSessionExpiry(unittest.TestCase):
+    """Auth sessions become permanent (with a TTL) only when configured."""
+
+    USER = {
+        "name": "Expiry User",
+        "age": 30,
+        "weight_kg": 75,
+        "height_cm": 180,
+        "biological_sex": "male",
+        "password": "secret123",
+    }
+
+    def setUp(self):
+        reset_state()
+        self.old_lifetime = config.SESSION_LIFETIME_MINUTES
+        self.old_permanent = app.config.get("PERMANENT_SESSION_LIFETIME")
+        resp = make_client().post("/api/user/create", json=self.USER)
+        self.assertEqual(resp.status_code, 201)
+        self.user_id = resp.get_json()["user_id"]
+
+    def tearDown(self):
+        from datetime import timedelta
+        config.SESSION_LIFETIME_MINUTES = self.old_lifetime
+        app.config["PERMANENT_SESSION_LIFETIME"] = self.old_permanent or timedelta(days=31)
+
+    def test_session_gets_ttl_when_configured(self):
+        from datetime import timedelta
+        config.SESSION_LIFETIME_MINUTES = 5
+        app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=5)
+
+        client = make_client()
+        login = client.post("/api/auth/login", json={
+            "user_id": self.user_id, "password": self.USER["password"],
+        })
+        self.assertEqual(login.status_code, 200)
+        # The first authenticated request promotes the session to permanent.
+        me = client.get("/api/auth/me")
+        self.assertTrue(me.get_json()["authenticated"])
+        set_cookie = me.headers.get("Set-Cookie", "")
+        self.assertIn("Expires=", set_cookie, "permanent TTL cookie should carry Expires")
+
+    def test_permanent_session_only_when_configured(self):
+        from datetime import timedelta
+        config.SESSION_LIFETIME_MINUTES = 0
+        app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=31)
+        client = make_client()
+        login = client.post("/api/auth/login", json={
+            "user_id": self.user_id, "password": self.USER["password"],
+        })
+        self.assertEqual(login.status_code, 200)
+        me = client.get("/api/auth/me")
+        self.assertTrue(me.get_json()["authenticated"])
+        set_cookie = me.headers.get("Set-Cookie", "")
+        self.assertNotIn("Expires=", set_cookie, "session stays transient when no TTL is configured")
 
 
 if __name__ == "__main__":

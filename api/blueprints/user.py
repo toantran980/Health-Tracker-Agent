@@ -70,6 +70,9 @@ def create_user():
     fat, fat_err = coerce_float(data.get('target_fat_g'), 65.0, minimum=0, maximum=1000)
     if fat_err:
         return fat_err
+    water_target, water_err = coerce_int(data.get('water_target_ml'), 2500, minimum=0, maximum=10000)
+    if water_err:
+        return water_err
 
     # Build UserProfile
     try:
@@ -85,6 +88,7 @@ def create_user():
             target_protein_g = protein,
             target_carbs_g   = carbs,
             target_fat_g     = fat,
+            water_target_ml  = water_target,
         )
     except Exception as e:
         traceback.print_exc(file=sys.stderr)

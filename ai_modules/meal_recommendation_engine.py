@@ -48,8 +48,8 @@ class MealRecommendationEngine:
 
         # Cache normalized vectors + id lookup so repeated scoring calls
         # (especially hybrid which scans the DB twice) avoid recomputation.
-        self._food_by_id: Dict[str, FoodItem] = {f.food_id: f for f in self.food_database}
-        self._vector_cache: Dict[str, List[float]] = {
+        self.food_by_id: Dict[str, FoodItem] = {f.food_id: f for f in self.food_database}
+        self.vector_cache: Dict[str, List[float]] = {
             f.food_id: self.minmax_normalize(self.food_to_raw_vector(f.nutrition_info))
             for f in self.food_database
         }
@@ -123,11 +123,11 @@ class MealRecommendationEngine:
 
     def food_vector(self, food: FoodItem) -> List[float]:
         """Return a min-max normalised 4-D vector for a food item (cached)."""
-        cached = self._vector_cache.get(food.food_id)
+        cached = self.vector_cache.get(food.food_id)
         if cached is not None:
             return cached
         vec = self.minmax_normalize(self.food_to_raw_vector(food.nutrition_info))
-        self._vector_cache[food.food_id] = vec
+        self.vector_cache[food.food_id] = vec
         return vec
 
     def target_vector(self, target_calories: float, target_protein: float,
@@ -189,7 +189,7 @@ class MealRecommendationEngine:
         liked_vectors = []
         total_weight = 0.0
         for rated_id, rating in liked.items():
-            rated_food = self._food_by_id.get(rated_id)
+            rated_food = self.food_by_id.get(rated_id)
             if rated_food is None:
                 continue
             liked_vectors.append((self.food_vector(rated_food), rating / 10.0))
@@ -217,7 +217,7 @@ class MealRecommendationEngine:
         ranked = sorted(scored.values(), key=lambda x: x["score"], reverse=True)
         # Skip MMR when caller asks for the full list (e.g. hybrid blend);
         # diversity only matters when truncating to a small top-N.
-        diversified = ranked if n >= len(ranked) else self._mmr_select(ranked, n)
+        diversified = ranked if n >= len(ranked) else self.mmr_select(ranked, n)
         return [
             {
                 "food_id":  item["food"].food_id,
@@ -229,7 +229,7 @@ class MealRecommendationEngine:
             for item in diversified
         ]
 
-    def _mmr_select(self, ranked: List[Dict], n: int) -> List[Dict]:
+    def mmr_select(self, ranked: List[Dict], n: int) -> List[Dict]:
         """
         Maximal Marginal Relevance selection for diversity.
 
@@ -418,7 +418,7 @@ class MealRecommendationEngine:
             c_score  = content_recs.get(fid, 0.0)
             cs_score = constraint_recs.get(fid, 0.0)
             combined = content_weight * c_score + constraint_weight * cs_score
-            food     = self._food_by_id.get(fid)
+            food     = self.food_by_id.get(fid)
             if food:
                 blended.append((food, combined))
 

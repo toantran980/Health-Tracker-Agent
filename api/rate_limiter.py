@@ -23,14 +23,14 @@ class RateLimiter:
     def __init__(self, max_requests: int, window_seconds: float = 60.0):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self._lock = threading.Lock()
-        self._hits: dict[str, Deque[float]] = defaultdict(deque)
+        self.lock = threading.Lock()
+        self.hits: dict[str, Deque[float]] = defaultdict(deque)
 
     def allow(self, client_id: str) -> bool:
         """Return True if the call is allowed, False if rate-limited."""
         now = time.monotonic()
-        with self._lock:
-            timestamps = self._hits[client_id]
+        with self.lock:
+            timestamps = self.hits[client_id]
             cutoff = now - self.window_seconds
             while timestamps and timestamps[0] <= cutoff:
                 timestamps.popleft()
@@ -41,13 +41,38 @@ class RateLimiter:
             timestamps.append(now)
             return True
 
+    def status(self, client_id: str) -> dict:
+        """Return {remaining, reset, limit, window} for a client (after pruning).
+
+        `reset` is seconds until the current window fully resets (relative, so
+        it works for both monotonic and wall-clock backends).
+        """
+        now = time.monotonic()
+        with self.lock:
+            timestamps = self.hits.get(client_id)
+            cutoff = now - self.window_seconds
+            while timestamps and timestamps[0] <= cutoff:
+                timestamps.popleft()
+            if not timestamps:
+                count = 0
+                reset = self.window_seconds
+            else:
+                count = len(timestamps)
+                reset = (timestamps[-1] + self.window_seconds) - now
+        return {
+            "limit": self.max_requests,
+            "remaining": max(0, self.max_requests - count),
+            "reset": max(0.0, reset),
+            "window": self.window_seconds,
+        }
+
     def reset(self, client_id: str | None = None) -> None:
         """Clear recorded hits (optionally for a single client)."""
-        with self._lock:
+        with self.lock:
             if client_id is None:
-                self._hits.clear()
+                self.hits.clear()
             else:
-                self._hits.pop(client_id, None)
+                self.hits.pop(client_id, None)
 
 
 class RedisRateLimiter:
@@ -65,17 +90,17 @@ class RedisRateLimiter:
         if redis_client is None:
             import redis  # imported lazily so "redis" is not required by default
             redis_client = redis.Redis.from_url("redis://localhost:6379/0")
-        self._redis = redis_client
+        self.redis = redis_client
 
-    def _key(self, client_id: str) -> str:
+    def key(self, client_id: str) -> str:
         return f"{self.prefix}:{client_id}"
 
     def allow(self, client_id: str) -> bool:
         """Atomically record a hit and enforce the window."""
-        key = self._key(client_id)
+        key = self.key(client_id)
         now = time.time()
         cutoff = now - self.window_seconds
-        pipe = self._redis.pipeline(transaction=True)
+        pipe = self.redis.pipeline(transaction=True)
         pipe.zremrangebyscore(key, "-inf", cutoff)
         pipe.zadd(key, {str(now): now})
         pipe.zcard(key)
@@ -85,6 +110,31 @@ class RedisRateLimiter:
         if count > self.max_requests:
             return False
         return True
+
+    def status(self, client_id: str) -> dict:
+        """Return {remaining, reset, limit, window} for a client.
+
+        `reset` is seconds until the current window fully resets (relative).
+        """
+        key = self.key(client_id)
+        now = time.time()
+        cutoff = now - self.window_seconds
+        pipe = self.redis.pipeline(transaction=True)
+        pipe.zremrangebyscore(key, "-inf", cutoff)
+        pipe.zcard(key)
+        pipe.zrange(key, 0, -1, withscores=True)
+        _, count, members = pipe.execute()
+        if members and members[-1] is not None:
+            latest = members[-1][1]
+            reset = (latest + self.window_seconds) - now
+        else:
+            reset = self.window_seconds
+        return {
+            "limit": self.max_requests,
+            "remaining": max(0, self.max_requests - count),
+            "reset": max(0.0, reset),
+            "window": self.window_seconds,
+        }
 
 
 def build_limiter(max_requests: int, window_seconds: float, backend: str,
@@ -109,7 +159,7 @@ def build_limiter(max_requests: int, window_seconds: float, backend: str,
 
 
 # Default external-API limiter, configured from environment.
-def _build_default():
+def build_default():
     import config
     return build_limiter(
         max_requests=config.EXTERNAL_API_RATE_LIMIT,
@@ -119,4 +169,4 @@ def _build_default():
     )
 
 
-default_limiter = _build_default()
+default_limiter = build_default()

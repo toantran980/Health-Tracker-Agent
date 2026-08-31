@@ -1,7 +1,6 @@
 """Shared config, logging, and cache for external API clients."""
 
 import logging
-import os
 import time
 
 from dotenv import load_dotenv
@@ -25,20 +24,20 @@ OPEN_METEO_BASE = "https://api.open-meteo.com/v1"
 USDA_BASE = "https://api.nal.usda.gov/fdc/v1"
 EXERCISEDB_HOST = "exercisedb.p.rapidapi.com"
 
-_TTL_CACHE: dict[str, tuple[float, object]] = {}
+TTL_CACHE: dict[str, tuple[float, object]] = {}
 
 
 def cache_get(key: str):
-    cached = _TTL_CACHE.get(key)
+    cached = TTL_CACHE.get(key)
     if not cached:
         return None
     expires_at, value = cached
     if expires_at <= time.time():
-        _TTL_CACHE.pop(key, None)
+        TTL_CACHE.pop(key, None)
         return None
     return value
 
 
 def cache_set(key: str, value: object, ttl_seconds: int) -> object:
-    _TTL_CACHE[key] = (time.time() + ttl_seconds, value)
+    TTL_CACHE[key] = (time.time() + ttl_seconds, value)
     return value

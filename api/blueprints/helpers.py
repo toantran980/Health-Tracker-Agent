@@ -271,10 +271,10 @@ def get_csrf_token() -> str:
     via the X-CSRF-Token header on state-changing requests. `api/routes.py`
     verifies it for authenticated POST/PUT/PATCH/DELETE requests.
     """
-    token = session.get("_csrf_token")
+    token = session.get("csrf_token")
     if not token:
         token = secrets.token_hex(16)
-        session["_csrf_token"] = token
+        session["csrf_token"] = token
     return token
 
 

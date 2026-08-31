@@ -47,6 +47,7 @@ def chat(user_id):
         carbs_g                = data.get("carbs_g",             0),
         fat_g                  = data.get("fat_g",               0),
         water_ml               = data.get("water_ml",            0),
+        water_target_ml        = getattr(user, "water_target_ml", 2500),
         study_hours_today      = data.get("study_hours_today",   0),
         focus_score            = data.get("focus_score"),
         sleep_hours_last_night = data.get("sleep_hours"),
@@ -56,12 +57,24 @@ def chat(user_id):
     )
 
     if user_id not in state.bot_sessions:
-        state.bot_sessions[user_id] = HealthChatbot(snapshot)
+        bot = HealthChatbot(snapshot, state.knowledge_bases.get(user_id))
+        # Rehydrate recent turns from persistent storage after a restart.
+        saved = state.mongo_store.get_chat_history(user_id)
+        if saved:
+            bot.set_history(saved)
+        state.bot_sessions[user_id] = bot
     else:
-        state.bot_sessions[user_id].update_snapshot(snapshot)
+        bot = state.bot_sessions[user_id]
+        bot.update_snapshot(snapshot)
+        bot.knowledge_base = state.knowledge_bases.get(user_id)
 
-    reply = state.bot_sessions[user_id].chat(message)
-    return jsonify({"reply": reply}), 200
+    reply = bot.chat(message)
+    # Persist the conversation so a server restart doesn't lose context.
+    state.mongo_store.save_chat_history(user_id, bot.history)
+    return jsonify({
+        "reply": reply,
+        "provider": bot.get_provider(),
+    }), 200
 
 
 @chat_bp.route('/api/chat/<user_id>/reset', methods=['POST'])
@@ -75,4 +88,5 @@ def reset_chat(user_id):
         return auth_err
     if user_id in state.bot_sessions:
         state.bot_sessions[user_id].reset()
+    state.mongo_store.delete_chat_history(user_id)
     return jsonify({"status": "ok"}), 200

@@ -2,7 +2,6 @@
 from typing import List, Dict, Optional, Tuple
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
-from datetime import datetime, timedelta
 import math
 import pickle
 from dataclasses import dataclass

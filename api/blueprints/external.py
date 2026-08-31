@@ -1,5 +1,7 @@
 """external.py — External API proxy endpoints (food, exercise)."""
 
+import time
+
 from flask import Blueprint, request, jsonify
 
 from api.blueprints.helpers import error_response
@@ -15,8 +17,27 @@ from api.external_apis import (
 external_bp = Blueprint('external', __name__)
 
 
+def rate_limit_headers(client_id: str) -> dict:
+    """Expose the active client's limit/remaining/reset as Flask headers."""
+    s = default_limiter.status(client_id)
+    return {
+        "X-RateLimit-Limit": str(s["limit"]),
+        "X-RateLimit-Remaining": str(s["remaining"]),
+        "X-RateLimit-Reset": str(int(time.time() + s["reset"])),
+    }
+
+
+@external_bp.after_request
+def attach_rate_limit_headers(response):
+    """Stamp rate-limit headers on every external endpoint response."""
+    client_id = request.remote_addr or "unknown"
+    for k, v in rate_limit_headers(client_id).items():
+        response.headers[k] = v
+    return response
+
+
 def check_rate_limit() -> tuple | None:
-    """Return a 429 error_response if the client exceeded the limit."""
+    """Record a hit; return a 429 error_response if the client exceeded the limit."""
     client_id = request.remote_addr or "unknown"
     if not default_limiter.allow(client_id):
         return error_response(

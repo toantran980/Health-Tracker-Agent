@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -92,6 +91,7 @@ class MongoStore:
         self.db["productivity_sessions"].create_index(
             [("user_id", ASCENDING), ("timestamp", DESCENDING)]
         )
+        self.db["chat_history"].create_index("user_id", unique=True)
 
     
     #  Activities                                                        #
@@ -365,3 +365,48 @@ class MongoStore:
         except PyMongoError:
             logger.exception("[MongoDB] get_activity_logs failed for user_id=%s", user_id)
             return []
+
+    #  Chat history                                                       #
+    def save_chat_history(self, user_id: str, messages: list[dict[str, Any]]) -> bool:
+        """Upsert the most recent conversation turns for a user.
+
+        Stored so a server restart can restore the session context. Keep only
+        role/content so no snapshot or secret data is persisted.
+        """
+        if not self.enabled or self.db is None:
+            return False
+        try:
+            clean = [
+                {"role": m.get("role"), "content": m.get("content")}
+                for m in messages
+                if m.get("role") in ("user", "assistant") and m.get("content")
+            ]
+            self.db["chat_history"].update_one(
+                {"user_id": user_id},
+                {"$set": {"messages": clean, "updated_at": datetime.now(UTC)}},
+                upsert=True,
+            )
+            return True
+        except PyMongoError:
+            logger.exception("[MongoDB] save_chat_history failed for user_id=%s", user_id)
+            return False
+
+    def get_chat_history(self, user_id: str) -> list[dict[str, Any]]:
+        if not self.enabled or self.db is None:
+            return []
+        try:
+            doc = self.db["chat_history"].find_one({"user_id": user_id}, {"_id": 0})
+            return (doc or {}).get("messages", [])
+        except PyMongoError:
+            logger.exception("[MongoDB] get_chat_history failed for user_id=%s", user_id)
+            return []
+
+    def delete_chat_history(self, user_id: str) -> bool:
+        if not self.enabled or self.db is None:
+            return False
+        try:
+            self.db["chat_history"].delete_many({"user_id": user_id})
+            return True
+        except PyMongoError:
+            logger.exception("[MongoDB] delete_chat_history failed for user_id=%s", user_id)
+            return False

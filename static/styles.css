@@ -402,6 +402,23 @@ h3 {
   border: 1px solid #d7ccb5;
   color: var(--text);
   border-bottom-left-radius: 4px;
+  position: relative;
+  padding-right: 52px;
+}
+
+.chat-provider-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #5a5244;
+  background: #e8dfce;
+  border: 1px solid #d0c2a6;
+  border-radius: 8px;
+  padding: 1px 6px;
 }
 
 .chat-input-wrap {

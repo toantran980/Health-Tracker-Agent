@@ -10,7 +10,6 @@ from api.blueprints.helpers import (
     require_user,
     normalize_schedule_tasks,
     coerce_int,
-    coerce_float,
     error_response,
 )
 

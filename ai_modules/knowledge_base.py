@@ -2,8 +2,6 @@
 from typing import List, Dict, Any
 from dataclasses import dataclass
 from models.user_profile import UserProfile, Goal
-from models.meal import NutritionInfo, Meal
-from models.activity import StudySession
 
 
 @dataclass
@@ -23,9 +21,9 @@ class KnowledgeBase:
         self.user_profile = user_profile
         self.rules: List[Rule] = []
         self.facts: Dict[str, Any] = {}
-        self._initialize_rules()
+        self.initialize_rules()
     
-    def _initialize_rules(self):
+    def initialize_rules(self):
         """Initialize built-in rules for the knowledge base"""
         
         # Weight-loss calorie rule
@@ -149,7 +147,7 @@ class KnowledgeBase:
                     result["rule_name"] = rule.name
                     result["priority"] = rule.priority
                     recommendations.append(result)
-            except Exception as e:
+            except Exception:
                 # Skip rules that fail evaluation
                 continue
         

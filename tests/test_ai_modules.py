@@ -1,6 +1,7 @@
 import unittest
 import csv
 import os
+from unittest import mock
 from ai_modules.productivity_predictor import ProductivityPredictor, Features
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -75,12 +76,12 @@ import unittest
 from datetime import datetime, timedelta
 from models.user_profile import UserProfile, Goal
 from models.meal import (
-    NutritionInfo, FoodItem, Meal, MealType, DailyNutritionLog
+    NutritionInfo, FoodItem, Meal, MealType
 )
-from models.activity import StudySession, ScheduledActivity, ActivityType
+from models.activity import ScheduledActivity, ActivityType
 from ai_modules import (
-    KnowledgeBase, ScheduleOptimizer, ProductivityPredictor, Features,
-    NutritionAnalyzer, BehavioralAnalyzer, TimeSlot
+    KnowledgeBase, ScheduleOptimizer,
+    BehavioralAnalyzer, TimeSlot
 )
 from ai_modules.meal_recommendation_engine import MealRecommendationEngine
 
@@ -623,8 +624,6 @@ class TestIntegration(unittest.TestCase):
         )
         
         # Initialize AI modules
-        target_nutrition = NutritionInfo(2200, 150, 250, 65)
-        analyzer = NutritionAnalyzer(target_nutrition)
         predictor = ProductivityPredictor()
         scheduler = ScheduleOptimizer()
         kb = KnowledgeBase(user)
@@ -667,6 +666,83 @@ class TestIntegration(unittest.TestCase):
         
         recommendations = kb.infer()
         self.assertIsInstance(recommendations, list)
+
+
+class TestKeylessChatbotFallback(unittest.TestCase):
+    """Cover the keyless (no API key) rule-based responder in HealthChatbot."""
+
+    def setUp(self):
+        from ai_modules import health_chatbot as hc
+        self.hc = hc
+        snapshot = hc.UserHealthSnapshot(
+            name="Tester",
+            weight_lbs=180,
+            health_goal="weight_loss",
+            calories_today=1800,
+            protein_g=90,
+            water_ml=1500,
+            sleep_hours_last_night=5.5,
+            focus_score=7,
+            active_insights=["High protein days boost next-day focus"],
+        )
+        self.bot = hc.HealthChatbot(snapshot)
+
+    def _chat(self, message):
+        # Force the local responder regardless of whether GROQ_API_KEY is set
+        # in the environment (keeps the test hermetic and offline).
+        with mock.patch.object(self.hc, "provider", "local"):
+            return self.bot.chat(message)
+
+    def test_macros_reply_includes_targets(self):
+        reply = self._chat("set up my macros")
+        self.assertIn("2300 kcal/day", reply)
+        self.assertIn("Protein", reply)
+
+    def test_water_reply_reports_progress(self):
+        reply = self._chat("how much water should i drink")
+        self.assertIn("1500ml", reply)
+        self.assertIn("2500ml", reply)
+
+    def test_sleep_reply_uses_snapshot(self):
+        reply = self._chat("im so tired")
+        self.assertIn("5.5h", reply)
+        self.assertIn("short", reply)
+
+    def test_focus_reply_uses_score(self):
+        reply = self._chat("how can i focus better")
+        self.assertIn("7/10", reply)
+
+    def test_protein_reply_uses_snapshot(self):
+        reply = self._chat("how many grams of protein should i eat")
+        self.assertIn("90g logged", reply)
+
+    def test_hello_reply_greets_user(self):
+        reply = self._chat("hello")
+        self.assertIn("Hi Tester", reply)
+
+    def test_unrelated_question_falls_back_to_general_tip(self):
+        reply = self._chat("tell me about the weather")
+        self.assertIn("general wellness tip", reply)
+
+    def test_substring_does_not_cause_false_positive(self):
+        # "weather" used to match "eat" as a substring; ensure no crash/misroute.
+        reply = self._chat("tell me about the weather")
+        self.assertIn("general wellness tip", reply)
+
+    def test_history_is_preserved_on_local_path(self):
+        self._chat("hello")
+        self._chat("how much water should i drink")
+        roles = [m["role"] for m in self.bot.history]
+        self.assertEqual(roles, ["user", "assistant", "user", "assistant"])
+
+    def test_local_mode_reports_provider(self):
+        with mock.patch.object(self.hc, "provider", "local"):
+            self.assertEqual(self.bot.get_provider(), "local")
+
+    def test_reply_does_not_duplicate_user_message(self):
+        msg = "hello"
+        reply = self._chat(msg)
+        self.assertNotEqual(reply.strip().lower(), msg)
 
 
 def run_tests():

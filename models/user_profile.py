@@ -54,6 +54,9 @@ class UserProfile:
     target_carbs_g:   float = 250.0
     target_fat_g:     float = 65.0
 
+    # Hydration target (mL/day) — default per common guidance; user-configurable
+    water_target_ml: int = 2500
+
     # Study and work schedule
     work_hours_per_day:           int = 8
     study_hours_per_day:          int = 2
@@ -162,6 +165,7 @@ class UserProfile:
             "target_protein_g":      self.target_protein_g,
             "target_carbs_g":        self.target_carbs_g,
             "target_fat_g":          self.target_fat_g,
+            "water_target_ml":       self.water_target_ml,
             "dietary_restrictions":  self.dietary_restrictions,
             "allergies":             self.allergies,
             "password_set":          bool(self.password_hash),

@@ -1,5 +1,5 @@
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import datetime
 
 from flask import Blueprint, request, jsonify
 
@@ -11,7 +11,6 @@ from api.blueprints.helpers import (
     require_fields,
     attach_meal_to_user_log,
     parse_iso_datetime,
-    coerce_int,
     coerce_float,
     error_response,
 )

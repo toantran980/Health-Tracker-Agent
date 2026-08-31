@@ -35,6 +35,12 @@ app.config['SESSION_COOKIE_SECURE'] = config.SESSION_COOKIE_SECURE
 app.config['SESSION_COOKIE_SAMESITE'] = config.SESSION_COOKIE_SAMESITE
 app.config['SESSION_COOKIE_HTTPONLY'] = config.SESSION_COOKIE_HTTPONLY
 
+# Session expiry — when SESSION_LIFETIME_MINUTES > 0, auth sessions get a TTL
+# and (optionally) slide forward on each authenticated request.
+if config.SESSION_LIFETIME_MINUTES > 0:
+    from datetime import timedelta
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=config.SESSION_LIFETIME_MINUTES)
+
 for bp in (user_bp, auth_bp, nutrition_bp, schedule_bp, chat_bp, external_bp, health_bp, metrics_bp, activity_bp):
     app.register_blueprint(bp)
 
@@ -50,6 +56,19 @@ CSRF_WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
 
 
 @app.before_request
+def apply_session_expiry():
+    """Give auth sessions a TTL and slide it forward while active."""
+    if config.SESSION_LIFETIME_MINUTES <= 0:
+        return None
+    if session.get('user_id'):
+        session.permanent = True
+        if config.SESSION_REFRESH:
+            # Touch the session so PERMANENT_SESSION_LIFETIME slides forward.
+            session.modified = True
+    return None
+
+
+@app.before_request
 def enforce_csrf():
     if not config.CSRF_PROTECTION:
         return None
@@ -60,7 +79,7 @@ def enforce_csrf():
     if not session.get('user_id'):
         # No active session → nothing to protect; endpoint auth still applies.
         return None
-    expected = session.get('_csrf_token')
+    expected = session.get('csrf_token')
     provided = request.headers.get('X-CSRF-Token', '')
     if not expected or not provided or not hmac.compare_digest(expected, provided):
         return error_response(

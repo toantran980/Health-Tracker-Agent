@@ -18,6 +18,12 @@ SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "
 SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
 SESSION_COOKIE_HTTPONLY = os.getenv("SESSION_COOKIE_HTTPONLY", "true").lower() == "true"
 
+# Session lifetime (minutes) before an auth session expires. Default 0 keeps
+# cookies permanent (current behaviour). Set > 0 to expire idle sessions;
+# SESSION_REFRESH extends the TTL on every authenticated request (sliding).
+SESSION_LIFETIME_MINUTES = int(os.getenv("SESSION_LIFETIME_MINUTES", "0"))
+SESSION_REFRESH = os.getenv("SESSION_REFRESH", "true").lower() == "true"
+
 # CSRF: enforce an X-CSRF-Token header on state-changing requests that arrive
 # with an active session (see api/routes.py). Exemptions: pre-auth endpoints.
 CSRF_PROTECTION = os.getenv("CSRF_PROTECTION", "true").lower() == "true"

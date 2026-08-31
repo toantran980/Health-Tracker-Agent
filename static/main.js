@@ -1,7 +1,7 @@
 import { apiBaseEl, activeUserEl } from './dom.js';
 import { appMetrics } from './state.js';
 import { apiRequest, requestForActiveUser, getActiveUserId, getAuthStatus, login, logout } from './api.js';
-import { initTabs, setChatEmptyState, refreshKpis, writeOutput, showToast, switchTab, appendChatMessage } from './ui.js';
+import { initTabs, setChatEmptyState, refreshKpis, writeOutput, showToast, switchTab, appendChatMessage, removeLastChatMessage, showStatusBanner } from './ui.js';
 import { initCharts, addTrendPoint } from './charts.js';
 import { initTaskBuilder, collectTasks } from './tasks.js';
 import { bindClick, bindSubmit } from './utils.js';
@@ -9,6 +9,39 @@ import { DEFAULTS } from './config.js';
 
 const savedBase = localStorage.getItem('apiBase');
 const savedUser = localStorage.getItem('activeUserId');
+
+const PROTECTED_CONTROL_IDS = [
+  'btnGetUser',
+  'mealForm',
+  'btnAnalyze',
+  'btnMacroRecs',
+  'mealRecForm',
+  'scheduleForm',
+  'btnSlots',
+  'productivityForm',
+  'btnOptimalTime',
+  'chatForm',
+  'btnResetChat',
+  'btnInsights',
+  'btnKnowledgeRecs',
+  'btnActivityRecs',
+  'activityLogForm',
+  'btnActivityLogs',
+  'btnActivityTrends',
+  'btnScheduleHistory',
+  'btnProductivitySessions',
+];
+
+function setAuthGate(authenticated) {
+  for (const id of PROTECTED_CONTROL_IDS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const formEl = el instanceof HTMLFormElement ? el : el.form;
+    const targets = formEl ? formEl.querySelectorAll('input, button, select') : [el];
+    targets.forEach((t) => { t.disabled = !authenticated; });
+  }
+}
+
 if (apiBaseEl) {
   apiBaseEl.value = savedBase || window.location.origin;
   apiBaseEl.addEventListener('input', () => localStorage.setItem('apiBase', apiBaseEl.value.trim()));
@@ -76,6 +109,7 @@ bindSubmit('createUserForm', async (form) => {
     target_protein_g: Number(form.elements['target_protein_g'].value) || DEFAULTS.USER.TARGET_PROTEIN,
     target_carbs_g:   Number(form.elements['target_carbs_g'].value)   || DEFAULTS.USER.TARGET_CARBS,
     target_fat_g:     Number(form.elements['target_fat_g'].value)     || DEFAULTS.USER.TARGET_FAT,
+    water_target_ml:  Number(form.elements['water_target_ml'].value)  || DEFAULTS.USER.WATER_TARGET,
   };
 
   const password = form.elements['password'] ? form.elements['password'].value : '';
@@ -126,8 +160,9 @@ async function updateAuthStatus() {
   } else {
     el.textContent = 'Not logged in';
     el.style.color = 'var(--warn, #f1c40f)';
-    el.title = 'Log in to use nutrition logging and the chatbot.';
+    el.title = 'Log in to use nutrition/logging/chat.';
   }
+  setAuthGate(!!(payload && payload.authenticated));
 }
 
 bindClick('btnGetUser', async () => {
@@ -231,11 +266,21 @@ bindSubmit('chatForm', async (form) => {
   const message = form.elements['message'].value.trim();
   if (!message) throw new Error('Message is required.');
   appendChatMessage('user', message);
-  const payload = await apiRequest(`/api/chat/${userId}`, { method: 'POST', body: { message } });
-  appendChatMessage('assistant', payload.reply || 'No response from chatbot.');
-  showToast('Chatbot replied.', 'success');
-  form.reset();
-  writeOutput('Chatbot Reply', payload);
+  try {
+    const payload = await apiRequest(`/api/chat/${userId}`, { method: 'POST', body: { message } });
+    appendChatMessage('assistant', payload.reply || 'No response from chatbot.', payload.provider);
+    showToast('Chatbot replied.', 'success');
+    form.reset();
+    writeOutput('Chatbot Reply', payload);
+  } catch (err) {
+    if (err && err.code === 'AUTH_REQUIRED') {
+      removeLastChatMessage('user');
+      showToast('Log in to chat — your message was kept.', 'error');
+      showStatusBanner('Log in to continue chatting.', 'error');
+      throw err;
+    }
+    throw err;
+  }
 });
 
 bindClick('btnResetChat', async () => {
@@ -331,6 +376,7 @@ setChatEmptyState();
 refreshKpis();
 updateAuthStatus();
 window.addEventListener('auth-required', () => {
+  setAuthGate(false);
   switchTab('section-user');
   updateAuthStatus();
   showToast('Please log in to continue.', 'error');

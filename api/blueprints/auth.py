@@ -4,7 +4,6 @@ from flask import Blueprint, request, jsonify, session
 
 from api.blueprints import state
 from api.blueprints.helpers import require_user, error_response, save_user_with_hash, get_csrf_token
-from models.user_profile import UserProfile
 
 auth_bp = Blueprint('auth', __name__)
 

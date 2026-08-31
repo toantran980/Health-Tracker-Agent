@@ -10,7 +10,6 @@ Two modes:
     workouts from their health snapshot — no network or external dependency.
 """
 
-import os
 from dataclasses import dataclass, field
 from typing import Optional
 from dotenv import load_dotenv
@@ -157,17 +156,22 @@ class HealthChatbot:
         reply = bot.chat("set up my personal goals")
     """
 
-    def __init__(self, snapshot: UserHealthSnapshot):
+    def __init__(self, snapshot: UserHealthSnapshot, knowledge_base=None):
         self.snapshot = snapshot
+        self.knowledge_base = knowledge_base
         self.history: list[dict] = []
+
+    def update_snapshot(self, snapshot: UserHealthSnapshot) -> None:
+        """Adopt a fresh snapshot (live metrics) without losing conversation."""
+        self.snapshot = snapshot
 
     def chat(self, user_message: str) -> str:
         init_provider()
         self.history.append({"role": "user", "content": user_message})
-        self._trim_history()
+        self.trim_history()
 
         if provider == "local":
-            reply = self._local_reply(user_message)
+            reply = self.local_reply(user_message)
             self.history.append({"role": "assistant", "content": reply})
             return reply
 
@@ -191,7 +195,7 @@ class HealthChatbot:
         self.history.append({"role": "assistant", "content": reply})
         return reply
 
-    def _local_reply(self, message: str) -> str:
+    def local_reply(self, message: str) -> str:
         """
         Keyless fallback responder. Matches keywords against the user's snapshot
         and nutrition targets; answers personal questions directly and degrades
@@ -266,6 +270,12 @@ class HealthChatbot:
                 f"{'Getting closer to your target.' if s.calories_today <= t['calories'] else 'A bit over today — consider a lighter dinner.'}"
             )
 
+        # Free-form health/goal questions: route through the rule-based KB
+        # before degrading to a generic tip.
+        kb_reply = self.kb_reply()
+        if kb_reply:
+            return kb_reply
+
         return (
             "Here's a general wellness tip: build your plate around lean protein, "
             "vegetables, and whole grains, drink water consistently, get 7–9h of sleep, "
@@ -274,16 +284,59 @@ class HealthChatbot:
             "water, sleep, focus, or workouts."
         )
 
+    def kb_reply(self) -> Optional[str]:
+        """
+        Ask the per-user KnowledgeBase for a recommendation drawn from the live
+        snapshot facts. Returns a formatted suggestion, or None if no rule fires
+        (in which case the caller falls back to a generic tip).
+        """
+        if not self.knowledge_base:
+            return None
+        s = self.snapshot
+        try:
+            self.knowledge_base.add_facts({
+                "daily_calories":          s.calories_today,
+                "daily_protein":           s.protein_g,
+                "energy_level":            s.focus_score if s.focus_score is not None else 5,
+                "sleep_hours":             s.sleep_hours_last_night if s.sleep_hours_last_night is not None else 0,
+                "upcoming_difficulty":     5,
+                "recent_session_duration": s.study_hours_today * 60,
+                "macro_balance":           "balanced",
+                "macro_balance_details":   {},
+                "correlation_nutrition_study": 0.0,
+                "adherence_rate":          (s.weekly_adherence_pct or 0) / 100.0,
+            })
+            recs = self.knowledge_base.get_top_recommendations(n=1)
+            self.knowledge_base.clear_facts()
+            if not recs:
+                return None
+            rec = recs[0]
+            suggestion = rec.get("suggestion", "")
+            explanation = self.knowledge_base.explain_recommendation(rec)
+            return f"{suggestion}\n({explanation})".strip()
+        except Exception:
+            return None
+
+
 
 
     def reset(self) -> None:
         """Clear conversation history, keep snapshot."""
         self.history = []
 
+    def set_history(self, messages: list[dict]) -> None:
+        """Restore a previously persisted conversation (must be role/content dicts)."""
+        clean = [
+            {"role": m.get("role"), "content": m.get("content")}
+            for m in messages
+            if m.get("role") in ("user", "assistant") and m.get("content")
+        ]
+        self.history = clean[- (MAX_HISTORY_PAIRS * 2):]
+
     def get_provider(self) -> str:
         return provider or "none"
 
-    def _trim_history(self) -> None:
+    def trim_history(self) -> None:
         max_messages = MAX_HISTORY_PAIRS * 2
         if len(self.history) > max_messages:
             self.history = self.history[-max_messages:]

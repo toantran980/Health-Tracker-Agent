@@ -201,7 +201,7 @@ def load_food_database() -> list[FoodItem]:
 
 if __name__ == "__main__":
     db = load_food_database()
-    print(f"\nSample foods:")
+    print("\nSample foods:")
     for food in db[:5]:
         print(f"  {food.name:30s} | "
               f"{food.nutrition_info.calories:6.1f} kcal | "

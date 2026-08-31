@@ -115,15 +115,33 @@ export function setChatEmptyState() {
   chatMessagesEl.innerHTML = '<p class="chat-empty">Start a conversation to get personalized suggestions.</p>';
 }
 
-export function appendChatMessage(role, message) {
+export function appendChatMessage(role, message, provider) {
   if (!chatMessagesEl) return;
   const emptyEl = chatMessagesEl.querySelector('.chat-empty');
   if (emptyEl) emptyEl.remove();
   const bubble = document.createElement('div');
   bubble.className = `chat-bubble ${role}`;
   bubble.textContent = message;
+  if (role === 'assistant' && provider) {
+    const badge = document.createElement('span');
+    badge.className = 'chat-provider-badge';
+    badge.textContent = provider === 'groq' ? 'LLM' : 'Local';
+    badge.title = `Answered by ${provider === 'groq' ? 'Groq (LLM)' : 'keyless local rules'}`;
+    bubble.appendChild(badge);
+  }
   chatMessagesEl.appendChild(bubble);
   chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+export function removeLastChatMessage(role) {
+  if (!chatMessagesEl) return;
+  const bubbles = chatMessagesEl.querySelectorAll(`.chat-bubble.${role}`);
+  if (bubbles.length === 0) return;
+  const last = bubbles[bubbles.length - 1];
+  last.remove();
+  if (!chatMessagesEl.querySelector('.chat-bubble')) {
+    setChatEmptyState();
+  }
 }
 
 export function switchTab(targetSectionId) {
