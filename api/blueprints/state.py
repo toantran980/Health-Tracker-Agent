@@ -39,3 +39,6 @@ knowledge_bases:     Dict[str, KnowledgeBase]                = {}
 nutrition_analyzers: Dict[str, NutritionAnalyzer]            = {}
 meal_recommenders:   Dict[str, MealRecommendationEngine]     = {}
 bot_sessions:        Dict[str, HealthChatbot]                = {}
+schedule_history:    Dict[str, list]                         = {}  # user_id -> saved schedules
+productivity_sessions: Dict[str, list]                       = {}  # user_id -> saved predictions
+activity_logs:       Dict[str, list]                         = {}  # user_id -> ActivityLog dicts

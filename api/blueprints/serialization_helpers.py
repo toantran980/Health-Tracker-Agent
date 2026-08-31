@@ -117,4 +117,5 @@ def user_from_doc(doc: dict[str, Any]) -> UserProfile:
         target_fat_g=doc.get("target_fat_g", 65.0),
         dietary_restrictions=doc.get("dietary_restrictions", []),
         allergies=doc.get("allergies", []),
+        password_hash=doc.get("password_hash", ""),
     )

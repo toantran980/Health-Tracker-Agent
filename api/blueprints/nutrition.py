@@ -7,8 +7,13 @@ from models.meal import NutritionInfo, Meal, MealType, FoodItem
 from api.blueprints import state
 from api.blueprints.helpers import (
     require_user,
+    require_auth,
+    require_fields,
     attach_meal_to_user_log,
-    error_response
+    parse_iso_datetime,
+    coerce_int,
+    coerce_float,
+    error_response,
 )
 
 nutrition_bp = Blueprint('nutrition', __name__)
@@ -28,33 +33,54 @@ def log_user_meal():
     """Logs a detailed meal, persists to Mongo, and updates AI analyzers."""
     data = request.get_json(silent=True) or {}
     user_id = data.get("user_id")
-    
-    if not user_id:
-        return error_response("user_id is required", "MISSING_USER_ID", 400)
+
+    missing = require_fields(data, ["user_id"])
+    if missing:
+        return missing
+
+    _, err = require_user(user_id)
+    if err:
+        return err
+    auth_err = require_auth(user_id)
+    if auth_err:
+        return auth_err
 
     # 1. Process Food Items
     food_items_data = data.get('food_items', [])
-    food_items = [
-        FoodItem(
+    food_items = []
+    for item in food_items_data:
+        calories, cal_err = coerce_float(item.get('calories'), 0, minimum=0)
+        if cal_err:
+            return cal_err
+        protein, prot_err = coerce_float(item.get('protein_g'), 0, minimum=0)
+        if prot_err:
+            return prot_err
+        carbs, carbs_err = coerce_float(item.get('carbs_g'), 0, minimum=0)
+        if carbs_err:
+            return carbs_err
+        fat, fat_err = coerce_float(item.get('fat_g'), 0, minimum=0)
+        if fat_err:
+            return fat_err
+        food_items.append(FoodItem(
             food_id=item.get('food_id', str(uuid4())),
             name=item.get('name', 'Unknown'),
             nutrition_info=NutritionInfo(
-                calories=item.get('calories', 0),
-                protein_g=item.get('protein_g', 0),
-                carbs_g=item.get('carbs_g', 0),
-                fat_g=item.get('fat_g', 0)
+                calories=calories,
+                protein_g=protein,
+                carbs_g=carbs,
+                fat_g=fat,
             )
-        ) for item in food_items_data
-    ]
+        ))
 
     # 2. Create Meal Object
-    ts_raw = data.get('timestamp')
-    ts = datetime.fromisoformat(ts_raw) if ts_raw else datetime.now(timezone.utc)
-    
+    ts = parse_iso_datetime(data.get('timestamp'))
+    meal_type_raw = str(data.get('meal_type', 'lunch')).strip()
+    meal_type = MealType(meal_type_raw) if meal_type_raw in MealType._value2member_map_ else MealType.LUNCH
+
     meal = Meal(
         meal_id=data.get("meal_id", f"meal_{datetime.now().timestamp()}"),
         user_id=user_id,
-        meal_type=MealType(data.get('meal_type', 'lunch')),
+        meal_type=meal_type,
         timestamp=ts,
         food_items=food_items,
         notes=data.get('notes', ''),
@@ -88,9 +114,12 @@ def log_user_meal():
 
 @nutrition_bp.route('/api/nutrition/analysis/<user_id>', methods=['GET'])
 def analyze_nutrition(user_id):
-    """Return the full nutrition report for a user."""
+    """Return the full nutrition report for a user (auth required)."""
     user, err = require_user(user_id)
     if err: return err
+    auth_err = require_auth(user_id)
+    if auth_err:
+        return auth_err
 
     analyzer = state.nutrition_analyzers.get(user_id)
     if not analyzer:
@@ -102,9 +131,12 @@ def analyze_nutrition(user_id):
 
 @nutrition_bp.route('/api/nutrition/recommendations/<user_id>', methods=['GET'])
 def get_macro_recommendations(user_id):
-    """Return goal-aware macro recommendations for a user."""
+    """Return goal-aware macro recommendations for a user (auth required)."""
     user, err = require_user(user_id)
     if err: return err
+    auth_err = require_auth(user_id)
+    if auth_err:
+        return auth_err
 
     analyzer = state.nutrition_analyzers.get(user_id)
     if not analyzer:
@@ -116,23 +148,29 @@ def get_macro_recommendations(user_id):
 
 @nutrition_bp.route('/api/nutrition/meal-recommendations/<user_id>', methods=['GET'])
 def get_meal_recommendations(user_id):
-    """Personalized food recommendations from MealRecommendationEngine."""
+    """Personalized food recommendations from MealRecommendationEngine (auth required)."""
     user, err = require_user(user_id)
     if err: return err
+    auth_err = require_auth(user_id)
+    if auth_err:
+        return auth_err
 
     recommender = state.meal_recommenders.get(user_id)
     if not recommender:
         return error_response("Recommender not initialized", "RECOMMENDER_NOT_INITIALIZED", 400)
 
-    try:
-        target_calories = float(request.args.get('target_calories', user.target_calories))
-        target_protein = float(request.args.get('target_protein', user.target_protein_g))
-    except (ValueError, TypeError):
-        return error_response("Invalid numeric query parameters", "INVALID_NUMERIC_QUERY", 400)
+    target_calories, cal_err = coerce_float(request.args.get('target_calories', user.target_calories), user.target_calories, minimum=1)
+    if cal_err:
+        return cal_err
+    target_protein, prot_err = coerce_float(request.args.get('target_protein', user.target_protein_g), user.target_protein_g, minimum=1)
+    if prot_err:
+        return prot_err
 
     mode = request.args.get('mode', 'constraint')
     if mode == 'hybrid':
         results = recommender.get_hybrid_recommendations(target_calories, target_protein)
+    elif mode == 'content':
+        results = recommender.get_content_based_recommendations()
     else:
         results = recommender.get_constraint_based_recommendations(target_calories, target_protein)
 

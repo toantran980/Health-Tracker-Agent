@@ -97,7 +97,19 @@
     </section>
 
     <section id="section-user" class="panel tab-section">
-      <h2>Create User</h2>
+      <h2>Session Login</h2>
+      <form id="loginForm" class="grid three" novalidate>
+        <label>User ID<input name="user_id" type="text" placeholder="Active User ID"></label>
+        <label>Password<input name="password" type="password" placeholder="Your password"></label>
+        <div class="actions span-1">
+          <button class="btn primary" type="submit">Log In</button>
+          <button id="btnLogout" class="btn" type="button">Log Out</button>
+        </div>
+      </form>
+      <p id="authStatus" class="hint">Checking session...</p>
+      <p class="hint">Log in to use nutrition logging/analysis and the chatbot. No account yet? Create one below.</p>
+
+      <h2 style="margin-top: 1.2rem;">Create User</h2>
       <form id="createUserForm" class="grid three" novalidate>
         <label>Name<input name="name" type="text" placeholder="e.g. Alex"></label>
         <label>Age<input name="age" type="number" placeholder="e.g. 25" min="1" max="120"></label>
@@ -121,6 +133,9 @@
         <label>Protein (g)<input name="target_protein_g" type="number" step="0.1" placeholder="e.g. 140" min="0" max="500"></label>
         <label>Carbs (g)<input name="target_carbs_g" type="number" step="0.1" placeholder="e.g. 240" min="0" max="1000"></label>
         <label>Fat (g)<input name="target_fat_g" type="number" step="0.1" placeholder="e.g. 70" min="0" max="500"></label>
+        <label class="span-2">Password (optional)
+          <input name="password" type="password" minlength="6" placeholder="Set a password to enable login for nutrition/chat">
+        </label>
         <div class="actions span-3">
           <button class="btn primary" type="submit">Create User</button>
           <button id="btnGetUser" class="btn" type="button">Get Active User</button>
@@ -187,6 +202,7 @@
           <p id="taskSummary" class="hint">Total tasks: 0 | Total duration: 0 min</p>
           <button class="btn primary" type="submit">Optimize</button>
           <button id="btnSlots" class="btn" type="button">Get Available Slots</button>
+          <button id="btnScheduleHistory" class="btn" type="button">View Schedule History</button>
         </form>
 
         <form id="productivityForm" class="subpanel">
@@ -203,6 +219,7 @@
           </div>
           <button class="btn primary" type="submit">Predict</button>
           <button id="btnOptimalTime" class="btn" type="button">Get Optimal Study Time</button>
+          <button id="btnProductivitySessions" class="btn" type="button">View Productivity Sessions</button>
         </form>
       </div>
     </section>
@@ -231,6 +248,28 @@
           </p>
         </div>
       </div>
+
+      <h2 style="margin-top: 1.2rem;">Log Activity</h2>
+      <form id="activityLogForm" class="grid three" novalidate>
+        <label>Activity Type
+          <select name="activity_type">
+            <option value="exercise">Exercise</option>
+            <option value="study">Study</option>
+            <option value="work">Work</option>
+            <option value="rest">Rest</option>
+            <option value="sleep">Sleep</option>
+          </select>
+        </label>
+        <label>Duration (minutes)<input name="duration_minutes" type="number" min="1" max="1440" placeholder="e.g. 45"></label>
+        <label>Energy After<input name="energy_after" type="number" min="1" max="10" placeholder="1-10 (optional)"></label>
+        <label class="span-2">Notes<input name="notes" type="text" placeholder="Optional note"></label>
+        <div class="actions span-1">
+          <button class="btn primary" type="submit">Log Activity</button>
+          <button id="btnActivityLogs" class="btn" type="button">View Logs</button>
+          <button id="btnActivityTrends" class="btn" type="button">View Trends</button>
+        </div>
+      </form>
+      <p class="hint">Logged activities feed the trend analysis under <strong>View Trends</strong> and are persisted when MongoDB is available.</p>
     </section>
 
     <section id="section-chat" class="panel tab-section tab-hidden">

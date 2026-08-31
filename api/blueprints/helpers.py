@@ -5,13 +5,17 @@ Shared helper functions used across blueprint modules:
   - Serialisation / deserialisation
   - User lookup and AI module initialisation
   - Daily log management
+  - Request validation (numbers, dates, required fields)
+  - Session-based authentication guards
+  - CSRF token management
   - Schedule task normalisation
 """
 
-from datetime import datetime, timedelta
-from typing import Any
+import secrets
+from datetime import datetime, timedelta, timezone
+from typing import Any, Optional
 
-from flask import jsonify
+from flask import jsonify, session
 
 from models.user_profile import UserProfile
 from models.meal import NutritionInfo, Meal, DailyNutritionLog
@@ -34,6 +38,69 @@ def error_response(message: str, code: str, status: int = 400, details: dict[str
     if details:
         payload["details"] = details
     return jsonify(payload), status
+
+
+# Request validation helpers (centralised so blueprints stay consistent)
+
+def require_fields(data: dict, fields: list[str]) -> Optional[tuple]:
+    """Return an error_response tuple if any required field is missing."""
+    missing = [f for f in fields if not data.get(f)]
+    if missing:
+        return error_response(
+            f"Missing required field(s): {', '.join(missing)}",
+            "MISSING_FIELD",
+            details={"fields": missing},
+        )
+    return None
+
+
+def coerce_int(value, default: int = 0, minimum: Optional[int] = None,
+               maximum: Optional[int] = None) -> tuple[int, Optional[tuple]]:
+    """Parse an int from form/query data; returns (value, error_response or None)."""
+    try:
+        result = int(value)
+    except (TypeError, ValueError):
+        return default, None
+    if minimum is not None and result < minimum:
+        return default, error_response(
+            f"Value must be >= {minimum}", "VALUE_OUT_OF_RANGE", details={"min": minimum}
+        )
+    if maximum is not None and result > maximum:
+        return default, error_response(
+            f"Value must be <= {maximum}", "VALUE_OUT_OF_RANGE", details={"max": maximum}
+        )
+    return result, None
+
+
+def coerce_float(value, default: float = 0.0, minimum: Optional[float] = None,
+                 maximum: Optional[float] = None) -> tuple[float, Optional[tuple]]:
+    """Parse a float from form/query data; returns (value, error_response or None)."""
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default, None
+    if minimum is not None and result < minimum:
+        return default, error_response(
+            f"Value must be >= {minimum}", "VALUE_OUT_OF_RANGE", details={"min": minimum}
+        )
+    if maximum is not None and result > maximum:
+        return default, error_response(
+            f"Value must be <= {maximum}", "VALUE_OUT_OF_RANGE", details={"max": maximum}
+        )
+    return result, None
+
+
+def parse_iso_datetime(value: Optional[str], default: Optional[datetime] = None) -> datetime:
+    """Parse an ISO-8601 string into an aware (UTC) datetime; fall back to `default`."""
+    if not value:
+        return default or datetime.now(timezone.utc)
+    try:
+        dt = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return default or datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 # AI module management
@@ -90,6 +157,7 @@ def require_user(user_id: str):
 
     ensure_ai_modules(user_id, user)
     hydrate_logs_for_user(user_id)
+    load_all_user_history(user_id)
     return user, None
 
 
@@ -172,3 +240,63 @@ def normalize_schedule_tasks(raw_tasks):
         })
 
     return normalized
+
+
+# Session authentication
+
+def require_auth(user_id: str):
+    """
+    Return None if the request's session is authenticated for `user_id`,
+    otherwise return an error_response tuple (401).
+
+    Uses Flask's signed session cookie set by /api/auth/login. Other
+    blueprints call require_user first, then require_auth.
+    """
+    if session.get("user_id") == user_id:
+        return None
+    return error_response(
+        "Authentication required. Log in via POST /api/auth/login.",
+        "AUTH_REQUIRED",
+        401,
+    )
+
+
+# CSRF tokens
+
+def get_csrf_token() -> str:
+    """
+    Return (creating if needed) the per-session CSRF token.
+
+    The token is stored in the signed session cookie and must be echoed back
+    via the X-CSRF-Token header on state-changing requests. `api/routes.py`
+    verifies it for authenticated POST/PUT/PATCH/DELETE requests.
+    """
+    token = session.get("_csrf_token")
+    if not token:
+        token = secrets.token_hex(16)
+        session["_csrf_token"] = token
+    return token
+
+
+def save_user_with_hash(user: UserProfile) -> bool:
+    """
+    Persist a user profile including its (optional) password hash.
+
+    UserProfile.to_dict() intentionally omits password_hash so it is never
+    leaked through API responses; this helper re-attaches it for storage.
+    """
+    doc = user.to_dict()
+    doc["password_hash"] = user.password_hash
+    return state.mongo_store.save_user(doc)
+
+
+def load_all_user_history(user_id: str) -> None:
+    """Rehydrate schedule / productivity / activity history for a user."""
+    if not state.mongo_store.enabled:
+        return
+    if user_id not in state.schedule_history:
+        state.schedule_history[user_id] = state.mongo_store.get_schedules(user_id)
+    if user_id not in state.productivity_sessions:
+        state.productivity_sessions[user_id] = state.mongo_store.get_productivity_sessions(user_id)
+    if user_id not in state.activity_logs:
+        state.activity_logs[user_id] = state.mongo_store.get_activity_logs(user_id)

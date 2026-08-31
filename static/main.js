@@ -1,6 +1,6 @@
 import { apiBaseEl, activeUserEl } from './dom.js';
 import { appMetrics } from './state.js';
-import { apiRequest, requestForActiveUser, getActiveUserId } from './api.js';
+import { apiRequest, requestForActiveUser, getActiveUserId, getAuthStatus, login, logout } from './api.js';
 import { initTabs, setChatEmptyState, refreshKpis, writeOutput, showToast, switchTab, appendChatMessage } from './ui.js';
 import { initCharts, addTrendPoint } from './charts.js';
 import { initTaskBuilder, collectTasks } from './tasks.js';
@@ -78,6 +78,9 @@ bindSubmit('createUserForm', async (form) => {
     target_fat_g:     Number(form.elements['target_fat_g'].value)     || DEFAULTS.USER.TARGET_FAT,
   };
 
+  const password = form.elements['password'] ? form.elements['password'].value : '';
+  if (password) body.password = password;
+
   const payload = await apiRequest('/api/user/create', { method: 'POST', body });
   if (payload.user && payload.user.user_id) {
     if (activeUserEl) activeUserEl.value = payload.user.user_id;
@@ -86,6 +89,46 @@ bindSubmit('createUserForm', async (form) => {
   showToast('User profile created.', 'success');
   writeOutput('User Created', payload);
 });
+
+bindSubmit('loginForm', async (form) => {
+  const userId = form.elements['user_id'].value.trim() || getActiveUserId();
+  const password = form.elements['password'].value;
+  const payload = await login(userId, password);
+  if (payload.user_id) {
+    if (activeUserEl) activeUserEl.value = payload.user_id;
+    localStorage.setItem('activeUserId', payload.user_id);
+  }
+  form.reset();
+  showToast(`Logged in as ${payload.user_id}.`, 'success');
+  writeOutput('Login', payload);
+  updateAuthStatus();
+});
+
+bindClick('btnLogout', async () => {
+  await logout();
+  showToast('Logged out.', 'info');
+  writeOutput('Logout', { status: 'logged_out' });
+  updateAuthStatus();
+});
+
+async function updateAuthStatus() {
+  const el = document.getElementById('authStatus');
+  if (!el) return;
+  const { ok, payload } = await getAuthStatus();
+  if (!ok) {
+    el.textContent = 'Session could not be checked (is the server running?).';
+    return;
+  }
+  if (payload && payload.authenticated) {
+    el.textContent = `Logged in as: ${payload.user_id}`;
+    el.style.color = 'var(--success, #2ecc71)';
+    el.title = '';
+  } else {
+    el.textContent = 'Not logged in';
+    el.style.color = 'var(--warn, #f1c40f)';
+    el.title = 'Log in to use nutrition logging and the chatbot.';
+  }
+}
 
 bindClick('btnGetUser', async () => {
   await requestForActiveUser('User Profile', (userId) => `/api/user/${userId}`);
@@ -243,9 +286,52 @@ bindClick('btnActivityRecs', async () => {
   showToast('Activity recommendations loaded.', 'info');
 });
 
+bindSubmit('activityLogForm', async (form) => {
+  const userId = getActiveUserId();
+  const body = {
+    user_id: userId,
+    activity_type: form.elements['activity_type'].value,
+    duration_minutes: Number(form.elements['duration_minutes'].value),
+    notes: (form.elements['notes'].value || '').trim()
+  };
+  const energy = Number(form.elements['energy_after'].value);
+  if (energy) body.energy_after = energy;
+  if (!body.duration_minutes || body.duration_minutes < 1) throw new Error('Duration must be greater than 0.');
+  const payload = await apiRequest('/api/activity/log', { method: 'POST', body });
+  form.reset();
+  showToast('Activity logged.', 'success');
+  writeOutput('Activity Logged', payload);
+});
+
+bindClick('btnActivityLogs', async () => {
+  await requestForActiveUser('Activity Logs', (userId) => `/api/activity/logs/${userId}?limit=50`);
+  showToast('Activity logs loaded.', 'info');
+});
+
+bindClick('btnActivityTrends', async () => {
+  await requestForActiveUser('Activity Trends', (userId) => `/api/activity/trends/${userId}?days=7`);
+  showToast('Activity trends ready.', 'info');
+});
+
+bindClick('btnScheduleHistory', async () => {
+  await requestForActiveUser('Schedule History', (userId) => `/api/schedule/history/${userId}?limit=10`);
+  showToast('Schedule history loaded.', 'info');
+});
+
+bindClick('btnProductivitySessions', async () => {
+  await requestForActiveUser('Productivity Sessions', (userId) => `/api/productivity/sessions/${userId}?limit=10`);
+  showToast('Productivity sessions loaded.', 'info');
+});
+
 initTabs();
 initTaskBuilder();
 initCharts();
 initQuickActions();
 setChatEmptyState();
 refreshKpis();
+updateAuthStatus();
+window.addEventListener('auth-required', () => {
+  switchTab('section-user');
+  updateAuthStatus();
+  showToast('Please log in to continue.', 'error');
+});

@@ -1,11 +1,13 @@
 """
-chatbot.py  →  ai_modules/chatbot.py
+AI Health Chatbot.
 
-AI Health Chatbot powered by Groq (free).
-Get your key at: https://console.groq.com
-
-Install:  pip install groq python-dotenv
-.env:     GROQ_API_KEY=gsk_...
+Two modes:
+  * Groq-powered (recommended, richer answers) when GROQ_API_KEY is set.
+    Get a free key at: https://console.groq.com
+    Install:  pip install groq   |   .env:  GROQ_API_KEY=gsk_...
+  * Keyless rule-based fallback when GROQ_API_KEY is empty or unset.
+    Answers questions about the user's macros, water, sleep, focus, and
+    workouts from their health snapshot — no network or external dependency.
 """
 
 import os
@@ -27,10 +29,10 @@ def init_provider():
     if client is not None:
         return
     if not GROQ_API_KEY:
-        raise EnvironmentError(
-            "GROQ_API_KEY not found. Add it to your .env file.\n"
-            "Get a free key at: https://console.groq.com"
-        )
+        # No API key -> keyless rule-based fallback (no network, no dependency).
+        provider = "local"
+        print("[Chatbot] Provider: local (keyless rule-based — no GROQ_API_KEY set).")
+        return
     from groq import Groq
     client   = Groq(api_key=GROQ_API_KEY)
     model    = "llama-3.3-70b-versatile"
@@ -164,6 +166,11 @@ class HealthChatbot:
         self.history.append({"role": "user", "content": user_message})
         self._trim_history()
 
+        if provider == "local":
+            reply = self._local_reply(user_message)
+            self.history.append({"role": "assistant", "content": reply})
+            return reply
+
         try:
             response = client.chat.completions.create(
                 model      = model,
@@ -184,9 +191,90 @@ class HealthChatbot:
         self.history.append({"role": "assistant", "content": reply})
         return reply
 
-    def update_snapshot(self, snapshot: UserHealthSnapshot) -> None:
-        """Call after user logs a meal or activity to keep context fresh."""
-        self.snapshot = snapshot
+    def _local_reply(self, message: str) -> str:
+        """
+        Keyless fallback responder. Matches keywords against the user's snapshot
+        and nutrition targets; answers personal questions directly and degrades
+        to general wellness tips for anything else.
+        """
+        text  = " ".join(message.lower().split())
+        s     = self.snapshot
+        t     = s.get_targets()
+
+        def has(*words: str) -> bool:
+            """True if any whole word (substring OK for multi-word phrases) is present."""
+            for w in words:
+                if " " in w:
+                    if w in text:
+                        return True
+                elif any(tok == w for tok in text.split()):
+                    return True
+            return False
+
+        if any(w in text for w in ("water", "hydrat", "drink")):
+            progress = s.water_ml / s.water_target_ml * 100
+            return (
+                f"You've logged {s.water_ml}ml of your {s.water_target_ml}ml target "
+                f"({progress:.0f}%). Aim for steady sips throughout the day; "
+                f"{max(0, s.water_target_ml - s.water_ml)}ml to go."
+            )
+
+        if has("sleep", "rest", "tired", "fatigue"):
+            if s.sleep_hours_last_night is not None:
+                tgt = 8
+                msg = f"You logged {s.sleep_hours_last_night:g}h of sleep last night."
+                if s.sleep_hours_last_night < tgt:
+                    msg += f" That's {tgt - s.sleep_hours_last_night:.0f}h short of the recommended ~{tgt}h — try a consistent bedtime and limit screens before bed."
+                else:
+                    msg += " That's a healthy amount — keep it up!"
+                return msg
+            return "Aim for ~7–9 hours of sleep. Keep a consistent schedule, wind down 30 min before bed, and avoid caffeine after mid-afternoon."
+
+        if has("focus", "productivity", "productive", "study", "concentrate"):
+            if s.focus_score is not None:
+                return (
+                    f"Your recent focus score is {s.focus_score}/10. For an upcoming study block, "
+                    f"try a {50 + int(s.focus_score * 5)}-minute deep-work session: one task, phone away, "
+                    f"water on hand, then a short break."
+                )
+            return "For better focus: tackle your hardest task first, work in ~50-minute blocks, and keep your study area distraction-free."
+
+        if has("protein", "muscle", "gym", "gains", "build"):
+            return (
+                f"Your protein target is {t['protein_g']}g/day ({s.protein_g:.0f}g logged). "
+                "Spread it across meals — ~25–30g per meal — and pair it with resistance training for muscle gain."
+            )
+
+        if has("exercise", "workout", "activity", "running", "cardio", "walk", "move"):
+            return (
+                "General advice: mix cardio (3–5x/week) with strength (2–3x/week), "
+                "warm up before, hydrate during, and rest at least one day per week. "
+                f"Given your {s.health_goal.replace('_',' ')} goal, consistency beats intensity."
+            )
+
+        if has("hello", "hi", "hey", "good morning", "good evening", "whats up"):
+            return f"Hi {s.name}! Ask me about your macros, water, sleep, focus, or workouts."
+
+        if has("calories", "calorie", "macros", "target", "goal", "how much", "eat", "diet", "meal"):
+            return (
+                f"Based on your profile ({s.weight_lbs:.0f} lbs, {s.health_goal.replace('_',' ')}):\n"
+                f"• Calories: {t['calories']} kcal/day\n"
+                f"• Protein:  {t['protein_g']}g\n"
+                f"• Carbs:    {t['carbs_g']}g\n"
+                f"• Fat:      {t['fat_g']}g\n"
+                f"You've logged {s.calories_today} kcal so far ({s.protein_g:.0f}g protein). "
+                f"{'Getting closer to your target.' if s.calories_today <= t['calories'] else 'A bit over today — consider a lighter dinner.'}"
+            )
+
+        return (
+            "Here's a general wellness tip: build your plate around lean protein, "
+            "vegetables, and whole grains, drink water consistently, get 7–9h of sleep, "
+            "and move daily. I'm running in keyless mode, so for deeper answers add a "
+            "GROQ_API_KEY to your .env — otherwise I can answer about your macros, "
+            "water, sleep, focus, or workouts."
+        )
+
+
 
     def reset(self) -> None:
         """Clear conversation history, keep snapshot."""

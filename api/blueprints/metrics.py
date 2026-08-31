@@ -1,6 +1,7 @@
 import csv
 from flask import Blueprint, jsonify, request
 from ai_modules.productivity_predictor import ProductivityPredictor, Features
+from api.blueprints.helpers import error_response
 
 metrics_bp = Blueprint('metrics', __name__, url_prefix='/api/metrics')
 
@@ -42,7 +43,7 @@ def productivity_predictor_metrics():
                 )
                 train_cases.append((features, int(row["expected_focus_score"])))
     except Exception as e:
-        return jsonify({"error": f"Could not load training data: {e}"}), 500
+        return error_response(f"Could not load training data: {e}", "TRAINING_DATA_LOAD_FAILED", 500)
 
     predictor = ProductivityPredictor()
     for features, expected in train_cases:
@@ -67,7 +68,7 @@ def productivity_predictor_metrics():
                 )
                 test_cases.append((features, int(row["expected_focus_score"])))
     except Exception as e:
-        return jsonify({"error": f"Could not load evaluation data: {e}"}), 500
+        return error_response(f"Could not load evaluation data: {e}", "EVAL_DATA_LOAD_FAILED", 500)
 
     # Compute all metrics
     mae  = sum(abs(predictor.predict(f) - e) for f, e in test_cases) / len(test_cases) if test_cases else None

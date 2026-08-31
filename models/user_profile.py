@@ -37,6 +37,9 @@ class UserProfile:
     height_cm:  float
     biological_sex: BiologicalSex = BiologicalSex.MALE   # affects BMR formula
 
+    # Auth (optional; enabled by setting a password on create/login)
+    password_hash: str = ""   # werkzeug PBKDF2 hash; empty = password not set
+
     # Health goals
     goals: List[Goal] = field(default_factory=lambda: [Goal.GENERAL_WELLNESS])
 
@@ -161,4 +164,11 @@ class UserProfile:
             "target_fat_g":          self.target_fat_g,
             "dietary_restrictions":  self.dietary_restrictions,
             "allergies":             self.allergies,
+            "password_set":          bool(self.password_hash),
         }
+
+    def to_public_dict(self) -> Dict:
+        """Same as to_dict, guaranteed to never expose the password hash."""
+        payload = self.to_dict()
+        payload.pop("password_hash", None)
+        return payload

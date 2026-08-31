@@ -4,6 +4,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from datetime import datetime, timedelta
 import math
+import pickle
 from dataclasses import dataclass
 
 
@@ -221,3 +222,40 @@ class ProductivityPredictor:
                 "task_difficulty": self.weights[7]
             }
         }
+
+    # Persistence + incremental training
+
+    def save_model(self, path: str) -> None:
+        """Serialize the model (weights, RF regressor, training data) to disk."""
+        with open(path, "wb") as fh:
+            pickle.dump({
+                "model_type": self.model_type,
+                "weights": self.weights,
+                "bias": self.bias,
+                "is_trained": self.is_trained,
+                "training_data": self.training_data,
+                "rf_model": self.rf_model,
+            }, fh)
+
+    @classmethod
+    def load_model(cls, path: str) -> "ProductivityPredictor":
+        """Deserialize a model previously written by save_model()."""
+        with open(path, "rb") as fh:
+            payload = pickle.load(fh)
+        predictor = cls(model_type=payload.get("model_type", "random_forest"))
+        predictor.weights = payload.get("weights", predictor.weights)
+        predictor.bias = payload.get("bias", predictor.bias)
+        predictor.is_trained = payload.get("is_trained", False)
+        predictor.training_data = payload.get("training_data", [])
+        predictor.rf_model = payload.get("rf_model", None)
+        return predictor
+
+    def incremental_update(self, new_examples: List[Tuple[Features, int]]) -> bool:
+        """
+        Merge new (features, actual_focus_score) examples into an existing
+        model's training set and retrain. Returns True when training succeeded.
+        """
+        for features, expected in new_examples:
+            self.add_training_data(features, expected)
+        self.train()
+        return self.is_trained

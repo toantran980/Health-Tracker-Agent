@@ -3,6 +3,7 @@
 from flask import Blueprint, request, jsonify
 
 from api.blueprints.helpers import error_response
+from api.rate_limiter import default_limiter
 from api.external_apis import (
     get_food_by_barcode,
     search_exercise,
@@ -14,6 +15,18 @@ from api.external_apis import (
 external_bp = Blueprint('external', __name__)
 
 
+def check_rate_limit() -> tuple | None:
+    """Return a 429 error_response if the client exceeded the limit."""
+    client_id = request.remote_addr or "unknown"
+    if not default_limiter.allow(client_id):
+        return error_response(
+            "Rate limit exceeded. Please retry shortly.",
+            "RATE_LIMITED",
+            429,
+        )
+    return None
+
+
 @external_bp.route('/api/food/search', methods=['GET'])
 def food_search():
     """
@@ -23,6 +36,10 @@ def food_search():
         q     : search term (required)
         limit : max results (default 5)
     """
+    limited = check_rate_limit()
+    if limited:
+        return limited
+
     query = request.args.get("q", "").strip()
     if not query:
         return error_response("q parameter is required", "MISSING_QUERY", 400)
@@ -50,6 +67,10 @@ def food_search():
 @external_bp.route('/api/food/barcode/<barcode>', methods=['GET'])
 def food_by_barcode(barcode):
     """Look up a food product by EAN-13 / UPC barcode."""
+    limited = check_rate_limit()
+    if limited:
+        return limited
+
     result = get_food_by_barcode(barcode)
     if not result:
         return error_response("Product not found", "PRODUCT_NOT_FOUND", 404)
@@ -59,6 +80,10 @@ def food_by_barcode(barcode):
 @external_bp.route('/api/exercise/search', methods=['GET'])
 def exercise_search():
     """Search the Wger exercise database by name."""
+    limited = check_rate_limit()
+    if limited:
+        return limited
+
     query = request.args.get("q", "").strip()
     if not query:
         return error_response("q parameter is required", "MISSING_QUERY", 400)
@@ -73,6 +98,10 @@ def wger_proxy_route(endpoint):
     Generic proxy for any WGER API v2 endpoint.
     Examples: /api/wger/muscle, /api/wger/equipment, /api/wger/routine
     """
+    limited = check_rate_limit()
+    if limited:
+        return limited
+
     params = request.args.to_dict()
     result = proxy_wger_endpoint(endpoint, params)
     if isinstance(result, dict) and len(result) == 1 and "error" in result:
@@ -83,6 +112,10 @@ def wger_proxy_route(endpoint):
 @external_bp.route('/api/exercisedb/search', methods=['GET'])
 def get_exercisedb_search():
     """Search the ExerciseDB database (RapidAPI) by name."""
+    limited = check_rate_limit()
+    if limited:
+        return limited
+
     query = request.args.get("q", "").strip()
     if not query:
         return error_response("q parameter is required", "MISSING_QUERY", 400)

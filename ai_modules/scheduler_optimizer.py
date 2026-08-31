@@ -194,10 +194,9 @@ class ScheduleOptimizer:
         def priority(task):
             deadline = task.get("deadline", default_deadline)
             days_left = max((deadline - now).total_seconds() / 86400, 0)
-            urgency = -days_left
-            difficulty = -task.get("difficulty", 5)
-            duration = -task.get("duration_min", 60)
-            return (urgency, difficulty, duration)
+            difficulty = task.get("difficulty", 5)
+            duration = task.get("duration_min", 60)
+            return (days_left, -difficulty, -duration)
 
         return sorted(tasks, key=priority)
 

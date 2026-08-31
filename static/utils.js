@@ -15,11 +15,16 @@ export function safeHandler(handler, contextEl = null) {
       const errorPayload = {
         message: err.message || 'Unknown error',
         code: err.code || 'UNKNOWN_ERROR',
-        status: err.status || null
+        status: err.status || null,
+        details: err.details
       };
       showToast(`${errorPayload.message} (${errorPayload.code})`, 'error');
       showStatusBanner(`${errorPayload.message} [${errorPayload.code}]`, 'error');
       writeOutput('Error', errorPayload);
+      if (errorPayload.code === 'AUTH_REQUIRED') {
+        // Surface the login form instead of leaving the user on a protected tab.
+        window.dispatchEvent(new CustomEvent('auth-required'));
+      }
     } finally {
       if (formEl) setFormBusy(formEl, false);
       else setElementBusy(busyEl, false);
