@@ -10,7 +10,7 @@ export function getApiBase() {
 }
 
 export function getActiveUserId() {
-  const userId = activeUserEl ? activeUserEl.value.trim() : (localStorage.getItem('activeUserId') || '').trim();
+  const userId = activeUserEl ? activeUserEl.value.trim() : '';
   if (!userId) throw new Error('Active User ID is required for this action.');
   return userId;
 }

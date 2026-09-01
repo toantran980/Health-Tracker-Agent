@@ -17,6 +17,7 @@ from api.blueprints.health import health_bp
 from api.blueprints.metrics import metrics_bp
 from api.blueprints.activity import activity_bp
 from api.blueprints.helpers import error_response
+from api.blueprints.trends import trends_bp
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -41,7 +42,7 @@ if config.SESSION_LIFETIME_MINUTES > 0:
     from datetime import timedelta
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=config.SESSION_LIFETIME_MINUTES)
 
-for bp in (user_bp, auth_bp, nutrition_bp, schedule_bp, chat_bp, external_bp, health_bp, metrics_bp, activity_bp):
+for bp in (user_bp, auth_bp, nutrition_bp, schedule_bp, chat_bp, external_bp, health_bp, metrics_bp, activity_bp, trends_bp):
     app.register_blueprint(bp)
 
 

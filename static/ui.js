@@ -1,12 +1,85 @@
 import { appMetrics } from './state.js';
-import { outputEl, toastContainerEl, statusBannerEl, chatMessagesEl } from './dom.js';
+import { toastContainerEl, statusBannerEl, chatMessagesEl } from './dom.js';
 
 export function writeOutput(title, data) {
+  const outputEl = document.getElementById('output');
   if (outputEl) {
-    outputEl.textContent = `${title}\n\n${JSON.stringify(data, null, 2)}`;
+    // Remove placeholder if it exists
+    const placeholder = outputEl.querySelector('.output-placeholder');
+    if (placeholder) placeholder.remove();
+    
+    const timestamp = new Date().toLocaleTimeString();
+    const formattedData = formatJsonForDisplay(data);
+    const dataString = JSON.stringify(data, null, 2);
+    
+    // Truncate very long responses
+    const isLong = dataString.length > 2000;
+    const displayData = isLong ? 
+      formattedData.substring(0, 2000) + '<span class="truncated-indicator">... (truncated)</span>' : 
+      formattedData;
+    
+    const entry = document.createElement('div');
+    entry.className = 'output-entry';
+    entry.innerHTML = `
+      <div class="output-header-line">
+        <span class="output-title">${title}</span>
+        <span class="output-time">${timestamp}</span>
+        ${isLong ? '<span class="output-badge">Large response</span>' : ''}
+      </div>
+      <div class="output-content">${displayData}</div>
+    `;
+    
+    // Add new entry at the top
+    outputEl.insertBefore(entry, outputEl.firstChild);
+    
+    // Keep only last 5 entries to prevent overflow
+    const entries = outputEl.querySelectorAll('.output-entry');
+    if (entries.length > 5) {
+      entries[entries.length - 1].remove();
+    }
+    
     return;
   }
   console.info(title, data);
+}
+
+function formatJsonForDisplay(data) {
+  if (typeof data === 'string') {
+    return `<span class="json-string">"${escapeHtml(data)}"</span>`;
+  }
+  
+  const jsonString = JSON.stringify(data, null, 2);
+  return syntaxHighlight(jsonString);
+}
+
+function syntaxHighlight(json) {
+  json = escapeHtml(json);
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+    let cls = 'json-number';
+    if (/^"/.test(match)) {
+      if (/:$/.test(match)) {
+        cls = 'json-key';
+      } else {
+        cls = 'json-string';
+      }
+    } else if (/true|false/.test(match)) {
+      cls = 'json-boolean';
+    } else if (/null/.test(match)) {
+      cls = 'json-null';
+    }
+    return '<span class="' + cls + '">' + match + '</span>';
+  });
+}
+
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
 export function showToast(message, type = 'info') {

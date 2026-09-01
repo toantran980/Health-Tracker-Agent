@@ -5,6 +5,7 @@ export const appMetrics = {
   sleepHours: null
 };
 
-export const trendState = { 
-  labels: [], calories: [], protein: [], carbs: [], fat: [], focus: [] 
+export const trendState = {
+  labels: [], calories: [], protein: [], carbs: [], fat: [],
+  focusLabels: [], focus: []
 };

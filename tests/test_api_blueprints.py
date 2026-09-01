@@ -398,6 +398,61 @@ class TestPersistenceEndpoints(unittest.TestCase):
             self.assertTrue(limited.headers["X-RateLimit-Reset"].isdigit())
 
 
+class TestTrends(unittest.TestCase):
+    USER = {
+        "name": "Trendy", "age": 27, "weight_kg": 72, "height_cm": 178,
+        "password": "trendy99",
+    }
+
+    def setUp(self):
+        reset_state()
+        self.client = make_client()
+        resp = self.client.post("/api/user/create", json=self.USER)
+        self.assertEqual(resp.status_code, 201)
+        self.user_id = resp.get_json()["user_id"]
+        login = self.client.post("/api/auth/login", json={
+            "user_id": self.user_id, "password": "trendy99",
+        })
+        self.assertEqual(login.status_code, 200)
+        self.headers = {"X-CSRF-Token": login.get_json()["csrf_token"]}
+
+    def test_trends_require_auth(self):
+        resp = make_client().get(f"/api/trends/{self.user_id}")
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.get_json()["code"], "AUTH_REQUIRED")
+
+    def test_trends_returns_nutrition_and_focus(self):
+        # Log a meal -> nutrition point.
+        meal = self.client.post("/api/meals/log", headers=self.headers, json={
+            "user_id": self.user_id, "meal_type": "lunch",
+            "food_items": [{"name": "Chicken", "calories": 500,
+                            "protein_g": 30, "carbs_g": 10, "fat_g": 20}],
+        })
+        self.assertEqual(meal.status_code, 201)
+
+        # Predict focus -> focus point.
+        pred = self.client.post(f"/api/productivity/predict/{self.user_id}", headers=self.headers, json={
+            "hour_of_day": 10, "day_of_week": 0, "sleep_quality": 8.0,
+            "sleep_hours": 8.0, "nutrition_score": 80.0, "energy_level": 7,
+            "previous_session_duration": 60, "task_difficulty": 5,
+        })
+        self.assertEqual(pred.status_code, 200)
+
+        trends = self.client.get(f"/api/trends/{self.user_id}").get_json()
+        self.assertEqual(trends["user_id"], self.user_id)
+        self.assertEqual(len(trends["nutrition"]), 1)
+        self.assertEqual(trends["nutrition"][0]["calories"], 500.0)
+        self.assertEqual(trends["nutrition"][0]["protein_g"], 30.0)
+        self.assertEqual(len(trends["focus"]), 1)
+        self.assertIn("timestamp", trends["focus"][0])
+        self.assertEqual(trends["focus"][0]["focus"], pred.get_json()["predicted_focus_score"])
+
+    def test_trends_empty_for_fresh_user(self):
+        trends = self.client.get(f"/api/trends/{self.user_id}").get_json()
+        self.assertEqual(trends["nutrition"], [])
+        self.assertEqual(trends["focus"], [])
+
+
 class TestSessionExpiry(unittest.TestCase):
     """Auth sessions become permanent (with a TTL) only when configured."""
 

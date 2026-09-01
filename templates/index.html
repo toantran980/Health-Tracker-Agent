@@ -12,16 +12,19 @@
   <main class="container">
     <section class="panel command-deck" aria-label="Connection and output console">
       <div class="command-grid">
-        <label>API Base URL<input id="apiBase" type="text" placeholder="http://127.0.0.1:5000"></label>
+        <label>API Base URL<input id="apiBase" type="text" placeholder="http://127.0.0.1:5001"></label>
         <label>Active User ID<input id="activeUserId" type="text" placeholder="Create a user to auto-fill"></label>
         <p class="hint deck-hint">Tip: these fields persist in your browser so you can continue from your last session.</p>
       </div>
       <div class="subpanel output-panel">
         <div class="output-header">
           <h3>Live API Output</h3>
-          <span class="pill">JSON stream</span>
+          <div class="output-controls">
+            <span class="pill">JSON stream</span>
+            <button id="clearOutput" class="btn" type="button" style="padding: 4px 8px; font-size: 11px;">Clear</button>
+          </div>
         </div>
-        <pre id="output">Run any action to see the response payload here.</pre>
+        <pre id="output"><div class="output-placeholder">Run any action to see the response payload here.</div></pre>
       </div>
     </section>
 
@@ -29,7 +32,7 @@
 
     <header class="hero">
       <p class="eyebrow">AI Health + Study Assistant</p>
-      <h1>Health Tracker Frontend</h1>
+      <h1>AI Health & Wellness Tracker</h1>
       <p class="subtitle">Manage users, meals, productivity, scheduling, and chatbot interactions from one dashboard.</p>
       <nav class="hero-nav" aria-label="Page sections">
         <button class="hero-link active" data-target="section-user" type="button">User</button>
@@ -133,9 +136,9 @@
         <label>Protein (g)<input name="target_protein_g" type="number" step="0.1" placeholder="e.g. 140" min="0" max="500"></label>
         <label>Carbs (g)<input name="target_carbs_g" type="number" step="0.1" placeholder="e.g. 240" min="0" max="1000"></label>
         <label>Fat (g)<input name="target_fat_g" type="number" step="0.1" placeholder="e.g. 70" min="0" max="500"></label>
-        <label>Water (mL/day)<input name="water_target_ml" type="number" placeholder="e.g. 2500" min="0" max="10000" value="2500"></label>
-        <label class="span-2">Password (optional)
-          <input name="password" type="password" minlength="6" placeholder="Set a password to enable login for nutrition/chat">
+        <label>Water (mL/day)<input name="water_target_ml" type="number" placeholder="e.g. 2500" min="0" max="10000"></label>
+        <label class="span-2">Password (required for login)
+          <input name="password" type="password" minlength="6" required placeholder="Set a password to enable login for nutrition/chat">
         </label>
         <div class="actions span-3">
           <button class="btn primary" type="submit">Create User</button>
@@ -317,18 +320,55 @@
     </section>
 
     <section id="section-trends" class="panel tab-section tab-hidden">
-      <h2>Analytics Trends</h2>
+      <div class="trends-header">
+        <h2>Analytics Trends</h2>
+        <div class="trends-controls">
+          <select id="trendsTimeRange" class="trends-select">
+            <option value="7">Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+          <button id="refreshTrends" class="btn" type="button">Refresh</button>
+        </div>
+      </div>
+      <div class="trends-summary">
+        <div class="trend-summary-card">
+          <span class="trend-label">Avg Calories</span>
+          <span class="trend-value" id="trendAvgCalories">-</span>
+        </div>
+        <div class="trend-summary-card">
+          <span class="trend-label">Avg Protein</span>
+          <span class="trend-value" id="trendAvgProtein">-</span>
+        </div>
+        <div class="trend-summary-card">
+          <span class="trend-label">Avg Focus</span>
+          <span class="trend-value" id="trendAvgFocus">-</span>
+        </div>
+        <div class="trend-summary-card">
+          <span class="trend-label">Data Points</span>
+          <span class="trend-value" id="trendDataPoints">-</span>
+        </div>
+      </div>
       <div class="grid three charts-grid">
         <div class="subpanel chart-panel">
-          <h3>Calories</h3>
+          <div class="chart-header">
+            <h3>Calories</h3>
+            <span class="chart-badge">Daily</span>
+          </div>
           <canvas id="caloriesChart" height="200"></canvas>
         </div>
         <div class="subpanel chart-panel">
-          <h3>Macros (g)</h3>
+          <div class="chart-header">
+            <h3>Macros (g)</h3>
+            <span class="chart-badge">Daily</span>
+          </div>
           <canvas id="macrosChart" height="200"></canvas>
         </div>
         <div class="subpanel chart-panel">
-          <h3>Focus Score</h3>
+          <div class="chart-header">
+            <h3>Focus Score</h3>
+            <span class="chart-badge">Sessions</span>
+          </div>
           <canvas id="focusChart" height="200"></canvas>
         </div>
       </div>

@@ -2,13 +2,15 @@ import { apiBaseEl, activeUserEl } from './dom.js';
 import { appMetrics } from './state.js';
 import { apiRequest, requestForActiveUser, getActiveUserId, getAuthStatus, login, logout } from './api.js';
 import { initTabs, setChatEmptyState, refreshKpis, writeOutput, showToast, switchTab, appendChatMessage, removeLastChatMessage, showStatusBanner } from './ui.js';
-import { initCharts, addTrendPoint } from './charts.js';
+import { initCharts, addTrendPoint, setTrendData } from './charts.js';
 import { initTaskBuilder, collectTasks } from './tasks.js';
 import { bindClick, bindSubmit } from './utils.js';
 import { DEFAULTS } from './config.js';
 
 const savedBase = localStorage.getItem('apiBase');
-const savedUser = localStorage.getItem('activeUserId');
+// Clear any stale active-user id persisted by older versions so it no longer
+// auto-restores on page load / server restart.
+localStorage.removeItem('activeUserId');
 
 const PROTECTED_CONTROL_IDS = [
   'btnGetUser',
@@ -36,9 +38,13 @@ function setAuthGate(authenticated) {
   for (const id of PROTECTED_CONTROL_IDS) {
     const el = document.getElementById(id);
     if (!el) continue;
-    const formEl = el instanceof HTMLFormElement ? el : el.form;
-    const targets = formEl ? formEl.querySelectorAll('input, button, select') : [el];
-    targets.forEach((t) => { t.disabled = !authenticated; });
+    // If the ID corresponds to a form, disable the entire form
+    if (el instanceof HTMLFormElement) {
+      el.querySelectorAll('input, button, select').forEach((t) => { t.disabled = !authenticated; });
+    } else {
+      // For buttons and other individual elements, only disable that specific element
+      el.disabled = !authenticated;
+    }
   }
 }
 
@@ -46,11 +52,6 @@ if (apiBaseEl) {
   apiBaseEl.value = savedBase || window.location.origin;
   apiBaseEl.addEventListener('input', () => localStorage.setItem('apiBase', apiBaseEl.value.trim()));
   apiBaseEl.addEventListener('change', () => localStorage.setItem('apiBase', apiBaseEl.value.trim()));
-}
-if (activeUserEl) {
-  activeUserEl.value = savedUser || '';
-  activeUserEl.addEventListener('input', () => localStorage.setItem('activeUserId', activeUserEl.value.trim()));
-  activeUserEl.addEventListener('change', () => localStorage.setItem('activeUserId', activeUserEl.value.trim()));
 }
 
 async function fetchModelMetrics() {
@@ -118,7 +119,6 @@ bindSubmit('createUserForm', async (form) => {
   const payload = await apiRequest('/api/user/create', { method: 'POST', body });
   if (payload.user && payload.user.user_id) {
     if (activeUserEl) activeUserEl.value = payload.user.user_id;
-    localStorage.setItem('activeUserId', payload.user.user_id);
   }
   showToast('User profile created.', 'success');
   writeOutput('User Created', payload);
@@ -130,7 +130,6 @@ bindSubmit('loginForm', async (form) => {
   const payload = await login(userId, password);
   if (payload.user_id) {
     if (activeUserEl) activeUserEl.value = payload.user_id;
-    localStorage.setItem('activeUserId', payload.user_id);
   }
   form.reset();
   showToast(`Logged in as ${payload.user_id}.`, 'success');
@@ -163,6 +162,24 @@ async function updateAuthStatus() {
     el.title = 'Log in to use nutrition/logging/chat.';
   }
   setAuthGate(!!(payload && payload.authenticated));
+  if (payload && payload.authenticated && payload.user_id) {
+    loadTrends(payload.user_id);
+  }
+}
+
+async function loadTrends(userId) {
+  try {
+    const rangeEl = document.getElementById('trendsTimeRange');
+    const days = rangeEl ? parseInt(rangeEl.value, 10) : 7;
+    const payload = await apiRequest(`/api/trends/${encodeURIComponent(userId)}?days=${days}`);
+    if (payload && payload.nutrition) {
+      setTrendData(payload.nutrition, payload.focus);
+    }
+  } catch (err) {
+    if (err && err.code === 'AUTH_REQUIRED') {
+      setAuthGate(false);
+    }
+  }
 }
 
 bindClick('btnGetUser', async () => {
@@ -375,6 +392,28 @@ initQuickActions();
 setChatEmptyState();
 refreshKpis();
 updateAuthStatus();
+
+// Refresh trends from persisted data when the time range changes or Refresh is clicked.
+window.addEventListener('trends-refresh', () => {
+  const userId = getActiveUserId();
+  if (userId) loadTrends(userId);
+});
+
+// Reload trends whenever the active user changes.
+if (activeUserEl) {
+  activeUserEl.addEventListener('change', () => {
+    const userId = activeUserEl.value.trim();
+    if (userId) loadTrends(userId);
+  });
+}
+
+// Clear output button
+document.getElementById('clearOutput')?.addEventListener('click', () => {
+  const outputEl = document.getElementById('output');
+  if (outputEl) {
+    outputEl.innerHTML = '<div class="output-placeholder">Run any action to see the response payload here.</div>';
+  }
+});
 window.addEventListener('auth-required', () => {
   setAuthGate(false);
   switchTab('section-user');

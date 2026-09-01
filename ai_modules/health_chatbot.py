@@ -34,7 +34,7 @@ def init_provider():
         return
     from groq import Groq
     client   = Groq(api_key=GROQ_API_KEY)
-    model    = "llama-3.3-70b-versatile"
+    model    = "openai/gpt-oss-120b"  # Higher intelligence model with reasoning capabilities
     provider = "groq"
     print(f"[Chatbot] Provider: {provider}  |  Model: {model}")
 
@@ -178,7 +178,10 @@ class HealthChatbot:
         try:
             response = client.chat.completions.create(
                 model      = model,
-                max_tokens = 512,
+                max_completion_tokens = 2048,
+                temperature = 1,
+                top_p = 1,
+                reasoning_effort = "medium",
                 messages   = [
                     {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(
                         health_context=self.snapshot.to_context_block()
