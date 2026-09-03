@@ -23,17 +23,17 @@ u3 = store.save_user({
 print("Inserted users:", u1, u2, u3)
 
 # Insert test daily logs
-d1 = store._db["daily_logs"].insert_one({
+d1 = store.db["daily_logs"].insert_one({
     "user_id": "user_1",
     "date": "2024-04-25",
     "log": "Sample log 1"
 })
-d2 = store._db["daily_logs"].insert_one({
+d2 = store.db["daily_logs"].insert_one({
     "user_id": "user_2",
     "date": "2024-04-25",
     "log": "Sample log 2"
 })
-d3 = store._db["daily_logs"].insert_one({
+d3 = store.db["daily_logs"].insert_one({
     "user_id": "user_3",
     "date": "2024-04-25",
     "log": "Sample log 3"

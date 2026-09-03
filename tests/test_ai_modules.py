@@ -687,51 +687,51 @@ class TestKeylessChatbotFallback(unittest.TestCase):
         )
         self.bot = hc.HealthChatbot(snapshot)
 
-    def _chat(self, message):
+    def chat(self, message):
         # Force the local responder regardless of whether GROQ_API_KEY is set
         # in the environment (keeps the test hermetic and offline).
         with mock.patch.object(self.hc, "provider", "local"):
             return self.bot.chat(message)
 
     def test_macros_reply_includes_targets(self):
-        reply = self._chat("set up my macros")
+        reply = self.chat("set up my macros")
         self.assertIn("2300 kcal/day", reply)
         self.assertIn("Protein", reply)
 
     def test_water_reply_reports_progress(self):
-        reply = self._chat("how much water should i drink")
+        reply = self.chat("how much water should i drink")
         self.assertIn("1500ml", reply)
         self.assertIn("2500ml", reply)
 
     def test_sleep_reply_uses_snapshot(self):
-        reply = self._chat("im so tired")
+        reply = self.chat("im so tired")
         self.assertIn("5.5h", reply)
         self.assertIn("short", reply)
 
     def test_focus_reply_uses_score(self):
-        reply = self._chat("how can i focus better")
+        reply = self.chat("how can i focus better")
         self.assertIn("7/10", reply)
 
     def test_protein_reply_uses_snapshot(self):
-        reply = self._chat("how many grams of protein should i eat")
+        reply = self.chat("how many grams of protein should i eat")
         self.assertIn("90g logged", reply)
 
     def test_hello_reply_greets_user(self):
-        reply = self._chat("hello")
+        reply = self.chat("hello")
         self.assertIn("Hi Tester", reply)
 
     def test_unrelated_question_falls_back_to_general_tip(self):
-        reply = self._chat("tell me about the weather")
+        reply = self.chat("tell me about the weather")
         self.assertIn("general wellness tip", reply)
 
     def test_substring_does_not_cause_false_positive(self):
         # "weather" used to match "eat" as a substring; ensure no crash/misroute.
-        reply = self._chat("tell me about the weather")
+        reply = self.chat("tell me about the weather")
         self.assertIn("general wellness tip", reply)
 
     def test_history_is_preserved_on_local_path(self):
-        self._chat("hello")
-        self._chat("how much water should i drink")
+        self.chat("hello")
+        self.chat("how much water should i drink")
         roles = [m["role"] for m in self.bot.history]
         self.assertEqual(roles, ["user", "assistant", "user", "assistant"])
 
@@ -741,7 +741,7 @@ class TestKeylessChatbotFallback(unittest.TestCase):
 
     def test_reply_does_not_duplicate_user_message(self):
         msg = "hello"
-        reply = self._chat(msg)
+        reply = self.chat(msg)
         self.assertNotEqual(reply.strip().lower(), msg)
 
 

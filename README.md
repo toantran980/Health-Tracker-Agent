@@ -87,7 +87,8 @@ Secret keys and external API keys come from `.env` (see `.env.example` for the f
 - `MONGO_CONNECT_RETRIES`, `MONGO_CONNECT_RETRY_DELAY` — startup reconnect retry window when MongoDB is unreachable.
 - `USDA_API_KEY`, `EXERCISEDB_API_KEY`, `GROQ_API_KEY` — external service keys. Optional; endpoints degrade to built-in data when empty. The chatbot uses a keyless rule-based responder when `GROQ_API_KEY` is empty, and the Groq LLM when it's set.
 - `MONGO_MEALS_TTL_DAYS`, `MONGO_DAILY_LOGS_TTL_DAYS` — TTL for the meals/daily_logs collections.
-- `EXTERNAL_API_RATE_LIMIT`, `EXTERNAL_API_RATE_WINDOW_SECONDS` — sliding-window rate limit for proxied external endpoints (per client IP). Backend is chosen by `RATE_LIMIT_BACKEND` (`memory` or `redis` + `REDIS_URL`).- `SESSION_COOKIE_SECURE` (set `True` when serving HTTPS), `SESSION_COOKIE_SAMESITE`, `SESSION_COOKIE_HTTPONLY` — session cookie hardening.
+- `EXTERNAL_API_RATE_LIMIT`, `EXTERNAL_API_RATE_WINDOW_SECONDS` — sliding-window rate limit for proxied external endpoints (per client IP). Backend is chosen by `RATE_LIMIT_BACKEND` (`memory` or `redis` + `REDIS_URL`).
+- `SESSION_COOKIE_SECURE` (set `True` when serving HTTPS), `SESSION_COOKIE_SAMESITE`, `SESSION_COOKIE_HTTPONLY` — session cookie hardening.
 - `CSRF_PROTECTION` — enables the `X-CSRF-Token` requirement for state-changing requests on authenticated sessions.
 
 ## Run the Project

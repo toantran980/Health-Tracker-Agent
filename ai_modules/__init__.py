@@ -8,6 +8,11 @@ from .productivity_predictor import ProductivityPredictor, Features
 from .nutrition_analyzer import NutritionAnalyzer
 from .meal_recommendation_engine import MealRecommendationEngine
 from .activity_recommendation_engine import ActivityRecommendationEngine
+from .health_risk_assessor import HealthRiskAssessor, HealthWarning
+from .sleep_quality_predictor import SleepQualityPredictor, SleepFeatures
+from .recovery_predictor import RecoveryPredictor, RecoveryFeatures
+from .goal_tracker import GoalTracker
+from .weekly_digest import WeeklyDigestGenerator
 
 __all__ = [
     'KnowledgeBase',
@@ -18,5 +23,14 @@ __all__ = [
     'Features',
     'NutritionAnalyzer',
     'MealRecommendationEngine',
-    'ActivityRecommendationEngine'
+    'ActivityRecommendationEngine',
+    'HealthRiskAssessor',
+    'HealthWarning',
+    'SleepQualityPredictor',
+    'SleepFeatures',
+    'RecoveryPredictor',
+    'RecoveryFeatures',
+    'GoalTracker',
+    'WeeklyDigestGenerator',
 ]
+

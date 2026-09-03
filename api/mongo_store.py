@@ -39,7 +39,7 @@ class MongoStore:
                 db.command("ping")
                 self.db = db
                 self.enabled = True
-                self._ensure_indexes()
+                self.ensure_indexes()
                 logger.info("[MongoDB] Connected on attempt %d", attempt)
                 break
             except PyMongoError as exc:
@@ -57,7 +57,7 @@ class MongoStore:
                 max_retries, last_error,
             )
 
-    def _ensure_indexes(self) -> None:
+    def ensure_indexes(self) -> None:
         import config
         meals_ttl = config.MONGO_MEALS_TTL_DAYS
         daily_logs_ttl = config.MONGO_DAILY_LOGS_TTL_DAYS
@@ -92,6 +92,9 @@ class MongoStore:
             [("user_id", ASCENDING), ("timestamp", DESCENDING)]
         )
         self.db["chat_history"].create_index("user_id", unique=True)
+        self.db["sleep_logs"].create_index(
+            [("user_id", ASCENDING), ("timestamp", DESCENDING)]
+        )
 
     
     #  Activities                                                        #
@@ -364,6 +367,35 @@ class MongoStore:
             return list(cursor)
         except PyMongoError:
             logger.exception("[MongoDB] get_activity_logs failed for user_id=%s", user_id)
+            return []
+
+    #  Sleep logs                                                   #
+    def save_sleep_log(self, log_doc: dict[str, Any]) -> bool:
+        """Insert a sleep log document. Returns True on success, False otherwise."""
+        if not self.enabled or self.db is None:
+            return False
+        try:
+            self.db["sleep_logs"].insert_one({**log_doc, "created_at": datetime.now(UTC)})
+            return True
+        except PyMongoError:
+            logger.exception(
+                "[MongoDB] save_sleep_log failed for user_id=%s", log_doc.get("user_id")
+            )
+            return False
+
+    def get_sleep_logs(self, user_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        if not self.enabled or self.db is None:
+            return []
+        try:
+            cursor = (
+                self.db["sleep_logs"]
+                .find({"user_id": user_id}, {"_id": 0})
+                .sort("timestamp", DESCENDING)
+                .limit(limit)
+            )
+            return list(cursor)
+        except PyMongoError:
+            logger.exception("[MongoDB] get_sleep_logs failed for user_id=%s", user_id)
             return []
 
     #  Chat history                                                       #

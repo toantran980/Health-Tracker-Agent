@@ -37,12 +37,60 @@ below; `## Open / Next` lists only actionable items.
 | Medium | Session expiry signaling + sliding refresh | Done | `config.py`, `api/routes.py`, `TestSessionExpiry` |
 | Medium | Chat history persistence | Done | `api/mongo_store.py` + `chat.py` rehydration |
 | Medium | Local KB-powered chatbot depth | Done | `kb_reply()` in `ai_modules/health_chatbot.py` |
+| High | HealthRiskAssessor (rule-based risk & anomaly warnings) | Done | `tests/test_new_modules.py:TestHealthRiskAssessor` |
+| High | SleepQualityPredictor (RF ML model + hygiene advice) | Done | `tests/test_new_modules.py:TestSleepQualityPredictor` |
+| High | Stress / RecoveryPredictor (RF physical readiness ML) | Done | `tests/test_new_modules.py:TestRecoveryPredictor` |
+| High | Goal milestone tracking (weight, exercise, nutrition) | Done | `tests/test_new_modules.py:TestGoalTracker` |
+| High | Automated weekly digest (multi-domain report) | Done | `tests/test_new_modules.py:TestWeeklyDigestGenerator` |
 
 ## Open / Next
 
-Everything on the original roadmap is complete. Future work might explore:
-exposure of a real LLM key for richer answers (see `GROQ_API_KEY`), Redis-backed
-rate limiting at scale, or an activity-based water target calculation.
+### High Priority (Completed)
+
+- [x] **HealthRiskAssessor** — flag logged values outside healthy ranges (BMI,
+      micronutrients, calorie deviations) with rule-based warnings. High-impact,
+      builds directly on existing `NutritionAnalyzer` + `daily_logs`; no new data
+      needed and demonstrates clear AI reasoning value.
+- [x] **SleepQualityPredictor** — ML model (Random Forest, consistent with
+      `ProductivityPredictor`) to predict sleep quality from bedtime, caffeine,
+      screen time, and exercise logged in daily logs.
+- [x] **Stress / RecoveryPredictor** — predict readiness/recovery from sleep,
+      workout load, and self-reported stress; feeds into `ScheduleOptimizer` to
+      avoid over-training on low-readiness days.
+- [x] **Goal milestone tracking** — progress bars toward weight/muscle targets with
+      projected completion dates. High user-visible impact, builds on existing
+      `UserProfile` and activity/nutrition logs.
+- [x] **Automated weekly digest** — summarize adherence, trends, and next-week
+      recommendations across all logged domains; showcases the full AI module stack.
+
+
+### Medium Priority
+
+- [ ] **MealPlanGenerator / ShoppingList** — extend `MealRecommendationEngine` from
+      single-meal suggestions to a full weekly plan plus a grocery list, honoring
+      macros and dietary restrictions.
+- [ ] **HydrationTrackerEngine** — schedule/remind water intake based on weight,
+      activity level, and weather; extends the existing water target customization.
+- [ ] **ExercisePlanGenerator** — build a personalized weekly workout plan from
+      goal, fitness level, and available days; upgrades one-off `ActivityRecommendationEngine` suggestions.
+- [ ] **MoodAnalyzer** — light sentiment/emotion analysis over chatbot entries to
+      surface mood trends over time; integrates with `HealthChatbot` history.
+- [ ] **Weather-aware recommendations** — fold Open-Meteo data (already wired in
+      external API) into outdoor activity and hydration suggestions.
+- [ ] **Export / data portability** — download user history as CSV/JSON; low
+      implementation cost, high user trust value.
+- [ ] **Streaks & gamification** — streak counters and badges to reinforce habits;
+      builds on `daily_logs` timestamps.
+
+### Low Priority
+
+- [ ] **Feature store for the ML predictors** — cache engineered features so models
+      share a consistent input pipeline across `ProductivityPredictor`,
+      `SleepQualityPredictor`, and `RecoveryPredictor`.
+- [ ] **A/B flag for recommendation engines** — compare rule vs. ML outputs
+      before/after switchover; useful for evaluating new modules.
+- [ ] **Prompt-versioned chatbot** — keep a changelog of the Groq system prompt and
+      the rule-based responder for reproducibility.
 
 ## Completed
 

@@ -13,20 +13,19 @@ Shared helper functions used across blueprint modules:
 
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any
 
 from flask import jsonify, session
 
-from models.user_profile import UserProfile
-from models.meal import NutritionInfo, Meal, DailyNutritionLog
-from ai_modules import KnowledgeBase, NutritionAnalyzer, MealRecommendationEngine
+from ai_modules import KnowledgeBase, MealRecommendationEngine, NutritionAnalyzer
+from api.blueprints import state
 from api.blueprints.serialization_helpers import (
-    serialize_daily_log,
     deserialize_daily_log,
+    serialize_daily_log,
     user_from_doc,
 )
-
-from api.blueprints import state
+from models.meal import DailyNutritionLog, Meal, NutritionInfo
+from models.user_profile import UserProfile
 
 
 def error_response(message: str, code: str, status: int = 400, details: dict[str, Any] | None = None):
@@ -42,7 +41,7 @@ def error_response(message: str, code: str, status: int = 400, details: dict[str
 
 # Request validation helpers (centralised so blueprints stay consistent)
 
-def require_fields(data: dict, fields: list[str]) -> Optional[tuple]:
+def require_fields(data: dict, fields: list[str]) -> tuple | None:
     """Return an error_response tuple if any required field is missing."""
     missing = [f for f in fields if not data.get(f)]
     if missing:
@@ -54,8 +53,8 @@ def require_fields(data: dict, fields: list[str]) -> Optional[tuple]:
     return None
 
 
-def coerce_int(value, default: int = 0, minimum: Optional[int] = None,
-               maximum: Optional[int] = None) -> tuple[int, Optional[tuple]]:
+def coerce_int(value, default: int = 0, minimum: int | None = None,
+               maximum: int | None = None) -> tuple[int, tuple | None]:
     """Parse an int from form/query data; returns (value, error_response or None)."""
     try:
         result = int(value)
@@ -72,8 +71,8 @@ def coerce_int(value, default: int = 0, minimum: Optional[int] = None,
     return result, None
 
 
-def coerce_float(value, default: float = 0.0, minimum: Optional[float] = None,
-                 maximum: Optional[float] = None) -> tuple[float, Optional[tuple]]:
+def coerce_float(value, default: float = 0.0, minimum: float | None = None,
+                 maximum: float | None = None) -> tuple[float, tuple | None]:
     """Parse a float from form/query data; returns (value, error_response or None)."""
     try:
         result = float(value)
@@ -90,7 +89,7 @@ def coerce_float(value, default: float = 0.0, minimum: Optional[float] = None,
     return result, None
 
 
-def parse_iso_datetime(value: Optional[str], default: Optional[datetime] = None) -> datetime:
+def parse_iso_datetime(value: str | None, default: datetime | None = None) -> datetime:
     """Parse an ISO-8601 string into an aware (UTC) datetime; fall back to `default`."""
     if not value:
         return default or datetime.now(timezone.utc)
@@ -300,3 +299,5 @@ def load_all_user_history(user_id: str) -> None:
         state.productivity_sessions[user_id] = state.mongo_store.get_productivity_sessions(user_id)
     if user_id not in state.activity_logs:
         state.activity_logs[user_id] = state.mongo_store.get_activity_logs(user_id)
+    if user_id not in state.sleep_logs:
+        state.sleep_logs[user_id] = state.mongo_store.get_sleep_logs(user_id)

@@ -3,6 +3,7 @@
 import logging
 import time
 
+import config
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,7 +15,6 @@ TTL_SHORT = 300
 TTL_MEDIUM = 900
 TTL_LONG = 3600
 
-import config
 USDA_API_KEY = config.USDA_API_KEY
 RAPIDAPI_KEY = config.EXERCISEDB_API_KEY
 

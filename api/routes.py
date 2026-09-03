@@ -5,19 +5,21 @@ Route logic lives in api/blueprints/<domain>.py.
 
 import hmac
 import os
+
 from flask import Flask, render_template, request, session
 
-from api.blueprints.user import user_bp
+from api.blueprints.activity import activity_bp
 from api.blueprints.auth import auth_bp
-from api.blueprints.nutrition import nutrition_bp
-from api.blueprints.schedule import schedule_bp
 from api.blueprints.chat import chat_bp
 from api.blueprints.external import external_bp
 from api.blueprints.health import health_bp
-from api.blueprints.metrics import metrics_bp
-from api.blueprints.activity import activity_bp
 from api.blueprints.helpers import error_response
+from api.blueprints.metrics import metrics_bp
+from api.blueprints.nutrition import nutrition_bp
+from api.blueprints.schedule import schedule_bp
+from api.blueprints.sleep import sleep_bp
 from api.blueprints.trends import trends_bp
+from api.blueprints.user import user_bp
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -29,6 +31,7 @@ app = Flask(
 )
 
 import config
+
 app.secret_key = config.SECRET_KEY
 
 # Session cookie hardening
@@ -42,7 +45,7 @@ if config.SESSION_LIFETIME_MINUTES > 0:
     from datetime import timedelta
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=config.SESSION_LIFETIME_MINUTES)
 
-for bp in (user_bp, auth_bp, nutrition_bp, schedule_bp, chat_bp, external_bp, health_bp, metrics_bp, activity_bp, trends_bp):
+for bp in (user_bp, auth_bp, nutrition_bp, schedule_bp, chat_bp, external_bp, health_bp, metrics_bp, activity_bp, trends_bp, sleep_bp):
     app.register_blueprint(bp)
 
 
@@ -60,13 +63,13 @@ CSRF_WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
 def apply_session_expiry():
     """Give auth sessions a TTL and slide it forward while active."""
     if config.SESSION_LIFETIME_MINUTES <= 0:
-        return None
+        return
     if session.get('user_id'):
         session.permanent = True
         if config.SESSION_REFRESH:
             # Touch the session so PERMANENT_SESSION_LIFETIME slides forward.
             session.modified = True
-    return None
+    return
 
 
 @app.before_request

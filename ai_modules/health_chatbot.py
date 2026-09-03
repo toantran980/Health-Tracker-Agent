@@ -11,12 +11,13 @@ Two modes:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 import config
+
 GROQ_API_KEY = config.GROQ_API_KEY
 
 client   = None
@@ -25,7 +26,9 @@ provider = None
 
 def init_provider():
     global client, model, provider
-    if client is not None:
+    if provider == "local":
+        return
+    if provider == "groq" and client is not None:
         return
     if not GROQ_API_KEY:
         # No API key -> keyless rule-based fallback (no network, no dependency).
@@ -33,10 +36,12 @@ def init_provider():
         print("[Chatbot] Provider: local (keyless rule-based — no GROQ_API_KEY set).")
         return
     from groq import Groq
-    client   = Groq(api_key=GROQ_API_KEY)
+    if client is None:
+        client = Groq(api_key=GROQ_API_KEY)
     model    = "openai/gpt-oss-120b"  # Higher intelligence model with reasoning capabilities
     provider = "groq"
     print(f"[Chatbot] Provider: {provider}  |  Model: {model}")
+
 
 
 MAX_HISTORY_PAIRS = 20
@@ -88,9 +93,9 @@ class UserHealthSnapshot:
     water_target_ml: int   = 2500
 
     study_hours_today:      float           = 0.0
-    focus_score:            Optional[float] = None
-    sleep_hours_last_night: Optional[float] = None
-    weekly_adherence_pct:   Optional[float] = None
+    focus_score:            float | None = None
+    sleep_hours_last_night: float | None = None
+    weekly_adherence_pct:   float | None = None
 
     dietary_restrictions: list[str] = field(default_factory=list)
     active_insights:      list[str] = field(default_factory=list)
@@ -190,7 +195,7 @@ class HealthChatbot:
                 ],
             )
             reply = response.choices[0].message.content.strip()
-        except Exception as e:
+        except Exception as e: 
             self.history.pop()
             print(f"[Chatbot] Error: {e}")
             reply = "I'm having trouble connecting right now. Please try again."
@@ -287,7 +292,7 @@ class HealthChatbot:
             "water, sleep, focus, or workouts."
         )
 
-    def kb_reply(self) -> Optional[str]:
+    def kb_reply(self) -> str | None:
         """
         Ask the per-user KnowledgeBase for a recommendation drawn from the live
         snapshot facts. Returns a formatted suggestion, or None if no rule fires
@@ -317,7 +322,7 @@ class HealthChatbot:
             suggestion = rec.get("suggestion", "")
             explanation = self.knowledge_base.explain_recommendation(rec)
             return f"{suggestion}\n({explanation})".strip()
-        except Exception:
+        except Exception:  # noqa: BLE001
             return None
 
 
@@ -337,6 +342,7 @@ class HealthChatbot:
         self.history = clean[- (MAX_HISTORY_PAIRS * 2):]
 
     def get_provider(self) -> str:
+        init_provider()
         return provider or "none"
 
     def trim_history(self) -> None:

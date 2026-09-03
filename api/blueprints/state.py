@@ -5,16 +5,20 @@ Shared in-memory stores and singletons used across all blueprint modules.
 All dicts are module-level so mutations are visible everywhere.
 """
 
-from typing import Dict
+import logging
 
-from models.user_profile import UserProfile
-from models.meal import DailyNutritionLog
-from ai_modules import KnowledgeBase, NutritionAnalyzer, MealRecommendationEngine
+from ai_modules import (
+    KnowledgeBase,
+    MealRecommendationEngine,
+    NutritionAnalyzer,
+    RecoveryPredictor,
+    SleepQualityPredictor,
+)
 from ai_modules.health_chatbot import HealthChatbot
 from api.mongo_store import MongoStore
 from data.dataset_loader_v2 import load_food_database
-
-import logging
+from models.meal import DailyNutritionLog
+from models.user_profile import UserProfile
 
 # Load food DB once at startup
 log = logging.getLogger(__name__)
@@ -33,12 +37,15 @@ except Exception as exc:
 mongo_store = MongoStore.from_env()
 
 # In-memory stores
-users:               Dict[str, UserProfile]                  = {}
-daily_logs:          Dict[str, Dict[str, DailyNutritionLog]] = {}  # user_id -> date_str -> log
-knowledge_bases:     Dict[str, KnowledgeBase]                = {}
-nutrition_analyzers: Dict[str, NutritionAnalyzer]            = {}
-meal_recommenders:   Dict[str, MealRecommendationEngine]     = {}
-bot_sessions:        Dict[str, HealthChatbot]                = {}
-schedule_history:    Dict[str, list]                         = {}  # user_id -> saved schedules
-productivity_sessions: Dict[str, list]                       = {}  # user_id -> saved predictions
-activity_logs:       Dict[str, list]                         = {}  # user_id -> ActivityLog dicts
+users:                 dict[str, UserProfile]                  = {}
+daily_logs:            dict[str, dict[str, DailyNutritionLog]] = {}  # user_id -> date_str -> log
+knowledge_bases:       dict[str, KnowledgeBase]                = {}
+nutrition_analyzers:   dict[str, NutritionAnalyzer]            = {}
+meal_recommenders:     dict[str, MealRecommendationEngine]     = {}
+bot_sessions:          dict[str, HealthChatbot]                = {}
+schedule_history:      dict[str, list]                         = {}  # user_id -> saved schedules
+productivity_sessions: dict[str, list]                         = {}  # user_id -> saved predictions
+activity_logs:         dict[str, list]                         = {}  # user_id -> ActivityLog dicts
+sleep_logs:            dict[str, list]                         = {}  # user_id -> sleep log dicts
+sleep_predictors:      dict[str, SleepQualityPredictor]        = {}  # user_id -> SleepQualityPredictor
+recovery_predictors:   dict[str, RecoveryPredictor]            = {}  # user_id -> RecoveryPredictor

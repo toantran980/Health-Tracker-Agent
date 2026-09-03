@@ -1,6 +1,5 @@
 """User Profile Data Model"""
 from dataclasses import dataclass, field
-from typing import List, Dict
 from datetime import datetime
 from enum import Enum
 
@@ -41,12 +40,12 @@ class UserProfile:
     password_hash: str = ""   # werkzeug PBKDF2 hash; empty = password not set
 
     # Health goals
-    goals: List[Goal] = field(default_factory=lambda: [Goal.GENERAL_WELLNESS])
+    goals: list[Goal] = field(default_factory=lambda: [Goal.GENERAL_WELLNESS])
 
     # Dietary preferences
-    dietary_restrictions: List[str] = field(default_factory=list)  # "vegan", "gluten_free", …
-    allergies:            List[str] = field(default_factory=list)
-    preferred_cuisine:    List[str] = field(default_factory=list)
+    dietary_restrictions: list[str] = field(default_factory=list)  # "vegan", "gluten_free", …
+    allergies:            list[str] = field(default_factory=list)
+    preferred_cuisine:    list[str] = field(default_factory=list)
 
     # Daily nutrition targets
     target_calories:  int   = 2000
@@ -56,6 +55,10 @@ class UserProfile:
 
     # Hydration target (mL/day) — default per common guidance; user-configurable
     water_target_ml: int = 2500
+
+    # Milestone targets
+    target_weight_kg: float = 0.0                # 0.0 means unassigned / infer from goal
+    weekly_exercise_target_minutes: int = 150    # default per WHO benchmark
 
     # Study and work schedule
     work_hours_per_day:           int = 8
@@ -71,7 +74,7 @@ class UserProfile:
     current_weight_kg:    float = 0.0  # initialised in __post_init__
 
     # Behavioral history
-    daily_logs: List[Dict] = field(default_factory=list)
+    daily_logs: list[dict] = field(default_factory=list)
     created_at: datetime   = field(default_factory=datetime.now)
 
     # Post-init
@@ -120,7 +123,7 @@ class UserProfile:
             raise ValueError("activity_level must be positive.")
         return int(self.get_bmr() * activity_level)
 
-    def get_recommended_targets(self, activity_level: float = 1.5) -> Dict[str, float]:
+    def get_recommended_targets(self, activity_level: float = 1.5) -> dict[str, float]:
         """
         Derive evidence-based daily macro targets from TDEE and active goals.
 
@@ -152,7 +155,7 @@ class UserProfile:
         }
 
     # Serialization
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "user_id":               self.user_id,
             "name":                  self.name,
@@ -165,13 +168,15 @@ class UserProfile:
             "target_protein_g":      self.target_protein_g,
             "target_carbs_g":        self.target_carbs_g,
             "target_fat_g":          self.target_fat_g,
-            "water_target_ml":       self.water_target_ml,
-            "dietary_restrictions":  self.dietary_restrictions,
-            "allergies":             self.allergies,
-            "password_set":          bool(self.password_hash),
+            "water_target_ml":               self.water_target_ml,
+            "target_weight_kg":              self.target_weight_kg,
+            "weekly_exercise_target_minutes": self.weekly_exercise_target_minutes,
+            "dietary_restrictions":          self.dietary_restrictions,
+            "allergies":                     self.allergies,
+            "password_set":                  bool(self.password_hash),
         }
 
-    def to_public_dict(self) -> Dict:
+    def to_public_dict(self) -> dict:
         """Same as to_dict, guaranteed to never expose the password hash."""
         payload = self.to_dict()
         payload.pop("password_hash", None)

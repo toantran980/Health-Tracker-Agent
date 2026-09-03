@@ -15,8 +15,6 @@ from api.external_fitness_apis import (
     search_exercisedb,
 )
 
-
-
 __all__ = [
     "search_food_by_name",
     "get_food_by_barcode",
@@ -29,4 +27,3 @@ __all__ = [
     "usda_to_fooditem",
     "search_all_sources",
 ]
-
