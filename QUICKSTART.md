@@ -88,10 +88,6 @@ Retrain the productivity model (supports incremental updates):
   python models/train_model.py --save            # train + evaluate + persist
   python models/train_model.py --incremental     # merge new rows into saved model
 
-Run examples script:
-
-  python examples.py
-
 ## Notes
 
 - Nutrition logging/analysis and the chatbot require a login session (`POST /api/auth/login`). Passwords are hashed and never returned by the API.

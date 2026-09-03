@@ -78,7 +78,8 @@ Primary route groups:
 - External data: food, exercise, weather (rate-limited per client IP)
 - Health and metrics: liveness, service status, model metrics
 
-For exact endpoint list, see the startup log of [main.py](main.py) and [README.md](README.md).
+For the endpoint implementation, see the blueprint files under
+[api/blueprints](api/blueprints).
 
 ## Validation and Testing
 
@@ -92,10 +93,3 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - Time-based external integrations (rate limiter, TTL caches) are tested deterministically with small windows.
 - AI module evaluation data lives under [data/](data) (`training_data.csv`, `eval.csv`); they power the quantitative `ProductivityPredictor` tests.
 
-## Notes
-
-- This file is intentionally concise.
-- Operational commands are maintained in [QUICKSTART.md](QUICKSTART.md).
-- High-level feature and endpoint documentation is in [README.md](README.md).
-- Docker startup is hardened with service healthchecks and Mongo connection retries.
-- `models/train_model.py` supports fresh and `--incremental` training and can persist the model via `--save`.
