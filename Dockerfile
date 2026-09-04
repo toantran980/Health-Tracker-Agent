@@ -23,4 +23,4 @@ USER app
 
 EXPOSE 5001
 
-CMD ["python", "main.py"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "wsgi:app"]

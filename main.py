@@ -51,7 +51,7 @@ def main():
     logger.info("  POST   /api/chat/<user_id>/reset")
 
     try:
-        app.run(debug=debug, host=host, port=port)
+        app.run(debug=debug, host=host, port=port, use_reloader=False)
     except Exception as e:
         logger.error(f"Failed to start server: {e}")
         sys.exit(1)

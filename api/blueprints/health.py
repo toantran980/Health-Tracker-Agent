@@ -1,3 +1,4 @@
+import config
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
@@ -46,6 +47,41 @@ def health_check():
             "database": state.mongo_store.db_name if state.mongo_store.enabled else None,
         },
     }), 200
+
+
+@health_bp.route('/api/health/live', methods=['GET'])
+def health_live():
+    """Simple liveness check for load balancers and orchestration."""
+    return jsonify({
+        "status": "live",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }), 200
+
+
+@health_bp.route('/api/health/ready', methods=['GET'])
+def health_ready():
+    """Readiness check for deployment health probes."""
+    secret_ok = bool(config.SECRET_KEY)
+    mongo_ok = state.mongo_store.enabled
+    is_ready = secret_ok and (mongo_ok or not config.IS_PRODUCTION)
+    status_code = 200 if is_ready else 503
+
+    return jsonify({
+        "status": "ready" if is_ready else "not_ready",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "checks": {
+            "secret_key": secret_ok,
+            "mongodb": mongo_ok,
+            "memory_fallback": not state.mongo_store.enabled,
+            "production_mode": config.IS_PRODUCTION,
+        },
+        "database": {
+            "enabled": state.mongo_store.enabled,
+            "mode": "mongo" if state.mongo_store.enabled else "memory",
+            "uri": state.mongo_store.uri if state.mongo_store.enabled else None,
+            "database": state.mongo_store.db_name if state.mongo_store.enabled else None,
+        },
+    }), status_code
 
 
 @health_bp.route('/api/insights/<user_id>', methods=['GET'])

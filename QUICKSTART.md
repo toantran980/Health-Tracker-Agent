@@ -1,132 +1,234 @@
 # Quick Start
 
-Use this guide to run the latest version of the project (backend + frontend dashboard).
+This project runs as a Flask web app with a MongoDB-backed data layer, nutrition/activity tracking, scheduling, AI recommendations, and a frontend dashboard.
 
-## Run With Docker (Recommended)
+## Recommended setup
 
-Start app + MongoDB:
+Use one of these two paths:
 
-  docker compose up --build -d
-
-View logs:
-
-  docker compose logs -f app
-
-Stop containers:
-
-  docker compose down
-
-Stop and remove MongoDB volume:
-
-  docker compose down -v
+1. Local development
+2. Docker-based development / deployment
 
 ---
 
-## 1) Install (Manual/Python)
+## 1) Local development
 
-  cd `<path-to-Health-Tracker-Agent>`
-  python -m venv venv
+### 1.1 Create and activate a virtual environment
 
-# On Windows:
+Windows PowerShell:
 
-  .\venv\Scripts\activate
+```powershell
+cd <path-to-Health-Tracker-Agent>
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
 
-# On macOS/Linux:
+macOS/Linux:
 
-  source venv/bin/activate
-  pip install -r requirements.txt
+```bash
+cd <path-to-Health-Tracker-Agent>
+python -m venv venv
+source venv/bin/activate
+```
 
-If you already have `venv`, just activate it and run `pip install -r requirements.txt`.
+### 1.2 Install dependencies
 
-### Configure environment
+```powershell
+pip install -r requirements.txt
+```
 
-  Copy-Item .env.example .env   # Windows PowerShell
+### 1.3 Configure environment variables
 
-Edit `.env` and set `SECRET_KEY` (used to sign session cookies). MongoDB, TTL, and external API keys are optional — see `.env.example`.
+Copy the sample file:
 
-## 2) Start MongoDB (Recommended)
+```powershell
+Copy-Item .env.example .env
+```
 
-Make sure MongoDB is running locally before starting the API.
+Then edit `.env` and set the values you need.
 
-Default connection used by the app (override in `.env`):
+Important notes:
 
-- `MONGO_URI=mongodb://localhost:27017`
-- `MONGO_DB_NAME=health_tracker`
+- `SECRET_KEY` is required for signed Flask sessions.
+- `MONGO_URI` should normally point to `mongodb://localhost:27017` when running locally.
+- `USDA_API_KEY` is optional; if you do not want to request a USDA key, leave it blank and the app will still work using fallback data sources.
+- `GROQ_API_KEY`, `EXERCISEDB_API_KEY`, and `USDA_API_KEY` are optional external API keys.
 
-## **3) Start Server**
+### 1.4 Start MongoDB locally
 
-  python main.py
+Make sure MongoDB is running before starting the app.
 
-Server default: `http://localhost:5001`
+Typical local connection:
 
-## 4) Open App
+```dotenv
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB_NAME=health_tracker
+```
 
-- Frontend dashboard: `http://localhost:5001/`
-- Health check: `http://localhost:5001/api/health`
+### 1.5 Run the app
 
-## 5) Quick Demo Flow
+```powershell
+python main.py
+```
 
-1. Create user from **User** tab — set a **password** when creating.
-2. Log in via the **Session Login** form (same tab).
-3. Switch to **Nutrition** tab, log one meal (requires the session).
-4. Run nutrition analysis and macro recommendations.
-5. Switch to **Schedule** tab, add tasks and optimize; view schedule history.
-6. Run productivity prediction; view saved productivity sessions.
-7. **Activity** tab: log an activity, then view logs and trends.
-8. Switch to **Chatbot** tab, send one message (requires the session).
-9. View **Trends** tab for charts (updates as you log data).
-10. Show final evaluation metrics relative absolute error (RAE).
+Open:
 
-## 6) Useful Commands
+- Frontend: http://localhost:5001/
+- Health check: http://localhost:5001/api/health
 
-Run tests:
+---
 
-  python -m unittest discover -s tests -p "test_*.py" -v
+## 2) Docker development / deployment
 
-Retrain the productivity model (supports incremental updates):
+This project includes Docker support for the app and MongoDB.
 
-  python models/train_model.py --save            # train + evaluate + persist
-  python models/train_model.py --incremental     # merge new rows into saved model
+### 2.1 Start the stack
 
-## Notes
+```powershell
+docker compose up --build -d
+```
 
-- Nutrition logging/analysis and the chatbot require a login session (`POST /api/auth/login`). Passwords are hashed and never returned by the API.
-- User profiles, daily meal logs, schedules, productivity sessions, and activity logs are persisted in MongoDB when available.
+### 2.2 View logs
+
+```powershell
+docker compose logs -f app
+```
+
+### 2.3 Stop the stack
+
+```powershell
+docker compose down
+```
+
+### 2.4 Remove MongoDB data volume
+
+```powershell
+docker compose down -v
+```
+
+---
+
+## 3) Production-style environment
+
+For a non-local deployment, use the production template:
+
+```powershell
+Copy-Item .env.production.example .env.production
+```
+
+Then edit `.env.production` and set:
+
+- a strong `SECRET_KEY`
+- production MongoDB connection
+- real API keys if needed
+- secure cookie settings
+- `DEBUG=False`
+
+Then run:
+
+```powershell
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml up --build -d
+```
+
+To stop it:
+
+```powershell
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml down
+```
+
+---
+
+## 4) Quick demo flow
+
+1. Open the app and create a user from the User tab.
+2. Set a password when creating the account.
+3. Log in using the session login form.
+4. Go to Nutrition and log one meal.
+5. Run nutrition analysis and macro recommendations.
+6. Go to Schedule and optimize a task list.
+7. Run productivity prediction and review saved sessions.
+8. Log an activity in the Activity tab and review trends.
+9. Open the Chatbot tab and send a message.
+10. Check the Trends tab for generated charts and health insights.
+
+---
+
+## 5) Useful commands
+
+Run the full unit test suite:
+
+```powershell
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+Retrain the productivity model:
+
+```powershell
+python models/train_model.py --save
+```
+
+Incrementally update the saved model:
+
+```powershell
+python models/train_model.py --incremental
+```
+
+---
+
+## 6) Notes
+
+- Nutrition logging, scheduling endpoints, and chat features require a valid logged-in session.
+- Passwords are hashed before storage and are never returned by API responses.
+- User, meal, schedule, and activity data are persisted in MongoDB when available.
 - If MongoDB is unavailable, the app falls back to in-memory storage.
-- External API lookups (weather/food/exercise) use in-memory TTL caching and are rate-limited per client IP.
-- API errors return a consistent envelope: `{"error": "...", "code": "..."}`.
-- Frontend includes Chart.js trend charts and row-based Task Builder.
-- Frontend disables controls during requests and shows clearer inline error banners.
-- Schedule optimize accepts both task styles:
-  - `title` + `duration_minutes` + `deadline_days`
-  - `name` + `duration_min` + `deadline`
+- External APIs use TTL caching and rate limiting.
+- API responses follow a consistent error format: `{ "error": "...", "code": "..." }`.
+- The app supports both local host runs and Docker-based runs.
 
-## Troubleshooting
+---
 
-### PowerShell execution policy issue
+## 7) Troubleshooting
 
-# Only needed on Windows PowerShell:
+### PowerShell execution policy on Windows
 
-  Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+```
 
 ### Port already in use
 
-# On Windows:
+If port 5001 is already occupied:
 
-  $env:PORT=5002
-  python main.py
+```powershell
+$env:PORT=5002
+python main.py
+```
 
-# On macOS/Linux:
+On macOS/Linux:
 
-  export PORT=5002
-  python main.py
+```bash
+export PORT=5002
+python main.py
+```
 
-### Import or dependency errors
+### Dependency/import errors
 
-  pip install -r requirements.txt
+```powershell
+pip install -r requirements.txt
+```
+
+### MongoDB connection issues
+
+- Check that MongoDB is running.
+- Confirm the `MONGO_URI` in `.env` is correct.
+- If running in Docker, use the container service name instead of `localhost`.
 
 ### Docker startup delays
 
-`docker-compose.yml` includes healthchecks and startup ordering; wait until both services are healthy:
+Wait for health checks and container readiness:
 
-  docker compose ps
+```powershell
+docker compose ps
+```
+
+---

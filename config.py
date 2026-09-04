@@ -1,23 +1,31 @@
 import os
+import secrets
 from dotenv import load_dotenv
 
 # Load environment variables from .env file if it exists
 load_dotenv()
 
+ENVIRONMENT = os.getenv("APP_ENV", os.getenv("FLASK_ENV", "development")).lower()
+IS_PRODUCTION = ENVIRONMENT == "production"
+
 # Server Settings
 PORT = int(os.getenv("PORT", "5001"))
 HOST = os.getenv("HOST", "0.0.0.0")
-DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+DEBUG = os.getenv("DEBUG", str(not IS_PRODUCTION)).lower() == "true"
 # Developer mode enables diagnostics such as the raw API output console.
 DEVELOPER_MODE = os.getenv("DEVELOPER_MODE", str(DEBUG)).lower() == "true"
 SHOW_API_OUTPUT = os.getenv("SHOW_API_OUTPUT", str(DEVELOPER_MODE)).lower() == "true"
 
 # Secret key for signed session cookies (required for /api/auth/login).
-# Override in .env before exposing the server publicly.
-SECRET_KEY = os.getenv("SECRET_KEY", os.getenv("FLASK_SECRET_KEY", "dev-secret-change-me"))
+# In production, a real secret must be provided via environment variables.
+SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY")
+if not SECRET_KEY:
+    if IS_PRODUCTION:
+        raise RuntimeError("SECRET_KEY must be set in production mode.")
+    SECRET_KEY = secrets.token_hex(32)
 
 # Session cookie hardening.
-SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", str(IS_PRODUCTION).lower()).lower() == "true"
 SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
 SESSION_COOKIE_HTTPONLY = os.getenv("SESSION_COOKIE_HTTPONLY", "true").lower() == "true"
 

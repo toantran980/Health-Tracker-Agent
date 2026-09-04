@@ -7,6 +7,7 @@ import hmac
 import os
 
 from flask import Flask, render_template, request, session
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from api.blueprints.activity import activity_bp
 from api.blueprints.auth import auth_bp
@@ -32,7 +33,16 @@ app = Flask(
 
 import config
 
+app.wsgi_app = ProxyFix(
+    app.wsgi_app,
+    x_for=1,
+    x_proto=1,
+    x_host=1,
+    x_port=1,
+    x_prefix=1,
+)
 app.secret_key = config.SECRET_KEY
+app.config['PREFERRED_URL_SCHEME'] = 'https' if config.IS_PRODUCTION else 'http'
 
 # Session cookie hardening
 app.config['SESSION_COOKIE_SECURE'] = config.SESSION_COOKIE_SECURE

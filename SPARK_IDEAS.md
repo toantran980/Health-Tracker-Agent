@@ -1,10 +1,27 @@
 # Spark Ideas — AI Modules & Features
 
 Brainstorm of potential new AI modules and features for the Health & Wellness
-Tracker. Items are unordered ideas, not committed roadmap items — move anything
-you decide to build into `TODO.md`'s Open/Next section.
+Tracker. Items are intentionally unordered and are not commitments. Before
+promoting an idea into `TODO.md`, check that it has a clear user problem, a
+reliable data source, a measurable success metric, an acceptable privacy cost,
+and a realistic maintenance plan.
 
 <!-- Previous batch promoted to TODO.md → Open / Next on 2026-09-02 -->
+
+## Promotion checklist
+
+Move an idea to `TODO.md` only when:
+
+- [ ] the target user and problem are specific;
+- [ ] required data, permissions, and external services are identified;
+- [ ] a small first version can be tested without building the whole system;
+- [ ] health-safety, privacy, and abuse risks have an owner;
+- [ ] success and failure can be measured; and
+- [ ] the operational cost is acceptable for the planned launch stage.
+
+Ideas that need new data, medical interpretation, social features, or ongoing
+background jobs should remain here until the foundation work in `TODO.md` is
+complete.
 
 ---
 

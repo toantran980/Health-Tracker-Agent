@@ -8,15 +8,23 @@ services:
       mongo:
         condition: service_healthy
     environment:
+      APP_ENV: production
       HOST: 0.0.0.0
       PORT: 5001
       DEBUG: "False"
+      DEVELOPER_MODE: "False"
+      SHOW_API_OUTPUT: "False"
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in your environment or .env file}
+      SESSION_COOKIE_SECURE: "True"
+      SESSION_COOKIE_SAMESITE: Lax
+      SESSION_COOKIE_HTTPONLY: "True"
       MONGO_URI: mongodb://health-tracker-mongo:27017/health_tracker
       MONGO_DB_NAME: health_tracker
+      GUNICORN_WORKERS: "2"
     ports:
       - "5001:5001"
     volumes:
-      - .:/app                        
+      - .:/app
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/api/health', timeout=3)"]
       interval: 15s

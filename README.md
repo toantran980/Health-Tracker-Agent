@@ -128,6 +128,7 @@ python -m unittest discover -s tests -p "test_*.py" -v
 ## More Documentation
 
 - [QUICKSTART.md](QUICKSTART.md): demo flow, model commands, and troubleshooting
+- [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md): reverse-proxy HTTPS, Gunicorn, and secrets setup
 - [IMPLEMENTATION.md](IMPLEMENTATION.md): architecture, security, persistence, and API behavior
 - [CONFIGURATION.md](CONFIGURATION.md): environment variables and deployment settings
 - [TODO.md](TODO.md): active roadmap and completed work
