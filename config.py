@@ -8,6 +8,9 @@ load_dotenv()
 PORT = int(os.getenv("PORT", "5001"))
 HOST = os.getenv("HOST", "0.0.0.0")
 DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+# Developer mode enables diagnostics such as the raw API output console.
+DEVELOPER_MODE = os.getenv("DEVELOPER_MODE", str(DEBUG)).lower() == "true"
+SHOW_API_OUTPUT = os.getenv("SHOW_API_OUTPUT", str(DEVELOPER_MODE)).lower() == "true"
 
 # Secret key for signed session cookies (required for /api/auth/login).
 # Override in .env before exposing the server publicly.

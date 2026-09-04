@@ -165,6 +165,7 @@ class HealthChatbot:
         self.snapshot = snapshot
         self.knowledge_base = knowledge_base
         self.history: list[dict] = []
+        self.last_source = "unknown"
 
     def update_snapshot(self, snapshot: UserHealthSnapshot) -> None:
         """Adopt a fresh snapshot (live metrics) without losing conversation."""
@@ -176,6 +177,7 @@ class HealthChatbot:
         self.trim_history()
 
         if provider == "local":
+            self.last_source = "local"
             reply = self.local_reply(user_message)
             self.history.append({"role": "assistant", "content": reply})
             return reply
@@ -195,10 +197,12 @@ class HealthChatbot:
                 ],
             )
             reply = response.choices[0].message.content.strip()
+            self.last_source = "groq"
         except Exception as e: 
             self.history.pop()
             print(f"[Chatbot] Error: {e}")
             reply = "I'm having trouble connecting right now. Please try again."
+            self.last_source = "error"
 
         self.history.append({"role": "assistant", "content": reply})
         return reply
@@ -306,7 +310,8 @@ class HealthChatbot:
                 "daily_calories":          s.calories_today,
                 "daily_protein":           s.protein_g,
                 "energy_level":            s.focus_score if s.focus_score is not None else 5,
-                "sleep_hours":             s.sleep_hours_last_night if s.sleep_hours_last_night is not None else 0,
+                # Missing measurements must not satisfy a sleep-deficit rule.
+                "sleep_hours":             s.sleep_hours_last_night if s.sleep_hours_last_night is not None else 8,
                 "upcoming_difficulty":     5,
                 "recent_session_duration": s.study_hours_today * 60,
                 "macro_balance":           "balanced",
@@ -315,15 +320,17 @@ class HealthChatbot:
                 "adherence_rate":          (s.weekly_adherence_pct or 0) / 100.0,
             })
             recs = self.knowledge_base.get_top_recommendations(n=1)
-            self.knowledge_base.clear_facts()
             if not recs:
                 return None
             rec = recs[0]
+            self.last_source = "knowledge_base"
             suggestion = rec.get("suggestion", "")
             explanation = self.knowledge_base.explain_recommendation(rec)
             return f"{suggestion}\n({explanation})".strip()
         except Exception:  # noqa: BLE001
             return None
+        finally:
+            self.knowledge_base.clear_facts()
 
 
 

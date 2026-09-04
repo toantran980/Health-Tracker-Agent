@@ -4,6 +4,8 @@ import { toastContainerEl, statusBannerEl, chatMessagesEl } from './dom.js';
 export function writeOutput(title, data) {
   const outputEl = document.getElementById('output');
   if (outputEl) {
+    const developerMode = document.body.dataset.developerMode === 'true';
+    if (!developerMode) outputEl.replaceChildren();
     // Remove placeholder if it exists
     const placeholder = outputEl.querySelector('.output-placeholder');
     if (placeholder) placeholder.remove();

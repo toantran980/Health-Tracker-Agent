@@ -6,22 +6,41 @@
   <title>AI Health & Wellness Tracker</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body>
+<body data-developer-mode="{{ 'true' if developer_mode else 'false' }}">
   <div class="page-bg"></div>
   <div class="noise-layer" aria-hidden="true"></div>
   <main class="container">
-    <section class="panel command-deck" aria-label="Connection and output console">
-      <div class="command-grid">
-        <label>API Base URL<input id="apiBase" type="text" placeholder="http://127.0.0.1:5001"></label>
-        <label>Active User ID<input id="activeUserId" type="text" placeholder="Create a user to auto-fill"></label>
-        <p class="hint deck-hint">Tip: these fields persist in your browser so you can continue from your last session.</p>
+    <section class="panel command-deck{% if not developer_mode %} client-mode{% endif %}" aria-label="Connection settings{% if show_api_output %} and output console{% endif %}">
+      <label class="developer-mode-toggle" title="Show or hide developer API diagnostics">
+        <span>Developer mode</span>
+        <input id="toggleApiOutput" type="checkbox"{% if show_api_output %} checked{% endif %}>
+        <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+      </label>
+      <div class="auth-mode-tabs" role="tablist" aria-label="Account access">
+        <button class="auth-mode-tab active" type="button" data-auth-mode="login">Log in</button>
+        {% if not developer_mode %}<button class="auth-mode-tab" type="button" data-auth-mode="register">Register</button>{% endif %}
       </div>
-      <div class="subpanel output-panel">
+      <div class="command-grid">
+        <label class="developer-api-control"{% if not show_api_output %} style="display: none;"{% endif %}>API Base URL<input id="apiBase" type="text" placeholder="http://127.0.0.1:5001"></label>
+      </div>
+      <div class="subpanel session-login-top">
+        <h3>Session Login</h3>
+        <form id="loginForm" class="grid three" novalidate>
+          <label>User ID<input name="user_id" type="text" placeholder="Active User ID"></label>
+          <label>Password<input name="password" type="password" placeholder="Your password"></label>
+          <div class="actions span-1">
+            <button class="btn primary" type="submit">Log In</button>
+            <button id="btnLogout" class="btn" type="button">Log Out</button>
+          </div>
+        </form>
+        <p id="authStatus" class="hint" hidden>Checking session...</p>
+      </div>
+      <div id="outputPanel" class="subpanel output-panel"{% if not show_api_output %} style="display: none;"{% endif %}>
         <div class="output-header">
           <h3>Live API Output</h3>
           <div class="output-controls">
             <span class="pill">JSON stream</span>
-            <button id="clearOutput" class="btn" type="button" style="padding: 4px 8px; font-size: 11px;">Clear</button>
+            {% if developer_mode %}<button id="clearOutput" class="btn" type="button" style="padding: 4px 8px; font-size: 11px;">Clear</button>{% endif %}
           </div>
         </div>
         <pre id="output"><div class="output-placeholder">Run any action to see the response payload here.</div></pre>
@@ -35,7 +54,6 @@
       <h1>AI Health & Wellness Tracker</h1>
       <p class="subtitle">Manage users, meals, productivity, scheduling, and chatbot interactions from one dashboard.</p>
       <nav class="hero-nav" aria-label="Page sections">
-        <button class="hero-link active" data-target="section-user" type="button">User</button>
         <button class="hero-link" data-target="section-nutrition" type="button">Nutrition</button>
         <button class="hero-link" data-target="section-schedule" type="button">Schedule</button>
         <button class="hero-link" data-target="section-activity" type="button">Activity</button>
@@ -99,20 +117,9 @@
       </div>
     </section>
 
-    <section id="section-user" class="panel tab-section">
-      <h2>Session Login</h2>
-      <form id="loginForm" class="grid three" novalidate>
-        <label>User ID<input name="user_id" type="text" placeholder="Active User ID"></label>
-        <label>Password<input name="password" type="password" placeholder="Your password"></label>
-        <div class="actions span-1">
-          <button class="btn primary" type="submit">Log In</button>
-          <button id="btnLogout" class="btn" type="button">Log Out</button>
-        </div>
-      </form>
-      <p id="authStatus" class="hint">Checking session...</p>
-      <p class="hint">Log in to use nutrition logging/analysis and the chatbot. No account yet? Create one below.</p>
-
-      <h2 style="margin-top: 1.2rem;">Create User</h2>
+    <section id="section-user" class="panel tab-section tab-hidden">
+      {% if not developer_mode %}
+      <h2 id="registerHeading">Create User</h2>
       <form id="createUserForm" class="grid three" novalidate>
         <label>Name<input name="name" type="text" placeholder="e.g. Alex"></label>
         <label>Age<input name="age" type="number" placeholder="e.g. 25" min="1" max="120"></label>
@@ -145,6 +152,7 @@
           <button id="btnGetUser" class="btn" type="button">Get Active User</button>
         </div>
       </form>
+      {% endif %}
     </section>
 
     <section id="section-nutrition" class="panel tab-section tab-hidden">
@@ -248,7 +256,7 @@
             The AI analyzes your logged meals, focus scores, sleep hours, and goals to suggest the most suitable physical activities for your current state.
           </p>
           <p style="color: var(--muted); font-size: 14px; line-height: 1.6;">
-            Results appear in the <strong>Live API Output</strong> panel at the top of the page.
+            Results appear in the dashboard after the request completes.
           </p>
         </div>
       </div>
@@ -297,6 +305,14 @@
             <button id="btnInsights" class="btn" type="button">Get Health Insights</button>
             <button id="btnKnowledgeRecs" class="btn" type="button">Get KB Recommendations</button>
           </div>
+          <div class="inline-fields insight-actions">
+            <button id="btnHealthRisks" class="btn" type="button">Health Risks</button>
+            <button id="btnRecovery" class="btn" type="button">Recovery</button>
+            <button id="btnGoals" class="btn" type="button">Goal Progress</button>
+            <button id="btnDigest" class="btn" type="button">Weekly Digest</button>
+            <button id="btnSleepPredict" class="btn" type="button">Sleep Quality</button>
+          </div>
+          <div id="insightResult" class="insight-result" aria-live="polite"></div>
           <details style="margin-top:1em;">
             <summary>KB Recommendation Inputs (optional)</summary>
             <div id="kb-inputs" class="grid two compact" style="margin-top:0.5em;">

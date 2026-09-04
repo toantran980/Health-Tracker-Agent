@@ -26,7 +26,12 @@ Use a strong, unique value outside local development. Never commit `.env`.
 - `HOST`: bind address; defaults to `0.0.0.0`.
 - `PORT`: application port; defaults to `5001`.
 - `DEBUG`: enables Flask debug mode; defaults to `True` locally and is disabled
-  by Docker Compose.
+  in Docker/production.
+- `DEVELOPER_MODE`: enables developer diagnostics; defaults to the value of
+  `DEBUG`.
+- `SHOW_API_OUTPUT`: shows the raw JSON API console in the dashboard. Defaults
+  to `DEVELOPER_MODE`; set it to `true` when API diagnostics are needed without
+  enabling the rest of developer mode.
 
 ## MongoDB
 

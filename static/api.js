@@ -2,6 +2,7 @@ import { apiBaseEl, activeUserEl } from './dom.js';
 import { writeOutput } from './ui.js';
 
 let csrfToken = null;
+let sessionUserId = '';
 
 export function getApiBase() {
   const savedBase = localStorage.getItem('apiBase');
@@ -10,9 +11,14 @@ export function getApiBase() {
 }
 
 export function getActiveUserId() {
-  const userId = activeUserEl ? activeUserEl.value.trim() : '';
+  const userId = activeUserEl ? activeUserEl.value.trim() : sessionUserId;
   if (!userId) throw new Error('Active User ID is required for this action.');
   return userId;
+}
+
+export function setSessionUserId(userId) {
+  sessionUserId = (userId || '').trim();
+  if (activeUserEl) activeUserEl.value = sessionUserId;
 }
 
 /**
@@ -110,11 +116,13 @@ export async function login(userId, password) {
   if (!password) throw new Error('Password is required to log in.');
   const payload = await apiRequest('/api/auth/login', { method: 'POST', body: { user_id: userId, password }, skipCsrf: true });
   if (payload.csrf_token) setCsrfToken(payload.csrf_token);
+  setSessionUserId(payload.user_id);
   return payload;
 }
 
 export async function logout() {
   const payload = await apiRequest('/api/auth/logout', { method: 'POST' });
   setCsrfToken(null);
+  setSessionUserId('');
   return payload;
 }

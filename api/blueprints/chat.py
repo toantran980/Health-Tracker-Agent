@@ -74,6 +74,7 @@ def chat(user_id):
     return jsonify({
         "reply": reply,
         "provider": bot.get_provider(),
+        "source": bot.last_source,
     }), 200
 
 

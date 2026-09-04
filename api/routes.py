@@ -97,7 +97,11 @@ def enforce_csrf():
 @app.route('/', methods=['GET'])
 def index():
     """Serve the single-page frontend application."""
-    return render_template('index.html')
+    return render_template(
+        'index.html',
+        show_api_output=config.SHOW_API_OUTPUT,
+        developer_mode=config.DEVELOPER_MODE,
+    )
 
 
 if __name__ == '__main__':

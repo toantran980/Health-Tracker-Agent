@@ -724,6 +724,32 @@ class TestKeylessChatbotFallback(unittest.TestCase):
         reply = self.chat("tell me about the weather")
         self.assertIn("general wellness tip", reply)
 
+    def test_kb_reply_uses_available_snapshot_facts(self):
+        self.bot.snapshot.calories_today = 3000
+        self.bot.knowledge_base = KnowledgeBase(UserProfile(
+            user_id="test",
+            name="Tester",
+            age=25,
+            weight_kg=82,
+            height_cm=180,
+            goals=[Goal.WEIGHT_LOSS],
+        ))
+        reply = self.chat("what should I change today?")
+        self.assertIn("Daily intake exceeds target", reply)
+        self.assertEqual(self.bot.knowledge_base.facts, {})
+
+    def test_kb_does_not_invent_sleep_deficit(self):
+        self.bot.knowledge_base = KnowledgeBase(UserProfile(
+            user_id="test",
+            name="Tester",
+            age=25,
+            weight_kg=82,
+            height_cm=180,
+            goals=[Goal.ENERGY_OPTIMIZATION],
+        ))
+        reply = self.chat("what should I change today?")
+        self.assertNotIn("Current sleep: 0h", reply)
+
     def test_substring_does_not_cause_false_positive(self):
         # "weather" used to match "eat" as a substring; ensure no crash/misroute.
         reply = self.chat("tell me about the weather")

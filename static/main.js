@@ -1,6 +1,6 @@
 import { apiBaseEl, activeUserEl } from './dom.js';
 import { appMetrics } from './state.js';
-import { apiRequest, requestForActiveUser, getActiveUserId, getAuthStatus, login, logout } from './api.js';
+import { apiRequest, requestForActiveUser, getActiveUserId, getAuthStatus, setSessionUserId, login, logout } from './api.js';
 import { initTabs, setChatEmptyState, refreshKpis, writeOutput, showToast, switchTab, appendChatMessage, removeLastChatMessage, showStatusBanner } from './ui.js';
 import { initCharts, addTrendPoint, setTrendData } from './charts.js';
 import { initTaskBuilder, collectTasks } from './tasks.js';
@@ -26,6 +26,11 @@ const PROTECTED_CONTROL_IDS = [
   'btnResetChat',
   'btnInsights',
   'btnKnowledgeRecs',
+  'btnHealthRisks',
+  'btnRecovery',
+  'btnGoals',
+  'btnDigest',
+  'btnSleepPredict',
   'btnActivityRecs',
   'activityLogForm',
   'btnActivityLogs',
@@ -149,17 +154,21 @@ async function updateAuthStatus() {
   if (!el) return;
   const { ok, payload } = await getAuthStatus();
   if (!ok) {
+    el.hidden = false;
     el.textContent = 'Session could not be checked (is the server running?).';
     return;
   }
   if (payload && payload.authenticated) {
+    setSessionUserId(payload.user_id);
+    el.hidden = false;
     el.textContent = `Logged in as: ${payload.user_id}`;
     el.style.color = 'var(--success, #2ecc71)';
     el.title = '';
   } else {
-    el.textContent = 'Not logged in';
-    el.style.color = 'var(--warn, #f1c40f)';
-    el.title = 'Log in to use nutrition/logging/chat.';
+    setSessionUserId('');
+    el.hidden = true;
+    el.textContent = '';
+    el.title = '';
   }
   setAuthGate(!!(payload && payload.authenticated));
   if (payload && payload.authenticated && payload.user_id) {
@@ -311,6 +320,39 @@ bindClick('btnInsights', async () => {
   showToast('Insights generated.', 'info');
 });
 
+function showInsightResult(title, payload) {
+  const result = document.getElementById('insightResult');
+  if (!result) return;
+  const entries = Object.entries(payload || {})
+    .filter(([key, value]) => !['user_id', 'assessed_at'].includes(key) && value !== null && typeof value !== 'object')
+    .slice(0, 6);
+  result.replaceChildren();
+  const heading = document.createElement('strong');
+  heading.textContent = title;
+  result.appendChild(heading);
+  if (!entries.length) {
+    result.appendChild(document.createTextNode(' Ready for more logged data.'));
+    return;
+  }
+  entries.forEach(([key, value]) => {
+    const line = document.createElement('span');
+    line.textContent = `${key.replaceAll('_', ' ')}: ${value}`;
+    result.appendChild(line);
+  });
+}
+
+async function loadInsight(title, path) {
+  const payload = await requestForActiveUser(title, path);
+  showInsightResult(title, payload);
+  showToast(`${title} ready.`, 'info');
+}
+
+bindClick('btnHealthRisks', () => loadInsight('Health Risks', (userId) => `/api/health-risks/${userId}`));
+bindClick('btnRecovery', () => loadInsight('Recovery Readiness', (userId) => `/api/recovery/${userId}`));
+bindClick('btnGoals', () => loadInsight('Goal Progress', (userId) => `/api/goals/${userId}`));
+bindClick('btnDigest', () => loadInsight('Weekly Digest', (userId) => `/api/digest/${userId}`));
+bindClick('btnSleepPredict', () => loadInsight('Sleep Quality', (userId) => `/api/sleep/predict/${userId}`));
+
 bindClick('btnKnowledgeRecs', async () => {
   const getVal = (id, fallback) => {
     const el = document.getElementById(id);
@@ -393,6 +435,37 @@ setChatEmptyState();
 refreshKpis();
 updateAuthStatus();
 
+document.querySelectorAll('[data-auth-mode]').forEach((tab) => {
+  const userSection = document.getElementById('section-user');
+  const commandDeck = document.querySelector('.command-deck');
+  const loginPanel = document.querySelector('.session-login-top');
+  const registerPlaceholder = userSection ? document.createComment('registration location') : null;
+  if (userSection && registerPlaceholder) userSection.parentNode.insertBefore(registerPlaceholder, userSection);
+
+  tab.addEventListener('click', () => {
+    const mode = tab.dataset.authMode;
+    document.querySelectorAll('[data-auth-mode]').forEach((item) => {
+      item.classList.toggle('active', item.dataset.authMode === mode);
+    });
+    if (mode === 'register') {
+      if (commandDeck && userSection) {
+        commandDeck.classList.add('auth-register-mode');
+        loginPanel?.setAttribute('hidden', '');
+        userSection.classList.remove('tab-hidden');
+        commandDeck.appendChild(userSection);
+      }
+    } else {
+      if (commandDeck && userSection && registerPlaceholder) {
+        commandDeck.classList.remove('auth-register-mode');
+        loginPanel?.removeAttribute('hidden');
+        registerPlaceholder.parentNode.insertBefore(userSection, registerPlaceholder.nextSibling);
+        userSection.classList.add('tab-hidden');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+});
+
 // Refresh trends from persisted data when the time range changes or Refresh is clicked.
 window.addEventListener('trends-refresh', () => {
   const userId = getActiveUserId();
@@ -413,6 +486,27 @@ document.getElementById('clearOutput')?.addEventListener('click', () => {
   if (outputEl) {
     outputEl.innerHTML = '<div class="output-placeholder">Run any action to see the response payload here.</div>';
   }
+});
+
+const apiOutputToggle = document.getElementById('toggleApiOutput');
+const savedApiOutput = localStorage.getItem('showApiOutput');
+if (apiOutputToggle && (savedApiOutput === 'true' || savedApiOutput === 'false')) {
+  apiOutputToggle.checked = savedApiOutput === 'true';
+  const outputPanel = document.getElementById('outputPanel');
+  if (outputPanel) outputPanel.style.display = apiOutputToggle.checked ? '' : 'none';
+  document.querySelectorAll('.developer-api-control').forEach((control) => {
+    control.style.display = apiOutputToggle.checked ? '' : 'none';
+  });
+}
+
+apiOutputToggle?.addEventListener('change', (event) => {
+  const outputPanel = document.getElementById('outputPanel');
+  if (!outputPanel) return;
+  outputPanel.style.display = event.target.checked ? '' : 'none';
+  document.querySelectorAll('.developer-api-control').forEach((control) => {
+    control.style.display = event.target.checked ? '' : 'none';
+  });
+  localStorage.setItem('showApiOutput', event.target.checked ? 'true' : 'false');
 });
 window.addEventListener('auth-required', () => {
   setAuthGate(false);
