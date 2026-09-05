@@ -55,11 +55,24 @@ class ScheduleOptimizer:
 
         sorted_tasks = self.sort_tasks(tasks)
 
-        # Pre-compute available slots per task (expensive — do it once)
-        slots_cache: Dict[int, List[TimeSlot]] = {
-            i: self.get_available_slots(t["duration_min"])
-            for i, t in enumerate(sorted_tasks)
-        }
+        # Keep the productivity shortlist for large searches, but include
+        # every slot that satisfies a soft constraint so scoring can compare
+        # those candidates too.
+        soft_constraints = [
+            entry for entry in self.constraints if entry.ctype == Constraint.SOFT
+        ]
+        slots_cache: Dict[int, List[TimeSlot]] = {}
+        for i, task in enumerate(sorted_tasks):
+            slots = self.get_available_slots(task["duration_min"])
+            if soft_constraints:
+                all_slots = self.get_available_slots(task["duration_min"], max_slots=None)
+                shortlisted = {repr(slot) for slot in slots}
+                slots.extend(
+                    slot for slot in all_slots
+                    if repr(slot) not in shortlisted
+                    and any(entry.func(task, slot) for entry in soft_constraints)
+                )
+            slots_cache[i] = slots
 
         # Map tasks to their index so we can key into the cache
         indexed_tasks = list(enumerate(sorted_tasks))
@@ -72,7 +85,9 @@ class ScheduleOptimizer:
         # Fallback: greedy linear assignment across the week
         return self.fallback_schedule(sorted_tasks)
 
-    def get_available_slots(self, duration_minutes: int, max_slots: int = 20) -> List[TimeSlot]:
+    def get_available_slots(
+        self, duration_minutes: int, max_slots: Optional[int] = 20
+    ) -> List[TimeSlot]:
         """
         Return time slots (sorted best-first by productivity) that are free
         and long enough to hold `duration_minutes`.
@@ -94,7 +109,7 @@ class ScheduleOptimizer:
                 hour += 0.5  # 30-minute resolution
 
         available.sort(key=lambda s: s.productivity_factor, reverse=True)
-        return available[:max_slots]
+        return available if max_slots is None else available[:max_slots]
 
     # Internal helpers
 
