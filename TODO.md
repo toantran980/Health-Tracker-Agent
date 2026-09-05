@@ -79,6 +79,14 @@ every few months; do not build a feature only because it appears in the list.
 
 ### Phase 3: Responsible intelligence
 
+- [ ] **External dataset integration** — download the Sleep Health and Lifestyle,
+  FitBit, PAMAP2, and UCI Human Activity Recognition datasets into ignored
+  `data/external/` folders; document provenance and licenses; add dataset-
+  specific preprocessing without merging unrelated targets into
+  `training_data.csv`.
+- [ ] **Train module-specific models** — use sleep data for
+  `SleepQualityPredictor`, wearable data for recovery/activity features, and
+  PAMAP2 or UCI HAR for a separate activity-classification model.
 - [ ] **Feature store for ML predictors** — share versioned feature engineering
   across productivity, sleep, and recovery models.
 - [ ] **Model evaluation and drift checks** — track accuracy by user segment,

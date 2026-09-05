@@ -63,7 +63,15 @@ class ProductivityPredictor:
         X = np.array([f.to_vector() for f, _ in self.training_data])
         y = np.array([target for _, target in self.training_data])
         if self.model_type == "random_forest":
-            self.rf_model = RandomForestRegressor(n_estimators=100, max_depth=6, random_state=42)
+            self.rf_model = RandomForestRegressor(
+                n_estimators=300,
+                max_depth=6,
+                min_samples_leaf=3,
+                max_features="sqrt",
+                oob_score=True,
+                random_state=42,
+                n_jobs=-1,
+            )
             self.rf_model.fit(X, y)
             self.is_trained = True
         else:

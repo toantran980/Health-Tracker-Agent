@@ -198,7 +198,7 @@ class HealthChatbot:
             )
             reply = response.choices[0].message.content.strip()
             self.last_source = "groq"
-        except Exception as e: 
+        except Exception as e:  # noqa: BLE001
             self.history.pop()
             print(f"[Chatbot] Error: {e}")
             reply = "I'm having trouble connecting right now. Please try again."

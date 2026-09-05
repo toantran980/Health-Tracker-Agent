@@ -29,7 +29,7 @@ try:
         log.warning("[state] Food DB loaded but is empty!")
     else:
         log.info("[state] Food DB loaded OK: %d items", len(GLOBAL_FOOD_DB_V2))
-except Exception as exc:
+except Exception as exc:  # noqa: BLE001
     log.error("[state] Failed to load food DB: %s", exc, exc_info=True)
     GLOBAL_FOOD_DB_V2 = []
     

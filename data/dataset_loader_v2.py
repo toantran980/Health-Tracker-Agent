@@ -62,7 +62,7 @@ def load_group_files() -> list[FoodItem]:
             logger.info("  [Loader] %s — %d rows", path.split('/')[-1], len(df))
         except FileNotFoundError:
             logger.warning("  [Loader] Not found: %s", path)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning("  [Loader] Error reading %s: %s", path, e)
 
     if not all_dfs:
@@ -92,7 +92,7 @@ def load_group_files() -> list[FoodItem]:
                 category = "general",
                 tags     = ["csv_imported", "group_data"],
             ))
-        except Exception:
+        except Exception:  # noqa: BLE001
             continue
 
     return foods
@@ -131,7 +131,7 @@ def load_nutrients_file() -> list[FoodItem]:
                     category = category,
                     tags     = ["csv_imported", category.lower().replace(" ", "_")],
                 ))
-            except Exception:
+            except Exception:  # noqa: BLE001
                 continue
 
         return foods
@@ -139,7 +139,7 @@ def load_nutrients_file() -> list[FoodItem]:
     except FileNotFoundError:
         logger.warning("  [Loader] Not found: %s", NUTRIENTS_FILE)
         return []
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning("  [Loader] Error reading nutrients file: %s", e)
         return []
 

@@ -170,6 +170,9 @@ class ScheduleOptimizer:
         idx, task = min(remaining, key=mrv_key)
         next_remaining = [(i, t) for i, t in remaining if i != idx]
 
+        best_result: Optional[List[Dict]] = None
+        best_score = float("-inf")
+
         for slot in slots_cache[idx]:
             if self.is_valid_assignment(slot, current, task):
                 assignment = {
@@ -178,9 +181,12 @@ class ScheduleOptimizer:
                 }
                 result = self.backtrack(next_remaining, current + [assignment], slots_cache)
                 if result is not None:
-                    return result
+                    score = self.evaluate_schedule(result)
+                    if score > best_score:
+                        best_result = result
+                        best_score = score
 
-        return None  # Dead end — trigger backtrack in caller
+        return best_result  # None means every candidate led to a dead end
 
     def sort_tasks(self, tasks: List[Dict]) -> List[Dict]:
         """

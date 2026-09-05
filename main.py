@@ -52,7 +52,7 @@ def main():
 
     try:
         app.run(debug=debug, host=host, port=port, use_reloader=False)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Failed to start server: {e}")
         sys.exit(1)
 

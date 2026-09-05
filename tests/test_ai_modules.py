@@ -427,6 +427,25 @@ class TestScheduleOptimizer(unittest.TestCase):
         ]
         better_score = self.optimizer.evaluate_schedule(better_schedule)
         self.assertGreater(better_score, score * 0.5)  # Should be significantly better
+
+    def test_optimization_selects_highest_scoring_valid_schedule(self):
+        """Backtracking should compare valid schedules instead of taking the first one."""
+        self.optimizer.add_constraint(
+            "preferred_evening",
+            lambda task, slot: slot.start_hour >= 18,
+            is_hard=False,
+        )
+        tasks = [{
+            "name": "Easy task",
+            "duration_min": 60,
+            "difficulty": 1,
+            "deadline": datetime.now() + timedelta(days=5),
+        }]
+
+        schedule = self.optimizer.optimize_schedule(tasks)
+
+        self.assertEqual(len(schedule), 1)
+        self.assertGreaterEqual(schedule[0]["slot"].start_hour, 18)
     
     def test_integration_with_constraints(self):
         """Integration test: full workflow with real constraints"""

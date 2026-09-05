@@ -1,13 +1,18 @@
+ ()
+
 # AI Health & Wellness Tracker
 
 ## Contributions & Project History
 
-**Original Project:**
-* Toan Tran - ttran8276@csu.fullerton.edu
-* Chris Ramon - chrisramon1@csu.fullerton.edu
-* Shaik Amin - smamin@csu.fullerton.edu
-  
-**Solo Updates (Post-Graduation):** All commits and updates after May 15, 2026 were completed independently by me for skill development.
+**Original Project Contributors:**
+
+- Toan Tran
+- Chris Ramon
+- Shaik Amin
+
+**Current Maintainer:**
+
+Toan Tran independently completed all commits, updates, and expansions after May 15, 2026.
 
 AI Health & Wellness Tracker is a Flask-based project that combines nutrition tracking, personalized meal and activity recommendations, study schedule optimization, productivity prediction, behavioral pattern analysis, and rule-based wellness recommendations. It includes a REST API and a built-in frontend dashboard for interactive health and productivity management.
 
@@ -112,6 +117,7 @@ Then open `http://localhost:5001/`.
 - Loading states and disabled controls during API calls
 - Inline status banner for clearer API errors
 - Trend charts:
+
   - Calories trend
   - Macros trend (protein, carbs, fat)
   - Focus trend
@@ -133,3 +139,22 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - [CONFIGURATION.md](CONFIGURATION.md): environment variables and deployment settings
 - [TODO.md](TODO.md): active roadmap and completed work
 - [SPARK_IDEAS.md](SPARK_IDEAS.md): future feature ideas
+
+## References
+
+### Data sources
+
+- [Nutrition Details for Most Common Foods](https://www.kaggle.com/datasets/niharika41298/nutrition-details-for-most-common-foods)
+- [USDA FoodData Central datasets](https://fdc.nal.usda.gov/download-datasets)
+- [Open Food Facts](https://world.openfoodfacts.org)
+
+### Modeling datasets
+
+- [Sleep Health and Lifestyle Dataset](https://www.kaggle.com/datasets/uom190346a/sleep-health-and-lifestyle-dataset)
+- [FitBit Fitness Tracker Data](https://www.kaggle.com/datasets/arashnic/fitbit)
+- [Human Activity Recognition with Smartphones](https://archive.ics.uci.edu/dataset/240/human+activity+recognition+using+smartphones)
+- [Kaggle mirror](https://www.kaggle.com/datasets/uciml/human-activity-recognition-with-smartphones)
+
+### Optional future datasets
+
+- [PAMAP2 Physical Activity Monitoring](https://archive.ics.uci.edu/dataset/231/pamap2+physical+activity+monitoring)

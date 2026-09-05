@@ -143,7 +143,7 @@ def activity_trends(user_id):
     for log in logs:
         try:
             ts = parse_iso_datetime(log.get('timestamp'))
-        except Exception:
+        except Exception:  # noqa: BLE001
             continue
         if ts < cutoff:
             continue

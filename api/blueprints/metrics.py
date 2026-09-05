@@ -2,22 +2,9 @@ import csv
 from flask import Blueprint, jsonify, request
 from ai_modules.productivity_predictor import ProductivityPredictor, Features
 from api.blueprints.helpers import error_response
+from models.evaluation import compute_metrics
 
 metrics_bp = Blueprint('metrics', __name__, url_prefix='/api/metrics')
-
-
-def compute_rmse(predictor, data):
-    errors = [(predictor.predict(f) - expected) ** 2 for f, expected in data]
-    return (sum(errors) / len(errors)) ** 0.5 if errors else 0.0
-
-
-def compute_r2(predictor, data):
-    y_true = [expected for _, expected in data]
-    y_pred = [predictor.predict(f) for f, _ in data]
-    mean_y = sum(y_true) / len(y_true)
-    ss_tot = sum((y - mean_y) ** 2 for y in y_true)
-    ss_res = sum((y_t - y_p) ** 2 for y_t, y_p in zip(y_true, y_pred))
-    return 1 - ss_res / ss_tot if ss_tot != 0 else 0.0
 
 
 @metrics_bp.route('/productivity_predictor', methods=['GET'])
@@ -42,7 +29,7 @@ def productivity_predictor_metrics():
                     int(row["task_difficulty"])
                 )
                 train_cases.append((features, int(row["expected_focus_score"])))
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return error_response(f"Could not load training data: {e}", "TRAINING_DATA_LOAD_FAILED", 500)
 
     predictor = ProductivityPredictor()
@@ -67,19 +54,14 @@ def productivity_predictor_metrics():
                     int(row["task_difficulty"])
                 )
                 test_cases.append((features, int(row["expected_focus_score"])))
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return error_response(f"Could not load evaluation data: {e}", "EVAL_DATA_LOAD_FAILED", 500)
 
-    # Compute all metrics
-    mae  = sum(abs(predictor.predict(f) - e) for f, e in test_cases) / len(test_cases) if test_cases else None
-    rmse = compute_rmse(predictor, test_cases)
-    r2   = compute_r2(predictor, test_cases)
+    training_mean = sum(expected for _, expected in train_cases) / len(train_cases)
+    metrics = compute_metrics(predictor, test_cases, round(training_mean))
 
     return jsonify({
         "model": "ProductivityPredictor",
-        "mae":  mae,
-        "rmse": rmse,
-        "r2":   r2,
-        "n":    len(test_cases),
+        **metrics,
         "csv_path": eval_path
     })

@@ -184,7 +184,7 @@ def get_recovery_readiness(user_id):
             if ts and ts >= cutoff_3d and str(act.get("activity_type", "")).lower() == "exercise":
                 calc_load += int(act.get("duration_minutes") or 0)
                 active_days_set.add(ts.date().isoformat())
-        except Exception:
+        except Exception:  # noqa: BLE001
             continue
 
     load, load_err = coerce_int(request.args.get('workout_load_3d_minutes', calc_load), calc_load, 0, 1200)

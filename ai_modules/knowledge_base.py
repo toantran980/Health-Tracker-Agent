@@ -147,7 +147,7 @@ class KnowledgeBase:
                     result["rule_name"] = rule.name
                     result["priority"] = rule.priority
                     recommendations.append(result)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 # Skip rules that fail evaluation
                 continue
         

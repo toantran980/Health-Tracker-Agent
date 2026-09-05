@@ -23,6 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
 from ai_modules.productivity_predictor import ProductivityPredictor, Features  # noqa: E402
+from models.evaluation import benchmark_regressors, compute_metrics  # noqa: E402
 
 
 def load_csv(path: str) -> List[Tuple[Features, int]]:
@@ -43,23 +44,6 @@ def load_csv(path: str) -> List[Tuple[Features, int]]:
             expected = int(row['expected_focus_score'])
             rows.append((features, expected))
     return rows
-
-
-def compute_mae(predictor, data):
-    errors = [abs(predictor.predict(f) - expected) for f, expected in data]
-    return sum(errors) / len(errors) if errors else 0.0
-
-def compute_rmse(predictor, data):
-    errors = [(predictor.predict(f) - expected) ** 2 for f, expected in data]
-    return (sum(errors) / len(errors)) ** 0.5 if errors else 0.0
-
-def compute_r2(predictor, data):
-    y_true = [expected for _, expected in data]
-    y_pred = [predictor.predict(f) for f, _ in data]
-    mean_y = sum(y_true) / len(y_true) if y_true else 0.0
-    ss_tot = sum((y - mean_y) ** 2 for y in y_true)
-    ss_res = sum((y_t - y_p) ** 2 for y_t, y_p in zip(y_true, y_pred))
-    return 1 - ss_res / ss_tot if ss_tot != 0 else 0.0
 
 
 def add_and_train(predictor, train_data):
@@ -104,12 +88,19 @@ def main():
         print("Training fresh model...")
         add_and_train(predictor, train_data)
 
-    mae_before = compute_mae(predictor, eval_data)
-    rmse_before = compute_rmse(predictor, eval_data)
-    r2_before = compute_r2(predictor, eval_data)
-    print(f"\nMAE : {mae_before:.4f}")
-    print(f"RMSE: {rmse_before:.4f}")
-    print(f"R2  : {r2_before:.4f}")
+    training_mean = sum(expected for _, expected in train_data) / len(train_data)
+    cv_results = benchmark_regressors(train_data)
+    print("\n5-fold cross-validation MAE (training data only):")
+    for model_name, result in cv_results.items():
+        print(f"  {model_name:24s}: {result['mae_mean']:.4f} +/- {result['mae_std']:.4f}")
+
+    metrics = compute_metrics(predictor, eval_data, round(training_mean))
+    print(f"\nMAE                     : {metrics['mae']:.4f}")
+    print(f"RMSE                    : {metrics['rmse']:.4f}")
+    print(f"R2                      : {metrics['r2']:.4f}")
+    print(f"Within 1 point accuracy : {metrics['within_one_accuracy']:.4f}")
+    print(f"Baseline MAE            : {metrics['baseline_mae']:.4f}")
+    print(f"Improvement vs baseline : {metrics['improvement_vs_baseline_pct']:.2f}%")
 
     if args.save:
         predictor.save_model(args.model)

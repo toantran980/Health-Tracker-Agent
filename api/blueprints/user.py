@@ -90,7 +90,7 @@ def create_user():
             target_fat_g     = fat,
             water_target_ml  = water_target,
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         traceback.print_exc(file=sys.stderr)
         return error_response(f"Invalid user data: {e}", "INVALID_USER_DATA", 400)
 
@@ -107,7 +107,7 @@ def create_user():
         state.users[user_id] = user
         ensure_ai_modules(user_id, user)
         save_user_with_hash(user)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         # Roll back in-memory state so a retry doesn't collide
         state.users.pop(user_id, None)
         traceback.print_exc(file=sys.stderr)
