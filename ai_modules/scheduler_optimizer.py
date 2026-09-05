@@ -10,6 +10,7 @@ from ai_modules.scheduler_types import Constraint, TimeSlot, ConstraintEntry
 class ScheduleOptimizer:
     """Constraint Satisfaction Problem solver for schedule optimization"""
 
+    OPTIMIZATION_CANDIDATE_LIMIT = 5
 
     PRODUCTIVITY_FACTORS = {
         8: 0.70, 9: 0.80, 10: 0.95, 11: 1.00,
@@ -63,7 +64,9 @@ class ScheduleOptimizer:
         ]
         slots_cache: Dict[int, List[TimeSlot]] = {}
         for i, task in enumerate(sorted_tasks):
-            slots = self.get_available_slots(task["duration_min"])
+            slots = self.get_available_slots(
+                task["duration_min"], max_slots=self.OPTIMIZATION_CANDIDATE_LIMIT
+            )
             if soft_constraints:
                 all_slots = self.get_available_slots(task["duration_min"], max_slots=None)
                 shortlisted = {repr(slot) for slot in slots}
@@ -77,6 +80,7 @@ class ScheduleOptimizer:
         # Map tasks to their index so we can key into the cache
         indexed_tasks = list(enumerate(sorted_tasks))
 
+        self._best_schedule_score = float("-inf")
         result = self.backtrack(indexed_tasks, [], slots_cache)
 
         if result:
@@ -172,7 +176,25 @@ class ScheduleOptimizer:
         slots_cache: pre-computed candidate slots keyed by original_index
         """
         if not remaining:
+            score = self.evaluate_schedule(current)
+            if score > self._best_schedule_score:
+                self._best_schedule_score = score
             return current  # All tasks assigned
+
+        # Every task score is additive, so the best individual slot for each
+        # remaining task is an optimistic bound. Conflicting slots are still
+        # counted here, which keeps pruning from removing the true optimum.
+        upper_bound = self.evaluate_schedule(current)
+        for idx, task in remaining:
+            upper_bound += max(
+                (
+                    self.evaluate_schedule([{"task": task, "slot": slot}])
+                    for slot in slots_cache[idx]
+                ),
+                default=0.0,
+            )
+        if upper_bound <= self._best_schedule_score:
+            return None
 
         # MRV: choose the task with the fewest valid slots
         def mrv_key(idx_task):
