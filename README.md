@@ -1,5 +1,3 @@
- ()
-
 # AI Health & Wellness Tracker
 
 ## Contributions & Project History
