@@ -1,5 +1,6 @@
-from api.mongo_store import MongoStore
 from datetime import datetime
+
+from api.mongo_store import MongoStore
 
 store = MongoStore.from_env()
 

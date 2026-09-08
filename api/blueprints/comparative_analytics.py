@@ -1,9 +1,11 @@
 """comparative_analytics.py — Week-over-week comparisons across health domains."""
 
 from datetime import datetime, timedelta, timezone
+
 from flask import Blueprint, jsonify, request
+
 from api.blueprints import state
-from api.blueprints.helpers import require_user_and_auth, coerce_int, parse_iso_datetime
+from api.blueprints.helpers import coerce_int, parse_iso_datetime, require_user_and_auth
 
 comparative_bp = Blueprint('comparative_analytics', __name__)
 
@@ -206,7 +208,7 @@ def get_comparative_analytics(user_id):
         weeks : int  — number of weeks to analyze (default 4, max 12)
         domains : str — comma-separated list of domains (activity,sleep,nutrition,productivity)
     """
-    user, err = require_user_and_auth(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 

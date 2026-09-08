@@ -1,10 +1,12 @@
 
 """Constraint Satisfaction Problem (CSP) Solver for Schedule Optimization"""
-from typing import List, Dict, Tuple, Optional, Callable
-from datetime import datetime, timedelta
-from models.activity import ScheduledActivity
 import math
-from ai_modules.scheduler_types import Constraint, TimeSlot, ConstraintEntry
+from collections.abc import Callable
+from datetime import datetime, timedelta
+from typing import ClassVar
+
+from ai_modules.scheduler_types import Constraint, ConstraintEntry, TimeSlot
+from models.activity import ScheduledActivity
 
 
 class ScheduleOptimizer:
@@ -12,20 +14,20 @@ class ScheduleOptimizer:
 
     OPTIMIZATION_CANDIDATE_LIMIT = 5
 
-    PRODUCTIVITY_FACTORS = {
+    PRODUCTIVITY_FACTORS: ClassVar[dict[int, float]] = {
         8: 0.70, 9: 0.80, 10: 0.95, 11: 1.00,
         12: 0.70, 13: 0.60, 14: 0.70, 15: 0.85,
         16: 0.90, 17: 0.95, 18: 0.85,
         19: 0.75, 20: 0.80, 21: 0.70, 22: 0.60,
     }
 
-    DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    DAYS: ClassVar[list[str]] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
     def __init__(self, user_earliest: int = 8, user_latest: int = 22):
         self.user_earliest = user_earliest
         self.user_latest = user_latest
-        self.scheduled_activities: List[ScheduledActivity] = []
-        self.constraints: List[ConstraintEntry] = []
+        self.scheduled_activities: list[ScheduledActivity] = []
+        self.constraints: list[ConstraintEntry] = []
 
     # Public API
 
@@ -38,7 +40,7 @@ class ScheduleOptimizer:
         """Block out an already-fixed activity (class, meeting, etc.)"""
         self.scheduled_activities.append(activity)
 
-    def optimize_schedule(self, tasks: List[Dict]) -> List[Dict]:
+    def optimize_schedule(self, tasks: list[dict]) -> list[dict]:
         """
         Find the best schedule for `tasks` using CSP backtracking.
 
@@ -62,7 +64,7 @@ class ScheduleOptimizer:
         soft_constraints = [
             entry for entry in self.constraints if entry.ctype == Constraint.SOFT
         ]
-        slots_cache: Dict[int, List[TimeSlot]] = {}
+        slots_cache: dict[int, list[TimeSlot]] = {}
         for i, task in enumerate(sorted_tasks):
             slots = self.get_available_slots(
                 task["duration_min"], max_slots=self.OPTIMIZATION_CANDIDATE_LIMIT
@@ -90,14 +92,14 @@ class ScheduleOptimizer:
         return self.fallback_schedule(sorted_tasks)
 
     def get_available_slots(
-        self, duration_minutes: int, max_slots: Optional[int] = 20
-    ) -> List[TimeSlot]:
+        self, duration_minutes: int, max_slots: int | None = 20
+    ) -> list[TimeSlot]:
         """
         Return time slots (sorted best-first by productivity) that are free
         and long enough to hold `duration_minutes`.
         """
         duration_hours = duration_minutes / 60  # Preserve fractional hours
-        available: List[TimeSlot] = []
+        available: list[TimeSlot] = []
 
         for day in self.DAYS:
             hour = float(self.user_earliest)
@@ -119,7 +121,7 @@ class ScheduleOptimizer:
 
     def productivity_at(self, hour: float) -> float:
         """Interpolate productivity for fractional hours."""
-        lower = int(math.floor(hour))
+        lower = math.floor(hour)
         upper = lower + 1
         frac = hour - lower
         p_low = self.PRODUCTIVITY_FACTORS.get(lower, 0.5)
@@ -138,20 +140,19 @@ class ScheduleOptimizer:
                 return True
         return False
 
-    def check_constraints(self, task: Dict, slot: TimeSlot) -> bool:
+    def check_constraints(self, task: dict, slot: TimeSlot) -> bool:
         """
         Run all registered constraints against a (task, slot) pair.
         Hard constraints must pass; soft constraint failures are ignored here
         (they are handled in scoring).
         """
         for entry in self.constraints:
-            if entry.ctype == Constraint.HARD:
-                if not entry.func(task, slot):
-                    return False
+            if entry.ctype == Constraint.HARD and not entry.func(task, slot):
+                return False
         return True
 
     def is_valid_assignment(
-        self, slot: TimeSlot, current_schedule: List[Dict], task: Dict
+        self, slot: TimeSlot, current_schedule: list[dict], task: dict
     ) -> bool:
         """No overlap with current trial schedule + hard constraints."""
         for item in current_schedule:
@@ -159,16 +160,14 @@ class ScheduleOptimizer:
                 return False
         if self.has_conflict(slot):
             return False
-        if not self.check_constraints(task, slot):
-            return False
-        return True
+        return self.check_constraints(task, slot)
 
     def backtrack(
         self,
-        remaining: List[Tuple[int, Dict]],
-        current: List[Dict],
-        slots_cache: Dict[int, List[TimeSlot]],
-    ) -> Optional[List[Dict]]:
+        remaining: list[tuple[int, dict]],
+        current: list[dict],
+        slots_cache: dict[int, list[TimeSlot]],
+    ) -> list[dict] | None:
         """
         Recursive CSP backtracking with MRV (Minimum Remaining Values) heuristic.
         remaining : list of (original_index, task_dict) not yet assigned
@@ -177,8 +176,7 @@ class ScheduleOptimizer:
         """
         if not remaining:
             score = self.evaluate_schedule(current)
-            if score > self._best_schedule_score:
-                self._best_schedule_score = score
+            self._best_schedule_score = max(self._best_schedule_score, score)
             return current  # All tasks assigned
 
         # Every task score is additive, so the best individual slot for each
@@ -207,7 +205,7 @@ class ScheduleOptimizer:
         idx, task = min(remaining, key=mrv_key)
         next_remaining = [(i, t) for i, t in remaining if i != idx]
 
-        best_result: Optional[List[Dict]] = None
+        best_result: list[dict] | None = None
         best_score = float("-inf")
 
         for slot in slots_cache[idx]:
@@ -225,7 +223,7 @@ class ScheduleOptimizer:
 
         return best_result  # None means every candidate led to a dead end
 
-    def sort_tasks(self, tasks: List[Dict]) -> List[Dict]:
+    def sort_tasks(self, tasks: list[dict]) -> list[dict]:
         """
         Sort tasks by urgency (deadline), then difficulty, then duration.
         Harder + more urgent tasks get first pick of prime time slots.
@@ -242,7 +240,7 @@ class ScheduleOptimizer:
 
         return sorted(tasks, key=priority)
 
-    def evaluate_schedule(self, schedule: List[Dict]) -> float:
+    def evaluate_schedule(self, schedule: list[dict]) -> float:
         """Score a completed schedule (higher = better)."""
         now = datetime.now()
         score = 0.0
@@ -275,7 +273,7 @@ class ScheduleOptimizer:
 
         return score
 
-    def format_schedule(self, raw: List[Dict]) -> List[Dict]:
+    def format_schedule(self, raw: list[dict]) -> list[dict]:
         """Attach human-readable time_slot strings and sort by day/time."""
         day_order = {d: i for i, d in enumerate(self.DAYS)}
         for item in raw:
@@ -283,7 +281,7 @@ class ScheduleOptimizer:
         raw.sort(key=lambda x: (day_order[x["slot"].day_name], x["slot"].start_hour))
         return raw
 
-    def fallback_schedule(self, tasks: List[Dict]) -> List[Dict]:
+    def fallback_schedule(self, tasks: list[dict]) -> list[dict]:
         """
         Greedy linear packing across the week when backtracking finds nothing.
         Iterates days in order and fills slots sequentially.

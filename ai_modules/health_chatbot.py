@@ -197,7 +197,7 @@ class HealthChatbot:
             )
             reply = response.choices[0].message.content.strip()
             self.last_source = "groq"
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             self.history.pop()
             print(f"[Chatbot] Error: {e}")
             reply = "I'm having trouble connecting right now. Please try again."
@@ -326,7 +326,7 @@ class HealthChatbot:
             suggestion = rec.get("suggestion", "")
             explanation = self.knowledge_base.explain_recommendation(rec)
             return f"{suggestion}\n({explanation})".strip()
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None
         finally:
             self.knowledge_base.clear_facts()

@@ -3,15 +3,15 @@
 import requests
 
 from api.external_api_common import (
-    WGER_BASE,
     EXERCISEDB_HOST,
     RAPIDAPI_KEY,
     REQUEST_TIMEOUT,
     TTL_MEDIUM,
+    WGER_BASE,
     cache_get,
     cache_set,
-    record_external_call,
     logger,
+    record_external_call,
 )
 
 
@@ -43,7 +43,7 @@ def search_exercise(name: str, language: int = 2) -> list[dict]:
         return []
 
 
-def proxy_wger_endpoint(endpoint: str, params: dict = None) -> dict:
+def proxy_wger_endpoint(endpoint: str, params: dict | None = None) -> dict:
     endpoint = endpoint.strip("/")
     url = f"{WGER_BASE}/{endpoint}/"
     try:

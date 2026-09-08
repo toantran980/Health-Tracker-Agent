@@ -1,34 +1,34 @@
 """AI Modules Package"""
 
-from .knowledge_base import KnowledgeBase, BehavioralAnalyzer
-from .scheduler_optimizer import ScheduleOptimizer, TimeSlot
-from .productivity_predictor import ProductivityPredictor, Features
-from .nutrition_analyzer import NutritionAnalyzer
-from .meal_recommendation_engine import MealRecommendationEngine
 from .activity_recommendation_engine import ActivityRecommendationEngine
-from .health_risk_assessor import HealthRiskAssessor, HealthWarning
-from .sleep_quality_predictor import SleepQualityPredictor, SleepFeatures
-from .recovery_predictor import RecoveryPredictor, RecoveryFeatures
 from .goal_tracker import GoalTracker
+from .health_risk_assessor import HealthRiskAssessor, HealthWarning
+from .knowledge_base import BehavioralAnalyzer, KnowledgeBase
+from .meal_recommendation_engine import MealRecommendationEngine
+from .nutrition_analyzer import NutritionAnalyzer
+from .productivity_predictor import Features, ProductivityPredictor
+from .recovery_predictor import RecoveryFeatures, RecoveryPredictor
+from .scheduler_optimizer import ScheduleOptimizer, TimeSlot
+from .sleep_quality_predictor import SleepFeatures, SleepQualityPredictor
 from .weekly_digest import WeeklyDigestGenerator
 
 __all__ = [
-    'KnowledgeBase',
-    'BehavioralAnalyzer',
-    'ScheduleOptimizer',
-    'TimeSlot',
-    'ProductivityPredictor',
-    'Features',
-    'NutritionAnalyzer',
-    'MealRecommendationEngine',
     'ActivityRecommendationEngine',
+    'BehavioralAnalyzer',
+    'Features',
+    'GoalTracker',
     'HealthRiskAssessor',
     'HealthWarning',
-    'SleepQualityPredictor',
-    'SleepFeatures',
-    'RecoveryPredictor',
+    'KnowledgeBase',
+    'MealRecommendationEngine',
+    'NutritionAnalyzer',
+    'ProductivityPredictor',
     'RecoveryFeatures',
-    'GoalTracker',
+    'RecoveryPredictor',
+    'ScheduleOptimizer',
+    'SleepFeatures',
+    'SleepQualityPredictor',
+    'TimeSlot',
     'WeeklyDigestGenerator',
 ]
 

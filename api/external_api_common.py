@@ -4,8 +4,9 @@ import logging
 import time
 from typing import Any
 
-import config
 from dotenv import load_dotenv
+
+import config
 
 load_dotenv()
 logger = logging.getLogger(__name__)

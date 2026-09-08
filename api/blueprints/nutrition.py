@@ -1,23 +1,22 @@
-from uuid import uuid4
 from datetime import datetime
+from uuid import uuid4
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 
-from models.meal import NutritionInfo, Meal, MealType, FoodItem
 from api.blueprints import state
 from api.blueprints.helpers import (
-    require_user,
-    require_auth,
-    require_user_and_auth,
-    require_fields,
     attach_meal_to_user_log,
-    parse_iso_datetime,
-    validate_iso_timestamp,
     check_duplicate_submission,
-    coerce_water_ml,
     coerce_float,
+    coerce_water_ml,
     error_response,
+    require_auth,
+    require_fields,
+    require_user,
+    require_user_and_auth,
+    validate_iso_timestamp,
 )
+from models.meal import FoodItem, Meal, MealType, NutritionInfo
 
 nutrition_bp = Blueprint('nutrition', __name__)
 
@@ -181,7 +180,7 @@ def log_water():
 @nutrition_bp.route('/api/nutrition/analysis/<user_id>', methods=['GET'])
 def analyze_nutrition(user_id):
     """Return the full nutrition report for a user (auth required)."""
-    user, err = require_user_and_auth(user_id)
+    _, err = require_user_and_auth(user_id)
     if err: return err
 
     analyzer = state.nutrition_analyzers.get(user_id)
@@ -195,7 +194,7 @@ def analyze_nutrition(user_id):
 @nutrition_bp.route('/api/nutrition/recommendations/<user_id>', methods=['GET'])
 def get_macro_recommendations(user_id):
     """Return goal-aware macro recommendations for a user (auth required)."""
-    user, err = require_user_and_auth(user_id)
+    _, err = require_user_and_auth(user_id)
     if err: return err
 
     analyzer = state.nutrition_analyzers.get(user_id)

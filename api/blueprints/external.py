@@ -2,17 +2,17 @@
 
 import time
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 
 from api.blueprints.helpers import error_response
-from api.rate_limiter import default_limiter
 from api.external_apis import (
     get_food_by_barcode,
-    search_exercise,
-    search_exercisedb,
     proxy_wger_endpoint,
     search_all_sources,
+    search_exercise,
+    search_exercisedb,
 )
+from api.rate_limiter import default_limiter
 
 external_bp = Blueprint('external', __name__)
 

@@ -17,16 +17,18 @@ import argparse
 import csv
 import os
 import sys
-from typing import List, Tuple
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
-from ai_modules.productivity_predictor import ProductivityPredictor, Features  # noqa: E402
-from models.evaluation import benchmark_regressors, compute_metrics  # noqa: E402
+from ai_modules.productivity_predictor import (
+    Features,
+    ProductivityPredictor,
+)
+from models.evaluation import benchmark_regressors, compute_metrics
 
 
-def load_csv(path: str) -> List[Tuple[Features, int]]:
+def load_csv(path: str) -> list[tuple[Features, int]]:
     rows = []
     with open(path, newline='') as f:
         reader = csv.DictReader(f)

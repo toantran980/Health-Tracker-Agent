@@ -1,8 +1,9 @@
-import unittest
 import csv
 import os
+import unittest
 from unittest import mock
-from ai_modules.productivity_predictor import ProductivityPredictor, Features
+
+from ai_modules.productivity_predictor import Features, ProductivityPredictor
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TRAINING_CSV = os.path.join(TEST_DIR, "..", "data", "training_data.csv")
@@ -72,16 +73,12 @@ class TestProductivityPredictorQuantitative(unittest.TestCase):
 """Comprehensive tests for AI Health Tracker modules"""
 import unittest
 from datetime import datetime, timedelta
-from models.user_profile import UserProfile, Goal
-from models.meal import (
-    NutritionInfo, FoodItem, Meal, MealType
-)
-from models.activity import ScheduledActivity, ActivityType
-from ai_modules import (
-    KnowledgeBase, ScheduleOptimizer,
-    BehavioralAnalyzer, TimeSlot
-)
+
+from ai_modules import BehavioralAnalyzer, KnowledgeBase, ScheduleOptimizer, TimeSlot
 from ai_modules.meal_recommendation_engine import MealRecommendationEngine
+from models.activity import ActivityType, ScheduledActivity
+from models.meal import FoodItem, Meal, MealType, NutritionInfo
+from models.user_profile import Goal, UserProfile
 
 
 class TestUserProfile(unittest.TestCase):

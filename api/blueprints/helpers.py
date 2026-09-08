@@ -199,11 +199,11 @@ def coerce_water_ml(value, unit: str = "ml", default: int = 250) -> tuple[int, t
 
     unit_norm = str(unit or "ml").strip().lower()
     if unit_norm in ("oz", "fl_oz"):
-        ml = int(round(val * 29.5735))
+        ml = round(val * 29.5735)
     elif unit_norm in ("l", "liter", "liters"):
-        ml = int(round(val * 1000.0))
+        ml = round(val * 1000.0)
     elif unit_norm in ("ml", "milliliter", "milliliters"):
-        ml = int(round(val))
+        ml = round(val)
     else:
         return default, error_response(
             f"Unsupported water unit '{unit}'. Use ml, oz, or l.",

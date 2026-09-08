@@ -1,7 +1,8 @@
 """Knowledge Base - Rule-based reasoning system"""
-from typing import List, Dict, Any
 from dataclasses import dataclass
-from models.user_profile import UserProfile, Goal
+from typing import Any
+
+from models.user_profile import Goal, UserProfile
 
 
 @dataclass
@@ -19,8 +20,8 @@ class KnowledgeBase:
     
     def __init__(self, user_profile: UserProfile):
         self.user_profile = user_profile
-        self.rules: List[Rule] = []
-        self.facts: Dict[str, Any] = {}
+        self.rules: list[Rule] = []
+        self.facts: dict[str, Any] = {}
         self.initialize_rules()
     
     def initialize_rules(self):
@@ -125,11 +126,11 @@ class KnowledgeBase:
         """Add a fact to working memory"""
         self.facts[key] = value
     
-    def add_facts(self, facts: Dict[str, Any]):
+    def add_facts(self, facts: dict[str, Any]):
         """Add multiple facts at once"""
         self.facts.update(facts)
     
-    def infer(self) -> List[Dict[str, Any]]:
+    def infer(self) -> list[dict[str, Any]]:
         """Run inference using forward chaining - execute all applicable rules"""
         recommendations = []
         
@@ -140,12 +141,12 @@ class KnowledgeBase:
                     result["rule_name"] = rule.name
                     result["priority"] = rule.priority
                     recommendations.append(result)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 continue
         
         return recommendations
     
-    def get_top_recommendations(self, n: int = 3) -> List[Dict[str, Any]]:
+    def get_top_recommendations(self, n: int = 3) -> list[dict[str, Any]]:
         """Get top N recommendations by priority"""
         recommendations = self.infer()
         return sorted(recommendations, key=lambda r: r.get("priority", 0), reverse=True)[:n]
@@ -154,7 +155,7 @@ class KnowledgeBase:
         """Clear working memory (facts) for next reasoning cycle"""
         self.facts.clear()
     
-    def explain_recommendation(self, recommendation: Dict[str, Any]) -> str:
+    def explain_recommendation(self, recommendation: dict[str, Any]) -> str:
         """Provide human-readable explanation of why a recommendation was made"""
         rule_name = recommendation.get("rule_name", "unknown")
         return f"Rule '{rule_name}' triggered based on current goals and metrics. {recommendation.get('suggestion', '')}"
@@ -164,7 +165,7 @@ class BehavioralAnalyzer:
     """Analyze behavioral patterns and correlations"""
     
     @staticmethod
-    def calculate_correlation(data1: List[float], data2: List[float]) -> float:
+    def calculate_correlation(data1: list[float], data2: list[float]) -> float:
         """Calculate correlation between two data series"""
         if len(data1) < 2 or len(data1) != len(data2):
             return 0.0
@@ -184,7 +185,7 @@ class BehavioralAnalyzer:
         return numerator / denominator
     
     @staticmethod
-    def detect_anomaly(values: List[float], sensitivity: float = 2.0) -> bool:
+    def detect_anomaly(values: list[float], sensitivity: float = 2.0) -> bool:
         """Detect anomaly using z-score method"""
         if len(values) < 2:
             return False
@@ -200,7 +201,7 @@ class BehavioralAnalyzer:
         return latest_z_score > sensitivity
     
     @staticmethod
-    def identify_pattern(values: List[float], threshold: float = 0.7) -> str:
+    def identify_pattern(values: list[float], threshold: float = 0.7) -> str:
         """Identify trend pattern in data"""
         if len(values) < 3:
             return "insufficient_data"

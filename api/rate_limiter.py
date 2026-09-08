@@ -11,10 +11,9 @@ The active backend is selected by `build_limiter()` when the module loads;
 `default_limiter` is the configured instance used by the external blueprint.
 """
 
-import time
 import threading
+import time
 from collections import defaultdict, deque
-from typing import Deque
 
 
 class RateLimiter:
@@ -24,7 +23,7 @@ class RateLimiter:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.lock = threading.Lock()
-        self.hits: dict[str, Deque[float]] = defaultdict(deque)
+        self.hits: dict[str, deque[float]] = defaultdict(deque)
 
     def allow(self, client_id: str) -> bool:
         """Return True if the call is allowed, False if rate-limited."""
@@ -107,9 +106,7 @@ class RedisRateLimiter:
         pipe.expire(key, int(self.window_seconds) + 1)
         results = pipe.execute()
         count = results[2]
-        if count > self.max_requests:
-            return False
-        return True
+        return count <= self.max_requests
 
     def status(self, client_id: str) -> dict:
         """Return {remaining, reset, limit, window} for a client.

@@ -1,6 +1,8 @@
 import csv
+
 from flask import Blueprint, jsonify, request
-from ai_modules.productivity_predictor import ProductivityPredictor, Features
+
+from ai_modules.productivity_predictor import Features, ProductivityPredictor
 from api.blueprints.helpers import error_response
 from models.evaluation import compute_metrics
 
@@ -28,7 +30,7 @@ def productivity_predictor_metrics():
                     int(row["task_difficulty"])
                 )
                 train_cases.append((features, int(row["expected_focus_score"])))
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return error_response(f"Could not load training data: {e}", "TRAINING_DATA_LOAD_FAILED", 500)
 
     predictor = ProductivityPredictor()
@@ -52,7 +54,7 @@ def productivity_predictor_metrics():
                     int(row["task_difficulty"])
                 )
                 test_cases.append((features, int(row["expected_focus_score"])))
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return error_response(f"Could not load evaluation data: {e}", "EVAL_DATA_LOAD_FAILED", 500)
 
     training_mean = sum(expected for _, expected in train_cases) / len(train_cases)
@@ -71,6 +73,7 @@ def get_dependency_metrics():
     import sys
     import time
     from datetime import datetime, timezone
+
     import config
     from api.blueprints import state
     from api.external_api_common import EXTERNAL_METRICS
@@ -87,7 +90,7 @@ def get_dependency_metrics():
     try:
         from api.routes import START_TIME
         uptime_sec = round(time.time() - START_TIME, 1)
-    except Exception:  # noqa: BLE001
+    except Exception:
         uptime_sec = 0.0
 
     return jsonify({

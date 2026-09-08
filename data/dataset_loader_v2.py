@@ -1,11 +1,14 @@
 """Load and merge food data from sample entries and nutrition CSV files."""
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
 import uuid
+
 import pandas as pd
+
 from models.meal import FoodItem, NutritionInfo
 
 logger = logging.getLogger(__name__)
@@ -61,7 +64,7 @@ def load_group_files() -> list[FoodItem]:
             logger.info("  [Loader] %s — %d rows", path.split('/')[-1], len(df))
         except FileNotFoundError:
             logger.warning("  [Loader] Not found: %s", path)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.warning("  [Loader] Error reading %s: %s", path, e)
 
     if not all_dfs:
@@ -89,7 +92,7 @@ def load_group_files() -> list[FoodItem]:
                 category = "general",
                 tags     = ["csv_imported", "group_data"],
             ))
-        except Exception:  # noqa: BLE001
+        except Exception:
             continue
 
     return foods
@@ -127,7 +130,7 @@ def load_nutrients_file() -> list[FoodItem]:
                     category = category,
                     tags     = ["csv_imported", category.lower().replace(" ", "_")],
                 ))
-            except Exception:  # noqa: BLE001
+            except Exception:
                 continue
 
         return foods
@@ -135,7 +138,7 @@ def load_nutrients_file() -> list[FoodItem]:
     except FileNotFoundError:
         logger.warning("  [Loader] Not found: %s", NUTRIENTS_FILE)
         return []
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         logger.warning("  [Loader] Error reading nutrients file: %s", e)
         return []
 

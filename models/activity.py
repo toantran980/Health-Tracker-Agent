@@ -1,6 +1,5 @@
 """Activity and Study Session Data Models"""
 from dataclasses import dataclass, field
-from typing import Optional, Dict
 from datetime import datetime
 from enum import Enum
 
@@ -32,15 +31,15 @@ class StudySession:
     user_id:           str
     subject:           str
     start_time:        datetime
-    end_time:          Optional[datetime] = None
+    end_time:          datetime | None = None
     planned_duration:  int               = 60    # minutes
-    actual_duration:   Optional[int]     = None  # minutes; set on session end
-    focus_score:       Optional[int]     = None  # 1-10 self-reported
+    actual_duration:   int | None     = None  # minutes; set on session end
+    focus_score:       int | None     = None  # 1-10 self-reported
     tasks_completed:   int               = 0
     notes:             str               = ""
     difficulty:        int               = 5     # 1-10
 
-    def get_duration(self) -> Optional[int]:
+    def get_duration(self) -> int | None:
         """
         Compute actual session duration in minutes from timestamps.
 
@@ -71,7 +70,7 @@ class StudySession:
         completion_ratio = min(duration / max(self.planned_duration, 1), 1.0)
         return round((self.focus_score * duration * completion_ratio) / 100, 4)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "session_id":       self.session_id,
             "user_id":          self.user_id,
@@ -105,12 +104,12 @@ class ScheduledActivity:
         """Return planned duration in minutes."""
         return int((self.end_time - self.start_time).total_seconds() / 60)
 
-    def is_overdue(self, reference: Optional[datetime] = None) -> bool:
+    def is_overdue(self, reference: datetime | None = None) -> bool:
         """Return True if the activity end_time has passed and it is not completed."""
         now = reference or datetime.now()
         return not self.completed and self.end_time < now
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "activity_id":   self.activity_id,
             "user_id":       self.user_id,
@@ -141,11 +140,11 @@ class ActivityLog:
     activity_type:    ActivityType
     timestamp:        datetime
     duration_minutes: int
-    metadata:         Dict = field(default_factory=dict)
-    energy_after:     Optional[int] = None   # 1-10 self-reported energy
+    metadata:         dict = field(default_factory=dict)
+    energy_after:     int | None = None   # 1-10 self-reported energy
     notes:            str           = ""
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "log_id":           self.log_id,
             "user_id":          self.user_id,

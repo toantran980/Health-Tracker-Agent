@@ -1,7 +1,6 @@
 """Sample data and food database"""
 from models.meal import FoodItem, NutritionInfo
-from models.user_profile import UserProfile, Goal, BiologicalSex
-
+from models.user_profile import BiologicalSex, Goal, UserProfile
 
 # Food database: 25 items with varied nutrition profiles
 SAMPLE_FOODS = [

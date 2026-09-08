@@ -1,6 +1,5 @@
 """Meal and Nutrition Data Models"""
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict
 from datetime import datetime
 from enum import Enum
 
@@ -24,7 +23,7 @@ class NutritionInfo:
     sodium_mg:  float = 0.0
     sugar_g:    float = 0.0
 
-    def get_macro_ratio(self) -> Dict[str, float]:
+    def get_macro_ratio(self) -> dict[str, float]:
         """
         Return each macro as a percentage of total caloric contribution.
 
@@ -75,13 +74,13 @@ class FoodItem:
     nutrition_info:    NutritionInfo
     serving_size:      str            = "100g"
     category:          str            = "other"
-    tags:              List[str]      = field(default_factory=list)
+    tags:              list[str]      = field(default_factory=list)
     is_vegan:          bool           = False
     is_gluten_free:    bool           = False
     is_vegetarian:     bool           = False
-    satisfaction_score: Optional[float] = None   # average user rating 1-10
+    satisfaction_score: float | None = None   # average user rating 1-10
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "food_id":   self.food_id,
             "name":      self.name,
@@ -101,9 +100,9 @@ class Meal:
     user_id:            str
     meal_type:          MealType
     timestamp:          datetime
-    food_items:         List[FoodItem]   = field(default_factory=list)
+    food_items:         list[FoodItem]   = field(default_factory=list)
     notes:              str              = ""
-    satisfaction_score: Optional[int]   = None   # 1-10 user satisfaction
+    satisfaction_score: int | None   = None   # 1-10 user satisfaction
 
     def get_total_nutrition(self) -> NutritionInfo:
         """
@@ -139,7 +138,7 @@ class DailyNutritionLog:
     log_id:          str
     user_id:         str
     date:            datetime
-    meals:           List[Meal] = field(default_factory=list)
+    meals:           list[Meal] = field(default_factory=list)
     water_intake_ml: int = 0
 
     def get_total_nutrition(self) -> NutritionInfo:

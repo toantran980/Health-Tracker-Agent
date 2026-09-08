@@ -21,7 +21,6 @@ from pymongo.errors import PyMongoError
 
 import config
 
-
 EXPECTED_INDEXES = {
     "users": ["user_id_1"],
     "daily_logs": ["user_id_1_date_1"],
@@ -100,7 +99,7 @@ def check_code_imports() -> list[str]:
     for mod in modules:
         try:
             __import__(mod)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             errors.append(f"Import check failed for {mod}: {exc}")
 
     if not errors:

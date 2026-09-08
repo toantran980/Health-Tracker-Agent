@@ -1,5 +1,5 @@
 import math
-from typing import List, Dict, Optional
+
 from models.meal import DailyNutritionLog, NutritionInfo
 
 
@@ -8,7 +8,7 @@ class NutritionAnalyzer:
 
     def __init__(self, target_nutrition: NutritionInfo):
         self.target_nutrition = target_nutrition
-        self.history: List[DailyNutritionLog] = []
+        self.history: list[DailyNutritionLog] = []
 
     # Data ingestion
 
@@ -18,11 +18,11 @@ class NutritionAnalyzer:
 
     # Vector helpers
 
-    def to_vector(self, info: NutritionInfo) -> List[float]:
+    def to_vector(self, info: NutritionInfo) -> list[float]:
         """Return a 4-D macro vector: [calories, protein_g, carbs_g, fat_g]."""
         return [info.calories, info.protein_g, info.carbs_g, info.fat_g]
 
-    def normalize_vector(self, vec: List[float]) -> List[float]:
+    def normalize_vector(self, vec: list[float]) -> list[float]:
         """L2-normalise a vector so cosine similarity is scale-independent."""
         magnitude = math.sqrt(sum(v ** 2 for v in vec))
         return [v / magnitude for v in vec] if magnitude > 0 else vec
@@ -74,7 +74,7 @@ class NutritionAnalyzer:
 
     # Anomaly detection
 
-    def detect_nutritional_anomalies(self, sensitivity: float = 2.0) -> List[Dict]:
+    def detect_nutritional_anomalies(self, sensitivity: float = 2.0) -> list[dict]:
         """
         Statistical Anomaly Detection via Z-Score.
 
@@ -113,7 +113,7 @@ class NutritionAnalyzer:
 
     # Meal patterns
 
-    def identify_meal_patterns(self) -> Dict:
+    def identify_meal_patterns(self) -> dict:
         """
         Identify recurring food items and average meal-timing hours.
 
@@ -123,8 +123,8 @@ class NutritionAnalyzer:
               - meal_timing: average hour of day per meal type
               - macro_preferences: 'high_protein' | 'high_carb' | 'balanced'
         """
-        meal_counts: Dict[str, int]   = {}
-        meal_hours:  Dict[str, List[int]] = {}
+        meal_counts: dict[str, int]   = {}
+        meal_hours:  dict[str, list[int]] = {}
 
         for log in self.history:
             for meal in log.meals:
@@ -157,7 +157,7 @@ class NutritionAnalyzer:
 
     # Macro recommendations
 
-    def get_macro_recommendations(self, goal: Optional[str] = None) -> Dict[str, str]:
+    def get_macro_recommendations(self, goal: str | None = None) -> dict[str, str]:
         """
         Goal-aware macro recommendations.
 
@@ -175,7 +175,7 @@ class NutritionAnalyzer:
         target_macros = self.target_nutrition.get_macro_ratio()
         recent_macros = recent_avg.get_macro_ratio()
 
-        recommendations: Dict[str, str] = {}
+        recommendations: dict[str, str] = {}
         macro_map = {
             "protein": ("protein_percent", "protein"),
             "carbs":   ("carbs_percent",   "carbs"),
@@ -207,7 +207,7 @@ class NutritionAnalyzer:
 
     # Diet-performance correlation
 
-    def correlate_nutrition_performance(self, focus_scores: List[int]) -> float:
+    def correlate_nutrition_performance(self, focus_scores: list[int]) -> float:
         """Pearson r between daily diet-adherence ratio and external focus scores"""
         if len(self.history) < 2 or len(focus_scores) != len(self.history):
             return 0.0
@@ -218,7 +218,7 @@ class NutritionAnalyzer:
         ]
         return self.pearson_correlation(adherence, [float(s) for s in focus_scores])
 
-    def pearson_correlation(self, x: List[float], y: List[float]) -> float:
+    def pearson_correlation(self, x: list[float], y: list[float]) -> float:
         """Standard Pearson correlation coefficient."""
         n = len(x)
         if n < 2 or len(y) != n:
@@ -253,7 +253,7 @@ class NutritionAnalyzer:
 
     # Weighted adherence score
 
-    def weighted_adherence_score(self, log: DailyNutritionLog, goal: Optional[str] = None) -> float:
+    def weighted_adherence_score(self, log: DailyNutritionLog, goal: str | None = None) -> float:
         """
         Return a [0, 1] adherence score for a single day, weighted by goal.
 
@@ -286,9 +286,9 @@ class NutritionAnalyzer:
 
     def get_nutrition_report(
         self,
-        goal: Optional[str] = None,
-        focus_scores: Optional[List[int]] = None,
-    ) -> Dict:
+        goal: str | None = None,
+        focus_scores: list[int] | None = None,
+    ) -> dict:
         """
         Generate a comprehensive nutrition report
 
@@ -298,7 +298,7 @@ class NutritionAnalyzer:
         """
         avg = self.get_weekly_average()
 
-        report: Dict = {
+        report: dict = {
             "weekly_average": {
                 "calories":  round(avg.calories,  1),
                 "protein_g": round(avg.protein_g, 1),

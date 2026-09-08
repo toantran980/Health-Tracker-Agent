@@ -26,13 +26,6 @@ class TestComparativeAnalytics(unittest.TestCase):
         state.daily_logs.clear()
         state.productivity_sessions.clear()
         
-        if state.mongo_store.enabled:
-            # Clean up any test users that might exist from previous runs
-            test_user_pattern = "test_comparative_user_"
-            # We can't easily query for patterns, so we'll skip this for now
-            # and rely on unique IDs
-            pass
-        
         # Create test user with unique ID to avoid conflicts
         self.user_id = f"test_comparative_user_{uuid.uuid4().hex[:8]}"
         self.password = "test_password_123"
@@ -368,7 +361,7 @@ class TestComparativeAnalytics(unittest.TestCase):
     
     def test_nutrition_domain_analytics(self):
         """Test that nutrition domain analytics work correctly."""
-        from models.meal import DailyNutritionLog, NutritionInfo, Meal, MealType
+        from models.meal import DailyNutritionLog, Meal, MealType
         
         now = datetime.now(timezone.utc)
         

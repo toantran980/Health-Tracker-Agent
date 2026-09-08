@@ -1,8 +1,8 @@
-import config
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
 
+import config
 from ai_modules.goal_tracker import GoalTracker
 from ai_modules.health_risk_assessor import HealthRiskAssessor
 from ai_modules.recovery_predictor import RecoveryFeatures, RecoveryPredictor
@@ -195,7 +195,7 @@ def get_recovery_readiness(user_id):
             if ts and ts >= cutoff_3d and str(act.get("activity_type", "")).lower() == "exercise":
                 calc_load += int(act.get("duration_minutes") or 0)
                 active_days_set.add(ts.date().isoformat())
-        except Exception:  # noqa: BLE001
+        except Exception:
             continue
 
     load, load_err = coerce_int(request.args.get('workout_load_3d_minutes', calc_load), calc_load, 0, 1200)

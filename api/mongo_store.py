@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from dotenv import load_dotenv
-from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo import ASCENDING, DESCENDING, MongoClient
 from pymongo.errors import PyMongoError
 
 load_dotenv()
@@ -220,7 +220,7 @@ class MongoStore:
             return []
 
     @classmethod
-    def from_env(cls) -> "MongoStore":
+    def from_env(cls) -> MongoStore:
         import config
         uri = config.MONGO_URI
         db_name = config.MONGO_DB_NAME

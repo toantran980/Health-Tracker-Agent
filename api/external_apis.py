@@ -1,29 +1,29 @@
 """Compatibility facade for external API wrappers."""
 
+from api.external_fitness_apis import (
+    proxy_wger_endpoint,
+    search_exercise,
+    search_exercisedb,
+)
 from api.external_food_apis import (
-    search_food_by_name,
+    food_facts_to_fooditem,
     get_food_by_barcode,
     parse_food_facts_product,
-    search_usda_food,
-    food_facts_to_fooditem,
-    usda_to_fooditem,
     search_all_sources,
-)
-from api.external_fitness_apis import (
-    search_exercise,
-    proxy_wger_endpoint,
-    search_exercisedb,
+    search_food_by_name,
+    search_usda_food,
+    usda_to_fooditem,
 )
 
 __all__ = [
-    "search_food_by_name",
+    "food_facts_to_fooditem",
     "get_food_by_barcode",
     "parse_food_facts_product",
-    "search_usda_food",
-    "search_exercise",
     "proxy_wger_endpoint",
-    "search_exercisedb",
-    "food_facts_to_fooditem",
-    "usda_to_fooditem",
     "search_all_sources",
+    "search_exercise",
+    "search_exercisedb",
+    "search_food_by_name",
+    "search_usda_food",
+    "usda_to_fooditem",
 ]

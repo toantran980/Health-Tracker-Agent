@@ -1,23 +1,23 @@
 """Open Food Facts and USDA wrappers, plus FoodItem converters."""
 
-import requests
 import uuid
 
-from models.meal import FoodItem, NutritionInfo
+import requests
 
 from api.external_api_common import (
     FOOD_FACTS_BASE,
-    USDA_BASE,
-    USDA_API_KEY,
     REQUEST_TIMEOUT,
-    TTL_SHORT,
-    TTL_MEDIUM,
     TTL_LONG,
+    TTL_MEDIUM,
+    TTL_SHORT,
+    USDA_API_KEY,
+    USDA_BASE,
     cache_get,
     cache_set,
-    record_external_call,
     logger,
+    record_external_call,
 )
+from models.meal import FoodItem, NutritionInfo
 
 
 def parse_food_facts_product(p: dict) -> dict:

@@ -1,10 +1,13 @@
 """chat.py — AI health chatbot endpoints."""
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 
 from ai_modules.health_chatbot import HealthChatbot, UserHealthSnapshot
 from api.blueprints import state
-from api.blueprints.helpers import require_user, require_auth, require_user_and_auth, error_response
+from api.blueprints.helpers import (
+    error_response,
+    require_user_and_auth,
+)
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -78,7 +81,7 @@ def chat(user_id):
 @chat_bp.route('/api/chat/<user_id>/reset', methods=['POST'])
 def reset_chat(user_id):
     """Wipe the conversation history for a user's chatbot session."""
-    user, err = require_user_and_auth(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
     if user_id in state.bot_sessions:

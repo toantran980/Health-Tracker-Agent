@@ -2,17 +2,18 @@
 
 import os
 import unittest
+from typing import ClassVar
 from unittest import mock
 
 # Fail fast when MongoDB is unreachable so the in-memory fallback is used.
 os.environ.setdefault("MONGO_CONNECT_RETRIES", "1")
 os.environ.setdefault("MONGO_URI", "mongodb://127.0.0.1:1")
 
-from api.routes import app  # noqa: E402  (registers all blueprints)
-from api.rate_limiter import RateLimiter, build_limiter  # noqa: E402
-from api.blueprints import state  # noqa: E402
-import api.blueprints.external as external_module  # noqa: E402
-import config  # noqa: E402
+import api.blueprints.external as external_module
+import config
+from api.blueprints import state
+from api.rate_limiter import RateLimiter, build_limiter
+from api.routes import app
 
 
 def make_client():
@@ -89,7 +90,7 @@ class TestRateLimiter(unittest.TestCase):
 
 
 class TestAuthFlow(unittest.TestCase):
-    USER = {
+    USER: ClassVar[dict[str, object]] = {
         "name": "Test User",
         "age": 25,
         "weight_kg": 70,
@@ -182,7 +183,7 @@ class TestAuthFlow(unittest.TestCase):
 
 
 class TestProtectedEndpoints(unittest.TestCase):
-    USER = {
+    USER: ClassVar[dict[str, object]] = {
         "name": "Runner", "age": 30, "weight_kg": 80, "height_cm": 180,
         "target_calories": 2500, "target_protein_g": 130,
         "target_carbs_g": 280, "target_fat_g": 80,
@@ -246,7 +247,7 @@ class TestProtectedEndpoints(unittest.TestCase):
 
 
 class TestCsrf(unittest.TestCase):
-    USER = {
+    USER: ClassVar[dict[str, object]] = {
         "name": "Csrf User", "age": 28, "weight_kg": 75, "height_cm": 178,
         "target_calories": 2400, "target_protein_g": 130,
         "target_carbs_g": 260, "target_fat_g": 75,
@@ -298,7 +299,7 @@ class TestCsrf(unittest.TestCase):
 
 
 class TestPersistenceEndpoints(unittest.TestCase):
-    USER = {
+    USER: ClassVar[dict[str, object]] = {
         "name": "Planner", "age": 24, "weight_kg": 68, "height_cm": 172,
         "target_calories": 2300, "target_protein_g": 140,
         "target_carbs_g": 240, "target_fat_g": 75,
@@ -399,7 +400,7 @@ class TestPersistenceEndpoints(unittest.TestCase):
 
 
 class TestTrends(unittest.TestCase):
-    USER = {
+    USER: ClassVar[dict[str, object]] = {
         "name": "Trendy", "age": 27, "weight_kg": 72, "height_cm": 178,
         "password": "trendy99",
     }
@@ -456,7 +457,7 @@ class TestTrends(unittest.TestCase):
 class TestSessionExpiry(unittest.TestCase):
     """Auth sessions become permanent (with a TTL) only when configured."""
 
-    USER = {
+    USER: ClassVar[dict[str, object]] = {
         "name": "Expiry User",
         "age": 30,
         "weight_kg": 75,

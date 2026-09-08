@@ -1,22 +1,22 @@
 """activity.py — Activity recommendation, logging, and trend analysis endpoints."""
 
-from uuid import uuid4
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
+
+from ai_modules.activity_recommendation_engine import ActivityRecommendationEngine
 from api.blueprints import state
 from api.blueprints.helpers import (
-    require_user,
-    require_auth,
-    require_user_and_auth,
-    require_fields,
-    error_response,
-    parse_iso_datetime,
-    validate_iso_timestamp,
     check_duplicate_submission,
     coerce_int,
+    error_response,
+    parse_iso_datetime,
+    require_fields,
+    require_user,
+    require_user_and_auth,
+    validate_iso_timestamp,
 )
-from ai_modules.activity_recommendation_engine import ActivityRecommendationEngine
 from models.activity import ActivityLog, ActivityType
 
 activity_bp = Blueprint('activity', __name__)
@@ -69,7 +69,7 @@ def log_activity():
     missing = require_fields(data, ["user_id", "activity_type", "duration_minutes"])
     if missing:
         return missing
-    user, err = require_user_and_auth(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 
@@ -153,7 +153,7 @@ def activity_trends(user_id):
     for log in logs:
         try:
             ts = parse_iso_datetime(log.get('timestamp'))
-        except Exception:  # noqa: BLE001
+        except Exception:
             continue
         if ts < cutoff:
             continue

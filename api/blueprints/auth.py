@@ -1,9 +1,14 @@
 """auth.py — Session-based authentication endpoints."""
 
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, jsonify, request, session
 
 from api.blueprints import state
-from api.blueprints.helpers import require_user, error_response, save_user_with_hash, get_csrf_token
+from api.blueprints.helpers import (
+    error_response,
+    get_csrf_token,
+    require_user,
+    save_user_with_hash,
+)
 
 auth_bp = Blueprint('auth', __name__)
 

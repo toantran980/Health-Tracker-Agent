@@ -9,16 +9,14 @@ from flask import Blueprint, jsonify, request
 from ai_modules.sleep_quality_predictor import SleepFeatures, SleepQualityPredictor
 from api.blueprints import state
 from api.blueprints.helpers import (
+    check_duplicate_submission,
     coerce_float,
     coerce_int,
     error_response,
-    parse_iso_datetime,
-    validate_iso_timestamp,
-    check_duplicate_submission,
-    require_auth,
+    require_fields,
     require_user,
     require_user_and_auth,
-    require_fields,
+    validate_iso_timestamp,
 )
 
 sleep_bp = Blueprint('sleep', __name__)
@@ -56,7 +54,7 @@ def log_sleep():
     if missing:
         return missing
 
-    user, err = require_user_and_auth(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 

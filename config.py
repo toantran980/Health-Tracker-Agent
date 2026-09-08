@@ -1,5 +1,6 @@
 import os
 import secrets
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,12 +26,11 @@ INSECURE_SECRET_PLACEHOLDERS = {
     "password",
     "dev_secret",
 }
-if IS_PRODUCTION:
-    if (
-        not SECRET_KEY
-        or SECRET_KEY.strip() in INSECURE_SECRET_PLACEHOLDERS
-        or len(SECRET_KEY.strip()) < 32
-    ):
+if IS_PRODUCTION and (
+    not SECRET_KEY
+    or SECRET_KEY.strip() in INSECURE_SECRET_PLACEHOLDERS
+    or len(SECRET_KEY.strip()) < 32
+):
         raise RuntimeError(
             "SECRET_KEY must be set to a strong random string (minimum 32 characters) in production mode."
         )

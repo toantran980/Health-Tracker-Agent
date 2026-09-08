@@ -1,6 +1,7 @@
-from typing import List, Dict, Optional
 
-from models.user_profile import UserProfile, Goal
+from typing import ClassVar
+
+from models.user_profile import Goal, UserProfile
 
 
 class ActivityRecommendationEngine:
@@ -9,7 +10,7 @@ class ActivityRecommendationEngine:
     available time, and active health goals.
     """
 
-    ACTIVITIES = [
+    ACTIVITIES: ClassVar[list[dict[str, object]]] = [
         {"name": "Running",            "intensity": 8, "type": "cardio",      "indoor": False, "alt": "Treadmill running"},
         {"name": "Cycling",            "intensity": 7, "type": "cardio",      "indoor": False, "alt": "Stationary bike"},
         {"name": "Swimming",           "intensity": 7, "type": "cardio",      "indoor": True,  "alt": "Swimming"},
@@ -27,7 +28,7 @@ class ActivityRecommendationEngine:
     def __init__(self, user_profile: UserProfile):
         self.user_profile = user_profile
 
-    def preferred_types(self) -> List[str]:
+    def preferred_types(self) -> list[str]:
         """Return activity types ordered by relevance to the user's goal."""
         if Goal.MUSCLE_GAIN in self.user_profile.goals:
             return ["strength", "cardio", "flexibility"]
@@ -39,9 +40,9 @@ class ActivityRecommendationEngine:
         self,
         energy_level: int = 5,
         available_minutes: int = 30,
-        weather_hints: Optional[List[str]] = None,
+        weather_hints: list[str] | None = None,
         n: int = 3,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Return up to n activity recommendations."""
         weather_hints = weather_hints or []
         force_indoor = any("indoor" in h.lower() or "rainy" in h.lower() for h in weather_hints)
@@ -49,7 +50,7 @@ class ActivityRecommendationEngine:
         max_intensity = max(1, energy_level)
         preferred_types = self.preferred_types()
 
-        scored: List[tuple] = []
+        scored: list[tuple] = []
         for act in self.ACTIVITIES:
             if act["intensity"] > max_intensity:
                 continue

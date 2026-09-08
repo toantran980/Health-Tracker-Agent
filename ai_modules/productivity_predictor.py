@@ -1,10 +1,10 @@
 """Productivity Predictor - Machine Learning model for study optimization"""
-from typing import List, Dict, Optional, Tuple
-import numpy as np
-from sklearn.ensemble import RandomForestRegressor
 import math
 import pickle
 from dataclasses import dataclass
+
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
 
 
 @dataclass
@@ -19,7 +19,7 @@ class Features:
     previous_session_duration: int  # minutes
     task_difficulty: int  # 1-10
     
-    def to_vector(self) -> List[float]:
+    def to_vector(self) -> list[float]:
         """Convert features to vector for ML model, with simple interaction terms"""
         v = [
             self.hour_of_day / 24.0,
@@ -43,11 +43,11 @@ class ProductivityPredictor:
     
     def __init__(self, model_type: str = "random_forest"):
         self.model_type = model_type
-        self.weights: List[float] = [
+        self.weights: list[float] = [
             0.25, 0.10, 0.20, 0.15, 0.18, 0.22, 0.12, 0.08, 0.10, 0.10, 0.10
         ]
         self.bias: float = 5.0
-        self.training_data: List[Tuple[Features, int]] = []
+        self.training_data: list[tuple[Features, int]] = []
         self.is_trained: bool = False
         self.rf_model = None
     
@@ -133,7 +133,7 @@ class ProductivityPredictor:
         final_score = base_score + sleep_nutrition_boost + difficulty_boost + hour_bonus
         return max(1, min(10, round(final_score)))
     
-    def calculate_correlation(self, x: List[float], y: List[float]) -> float:
+    def calculate_correlation(self, x: list[float], y: list[float]) -> float:
         """Calculate Pearson correlation coefficient"""
         if len(x) < 2 or len(x) != len(y):
             return 0.0
@@ -153,7 +153,7 @@ class ProductivityPredictor:
         return numerator / denominator
     
     def suggest_optimal_time(self, user_earliest: int = 8, user_latest: int = 22, 
-                            available_hours: Optional[List[int]] = None) -> Tuple[int, int, float]:
+                            available_hours: list[int] | None = None) -> tuple[int, int, float]:
         """
         Suggest optimal hour for study session
         
@@ -210,7 +210,7 @@ class ProductivityPredictor:
         # Clamp to reasonable range (25-180 minutes)
         return max(25, min(180, base_duration))
     
-    def get_model_info(self) -> Dict:
+    def get_model_info(self) -> dict:
         """Get model information and performance"""
         return {
             "model_type": self.model_type,
@@ -255,7 +255,7 @@ class ProductivityPredictor:
         predictor.rf_model = payload.get("rf_model", None)
         return predictor
 
-    def incremental_update(self, new_examples: List[Tuple[Features, int]]) -> bool:
+    def incremental_update(self, new_examples: list[tuple[Features, int]]) -> bool:
         """
         Merge new (features, actual_focus_score) examples into an existing
         model's training set and retrain. Returns True when training succeeded.

@@ -119,7 +119,7 @@ def verify(input_path: str) -> bool:
     try:
         with open(input_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"[!] JSON parsing failed: {exc}")
         return False
 

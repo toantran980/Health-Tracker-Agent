@@ -1,18 +1,20 @@
+import sys
+import traceback
 from datetime import datetime, timezone
-from flask import Blueprint, request, jsonify, session
 
-from models.user_profile import UserProfile, Goal, BiologicalSex
+from flask import Blueprint, jsonify, request, session
+
 from api.blueprints import state
 from api.blueprints.helpers import (
-    require_user,
-    require_auth,
-    require_user_and_auth,
-    ensure_ai_modules,
-    coerce_int,
     coerce_float,
+    coerce_int,
+    ensure_ai_modules,
     error_response,
+    require_user,
+    require_user_and_auth,
     save_user_with_hash,
 )
+from models.user_profile import BiologicalSex, Goal, UserProfile
 
 user_bp = Blueprint('user', __name__)
 
@@ -97,7 +99,7 @@ def create_user():
             target_fat_g     = fat,
             water_target_ml  = water_target,
         )
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         traceback.print_exc(file=sys.stderr)
         return error_response(f"Invalid user data: {e}", "INVALID_USER_DATA", 400)
 
@@ -114,7 +116,7 @@ def create_user():
         state.users[user_id] = user
         ensure_ai_modules(user_id, user)
         save_user_with_hash(user)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         # Roll back in-memory state so a retry doesn't collide
         state.users.pop(user_id, None)
         traceback.print_exc(file=sys.stderr)
@@ -143,7 +145,7 @@ def delete_user(user_id):
     Permanently delete a user account and all associated health records.
     Requires authentication as the target user.
     """
-    user, err = require_user_and_auth(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 

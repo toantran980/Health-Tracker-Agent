@@ -1,12 +1,11 @@
 import math
-from typing import List, Dict
 from datetime import datetime
-from models.user_profile import UserProfile, Goal
-from models.meal import FoodItem, NutritionInfo
 
+from models.meal import FoodItem, NutritionInfo
+from models.user_profile import Goal, UserProfile
 
 # Goal-specific macro weights
-GOAL_WEIGHTS: Dict[str, Dict[str, float]] = {
+GOAL_WEIGHTS: dict[str, dict[str, float]] = {
     "MUSCLE_GAIN": {"calories": 0.15, "protein": 0.55, "carbs": 0.10, "fat": 0.10, "satisfaction": 0.10},
     "WEIGHT_LOSS": {"calories": 0.50, "protein": 0.20, "carbs": 0.10, "fat": 0.10, "satisfaction": 0.10},
     "MAINTENANCE": {"calories": 0.20, "protein": 0.25, "carbs": 0.20, "fat": 0.15, "satisfaction": 0.20},
@@ -36,11 +35,11 @@ class MealRecommendationEngine:
                          palatability is never ignored.
     """
 
-    def __init__(self, user_profile: UserProfile, food_database: List[FoodItem]):
+    def __init__(self, user_profile: UserProfile, food_database: list[FoodItem]):
         self.user_profile   = user_profile
         self.food_database  = food_database
-        self.user_meal_history: List[Dict] = []
-        self.user_ratings:      Dict[str, float] = {}   # food_id -> rating (1-10)
+        self.user_meal_history: list[dict] = []
+        self.user_ratings:      dict[str, float] = {}   # food_id -> rating (1-10)
 
         # Pre-compute per-feature min/max across the whole database once so
         # normalisation is consistent for every call.
@@ -48,8 +47,8 @@ class MealRecommendationEngine:
 
         # Cache normalized vectors + id lookup so repeated scoring calls
         # (especially hybrid which scans the DB twice) avoid recomputation.
-        self.food_by_id: Dict[str, FoodItem] = {f.food_id: f for f in self.food_database}
-        self.vector_cache: Dict[str, List[float]] = {
+        self.food_by_id: dict[str, FoodItem] = {f.food_id: f for f in self.food_database}
+        self.vector_cache: dict[str, list[float]] = {
             f.food_id: self.minmax_normalize(self.food_to_raw_vector(f.nutrition_info))
             for f in self.food_database
         }
@@ -72,7 +71,7 @@ class MealRecommendationEngine:
 
     # Vector helpers
 
-    def compute_db_stats(self) -> Dict[str, Dict[str, float]]:
+    def compute_db_stats(self) -> dict[str, dict[str, float]]:
         """
         Pre-compute per-feature (min, max) across the whole food database.
 
@@ -83,17 +82,17 @@ class MealRecommendationEngine:
             return {}
 
         fields = ["calories", "protein_g", "carbs_g", "fat_g"]
-        stats: Dict[str, Dict[str, float]] = {}
+        stats: dict[str, dict[str, float]] = {}
         for field in fields:
             values = [getattr(f.nutrition_info, field) for f in self.food_database]
             stats[field] = {"min": min(values), "max": max(values)}
         return stats
 
-    def food_to_raw_vector(self, info: NutritionInfo) -> List[float]:
+    def food_to_raw_vector(self, info: NutritionInfo) -> list[float]:
         """Return raw 4-D macro vector."""
         return [info.calories, info.protein_g, info.carbs_g, info.fat_g]
 
-    def minmax_normalize(self, vec: List[float]) -> List[float]:
+    def minmax_normalize(self, vec: list[float]) -> list[float]:
         """
         Min-max normalise a 4-D macro vector to [0, 1] per feature using
         database-wide statistics computed at construction time.
@@ -110,7 +109,7 @@ class MealRecommendationEngine:
             normalised.append(val)
         return normalised
 
-    def cosine_similarity(self, v1: List[float], v2: List[float]) -> float:
+    def cosine_similarity(self, v1: list[float], v2: list[float]) -> float:
         """
         Cosine similarity between two pre-normalised vectors.
 
@@ -121,7 +120,7 @@ class MealRecommendationEngine:
         mag_b = math.sqrt(sum(b ** 2 for b in v2))
         return dot / (mag_a * mag_b) if mag_a > 0 and mag_b > 0 else 0.0
 
-    def food_vector(self, food: FoodItem) -> List[float]:
+    def food_vector(self, food: FoodItem) -> list[float]:
         """Return a min-max normalised 4-D vector for a food item (cached)."""
         cached = self.vector_cache.get(food.food_id)
         if cached is not None:
@@ -131,14 +130,14 @@ class MealRecommendationEngine:
         return vec
 
     def target_vector(self, target_calories: float, target_protein: float,
-                       target_carbs: float = 0.0, target_fat: float = 0.0) -> List[float]:
+                       target_carbs: float = 0.0, target_fat: float = 0.0) -> list[float]:
         """Return a min-max normalised target vector."""
         raw = [target_calories, target_protein, target_carbs, target_fat]
         return self.minmax_normalize(raw)
 
     # Goal weight resolution
 
-    def resolve_weights(self) -> Dict[str, float]:
+    def resolve_weights(self) -> dict[str, float]:
         """
         Return the weight dict that matches the user's active Goal.
 
@@ -167,7 +166,7 @@ class MealRecommendationEngine:
 
     # Recommendation methods
 
-    def get_content_based_recommendations(self, n: int = 5) -> List[Dict]:
+    def get_content_based_recommendations(self, n: int = 5) -> list[dict]:
         """
         Content-based filtering: recommend foods similar to highly-rated ones.
 
@@ -198,7 +197,7 @@ class MealRecommendationEngine:
         if total_weight == 0.0:
             return self.get_default_recommendations(n)
 
-        scored: Dict[str, Dict] = {}
+        scored: dict[str, dict] = {}
         for food in self.food_database:
             if food.food_id in liked:
                 continue
@@ -229,7 +228,7 @@ class MealRecommendationEngine:
             for item in diversified
         ]
 
-    def mmr_select(self, ranked: List[Dict], n: int) -> List[Dict]:
+    def mmr_select(self, ranked: list[dict], n: int) -> list[dict]:
         """
         Maximal Marginal Relevance selection for diversity.
 
@@ -238,7 +237,7 @@ class MealRecommendationEngine:
         """
         if not ranked:
             return []
-        selected: List[Dict] = [ranked[0]]
+        selected: list[dict] = [ranked[0]]
         candidates = ranked[1:]
         while candidates and len(selected) < n:
             best_idx = 0
@@ -263,7 +262,7 @@ class MealRecommendationEngine:
         target_carbs:    float = 0.0,
         target_fat:      float = 0.0,
         n: int = 5,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Goal-aware constraint-based recommendations.
         Each macro is scored independently as:
@@ -304,7 +303,7 @@ class MealRecommendationEngine:
                 return 1.0
             return max(0.0, 1.0 - abs(actual - target) / target)
 
-        scored: List[tuple] = []
+        scored: list[tuple] = []
         for food in self.food_database:
             if not self.satisfies_dietary_constraints(food):
                 continue
@@ -364,7 +363,7 @@ class MealRecommendationEngine:
         content_weight:  float = 0.4,
         constraint_weight: float = 0.6,
         n: int = 5,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Hybrid recommender: blend content-based and constraint-based scores.
 
@@ -410,7 +409,7 @@ class MealRecommendationEngine:
         }
 
         all_ids = set(content_recs) | set(constraint_recs)
-        blended: List[tuple] = []
+        blended: list[tuple] = []
 
         for fid in all_ids:
             c_score  = content_recs.get(fid, 0.0)
@@ -434,7 +433,7 @@ class MealRecommendationEngine:
 
     # Default fallback
 
-    def get_default_recommendations(self, n: int) -> List[Dict]:
+    def get_default_recommendations(self, n: int) -> list[dict]:
         """
         Cold-start fallback: return constraint-compliant, high-protein foods.
 

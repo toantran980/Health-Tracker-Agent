@@ -1,0 +1,6 @@
+[lint]
+# DTZ005: codebase deliberately uses naive datetimes (seed scripts, legacy
+#         helpers, test fixtures feeding MongoDB).
+# BLE001/S112: retry loops intentionally swallow exceptions from optional
+#              external APIs / bulk dataset loads.
+ignore = ["BLE001", "DTZ005", "S112"]

@@ -2,15 +2,15 @@
 
 from datetime import datetime, timezone
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 
-from ai_modules import ScheduleOptimizer, ProductivityPredictor, Features
+from ai_modules import Features, ProductivityPredictor, ScheduleOptimizer
 from api.blueprints import state
 from api.blueprints.helpers import (
-    require_user,
-    normalize_schedule_tasks,
     coerce_int,
     error_response,
+    normalize_schedule_tasks,
+    require_user,
 )
 
 schedule_bp = Blueprint('schedule', __name__)
@@ -190,7 +190,7 @@ def get_optimal_study_time(user_id):
 @schedule_bp.route('/api/recommendations/<user_id>', methods=['POST'])
 def get_recommendations(user_id):
     """Run the knowledge base inference engine and return top recommendations."""
-    user, err = require_user(user_id)
+    _, err = require_user(user_id)
     if err:
         return err
 

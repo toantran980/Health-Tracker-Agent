@@ -1,13 +1,17 @@
 """Evaluation helpers shared by model training scripts and API endpoints."""
 
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 
 import numpy as np
-from sklearn.ensemble import ExtraTreesRegressor, HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import (
+    ExtraTreesRegressor,
+    HistGradientBoostingRegressor,
+    RandomForestRegressor,
+)
 from sklearn.model_selection import KFold, cross_val_score
 
 
-def compute_metrics(predictor, data: Iterable[Tuple[object, int]], baseline: float) -> dict:
+def compute_metrics(predictor, data: Iterable[tuple[object, int]], baseline: float) -> dict:
     """Return regression and ordinal metrics for a labelled evaluation set."""
     cases = list(data)
     if not cases:
@@ -50,7 +54,7 @@ def compute_metrics(predictor, data: Iterable[Tuple[object, int]], baseline: flo
     }
 
 
-def benchmark_regressors(data: Iterable[Tuple[object, int]], folds: int = 5) -> dict:
+def benchmark_regressors(data: Iterable[tuple[object, int]], folds: int = 5) -> dict:
     """Compare tree regressors with shuffled cross-validation on training data."""
     cases = list(data)
     if len(cases) < folds:
