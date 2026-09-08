@@ -1,5 +1,27 @@
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: health-tracker-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - health-tracker-net
+
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: health-tracker-app
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
     environment:
       APP_ENV: production
       HOST: 0.0.0.0
@@ -22,7 +44,42 @@ services:
       GUNICORN_WORKERS: "2"
       GUNICORN_THREADS: "2"
       GUNICORN_TIMEOUT: "120"
+    expose:
+      - "5001"
+    ports: !reset []
+    volumes: !reset []
+    networks:
+      - health-tracker-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/api/health/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   mongo:
+    image: mongo:7.0
+    container_name: health-tracker-mongo
+    restart: unless-stopped
     environment:
       MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-health_tracker}
+    expose:
+      - "27017"
+    ports: !reset []
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - health-tracker-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+volumes:
+  mongo_data:
+
+networks:
+  health-tracker-net:
+    driver: bridge

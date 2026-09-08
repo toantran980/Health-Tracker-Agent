@@ -102,6 +102,127 @@ def parse_iso_datetime(value: str | None, default: datetime | None = None) -> da
     return dt.astimezone(timezone.utc)
 
 
+def validate_iso_timestamp(
+    value: str | None,
+    allow_future_seconds: int = 86400,
+    max_past_days: int = 3650,
+) -> tuple[datetime, tuple | None]:
+    """
+    Validate an ISO-8601 timestamp string strictly.
+    Returns (aware_utc_datetime, error_response or None).
+    """
+    if not value:
+        return datetime.now(timezone.utc), None
+
+    if not isinstance(value, str):
+        return datetime.now(timezone.utc), error_response(
+            "Timestamp must be an ISO-8601 formatted string",
+            "INVALID_TIMESTAMP",
+            400,
+            details={"provided": str(value)},
+        )
+
+    try:
+        dt = datetime.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        return datetime.now(timezone.utc), error_response(
+            f"Invalid ISO-8601 timestamp format: {exc}",
+            "INVALID_TIMESTAMP",
+            400,
+            details={"provided": value},
+        )
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+
+    now = datetime.now(timezone.utc)
+    if dt > now + timedelta(seconds=allow_future_seconds):
+        return dt, error_response(
+            "Timestamp cannot be in the future beyond allowable window",
+            "TIMESTAMP_IN_FUTURE",
+            400,
+            details={"timestamp": dt.isoformat(), "current_utc": now.isoformat()},
+        )
+
+    if dt < now - timedelta(days=max_past_days):
+        return dt, error_response(
+            f"Timestamp is older than allowable historical limit ({max_past_days} days)",
+            "TIMESTAMP_TOO_OLD",
+            400,
+            details={"timestamp": dt.isoformat()},
+        )
+
+    return dt, None
+
+
+def check_duplicate_submission(
+    user_id: str,
+    entity_type: str,
+    fingerprint: str,
+    window_seconds: float = 3.0,
+) -> tuple | None:
+    """
+    Detect rapid duplicate submissions within `window_seconds`.
+    Returns an error_response tuple if duplicate detected, else None.
+    """
+    import time
+    now = time.time()
+    key = f"{user_id}:{entity_type}:{fingerprint}"
+    last_time = state.recent_submissions.get(key)
+
+    # Prune old keys occasionally
+    if len(state.recent_submissions) > 500:
+        cutoff = now - 60.0
+        state.recent_submissions = {
+            k: v for k, v in state.recent_submissions.items() if v >= cutoff
+        }
+
+    if last_time is not None and (now - last_time) < window_seconds:
+        return error_response(
+            f"Duplicate {entity_type} submission detected within {window_seconds}s. Please wait.",
+            "DUPLICATE_SUBMISSION",
+            409,
+            details={"entity_type": entity_type, "window_seconds": window_seconds},
+        )
+
+    state.recent_submissions[key] = now
+    return None
+
+
+def coerce_water_ml(value, unit: str = "ml", default: int = 250) -> tuple[int, tuple | None]:
+    """Convert and validate water intake into mL (supports ml, oz, l)."""
+    val, err = coerce_float(value, float(default), minimum=1.0)
+    if err:
+        return default, err
+
+    unit_norm = str(unit or "ml").strip().lower()
+    if unit_norm in ("oz", "fl_oz"):
+        ml = int(round(val * 29.5735))
+    elif unit_norm in ("l", "liter", "liters"):
+        ml = int(round(val * 1000.0))
+    elif unit_norm in ("ml", "milliliter", "milliliters"):
+        ml = int(round(val))
+    else:
+        return default, error_response(
+            f"Unsupported water unit '{unit}'. Use ml, oz, or l.",
+            "INVALID_UNIT",
+            400,
+            details={"supported_units": ["ml", "oz", "l"]},
+        )
+
+    if ml < 10 or ml > 10000:
+        return default, error_response(
+            "Water volume must be between 10 mL and 10,000 mL",
+            "VALUE_OUT_OF_RANGE",
+            400,
+            details={"min_ml": 10, "max_ml": 10000, "computed_ml": ml},
+        )
+
+    return ml, None
+
+
 # AI module management
 
 def ensure_ai_modules(user_id: str, user: UserProfile) -> None:
@@ -258,6 +379,28 @@ def require_auth(user_id: str):
         "AUTH_REQUIRED",
         401,
     )
+
+
+def require_user_and_auth(user_id: str):
+    """
+    Combined helper that calls both require_user and require_auth.
+    Returns (user, None) on success, or (None, error_response) on failure.
+    
+    This eliminates the common pattern:
+        user, err = require_user(user_id)
+        if err: return err
+        auth_err = require_auth(user_id)
+        if auth_err: return auth_err
+    """
+    user, err = require_user(user_id)
+    if err:
+        return None, err
+    
+    auth_err = require_auth(user_id)
+    if auth_err:
+        return None, auth_err
+    
+    return user, None
 
 
 # CSRF tokens

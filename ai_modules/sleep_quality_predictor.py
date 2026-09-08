@@ -36,7 +36,6 @@ class SleepFeatures:
             min(max(self.stress_level, 1) / 10.0, 1.0),
         ]
 
-        # Interaction terms
         # 1) High caffeine + screen time exacerbates sleep quality drop
         v.append(v[2] * v[4])
         # 2) High exercise mitigates moderate stress

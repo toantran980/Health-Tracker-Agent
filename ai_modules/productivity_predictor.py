@@ -120,8 +120,6 @@ class ProductivityPredictor:
         """Non-linear prediction using interaction terms"""
         base_score = self.predict_linear(features)
         
-        # Add interaction effects
-        # Good sleep + good nutrition = synergistic effect
         sleep_nutrition_boost = (features.sleep_quality / 10) * (features.nutrition_score / 100) * 2
         
         # High energy + suitable task difficulty = better focus

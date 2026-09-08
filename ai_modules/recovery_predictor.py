@@ -28,7 +28,6 @@ class RecoveryFeatures:
             min(max(self.current_energy, 1) / 10.0, 1.0),
             min(self.days_since_rest / 7.0, 1.0),
         ]
-        # Interaction terms:
         # High sleep + high energy = recovery synergy
         v.append(v[0] * v[4])
         # High workout load + high stress = high fatigue penalty

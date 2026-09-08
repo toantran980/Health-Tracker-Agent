@@ -78,6 +78,7 @@ def serialize_daily_log(log: DailyNutritionLog) -> dict[str, Any]:
         "log_id": log.log_id,
         "date_iso": log.date.isoformat(),
         "meals": [serialize_meal(m) for m in log.meals],
+        "water_intake_ml": getattr(log, "water_intake_ml", 0),
     }
 
 
@@ -88,6 +89,7 @@ def deserialize_daily_log(user_id: str, doc: dict[str, Any]) -> DailyNutritionLo
         user_id=user_id,
         date=datetime.fromisoformat(date_iso),
         meals=[deserialize_meal(user_id, m) for m in doc.get("meals", [])],
+        water_intake_ml=int(doc.get("water_intake_ml", 0)),
     )
 
 

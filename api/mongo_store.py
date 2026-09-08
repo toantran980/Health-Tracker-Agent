@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from dotenv import load_dotenv
@@ -57,10 +57,26 @@ class MongoStore:
                 max_retries, last_error,
             )
 
+    def ping(self) -> tuple[bool, float]:
+        """Ping MongoDB and return (is_healthy, roundtrip_latency_ms)."""
+        if not self.enabled or self.db is None:
+            return False, 0.0
+        start = time.perf_counter()
+        try:
+            self.db.command("ping")
+            latency = (time.perf_counter() - start) * 1000.0
+            return True, round(latency, 2)
+        except PyMongoError:
+            logger.exception("[MongoDB] ping command failed")
+            return False, 0.0
+
     def ensure_indexes(self) -> None:
         import config
         meals_ttl = config.MONGO_MEALS_TTL_DAYS
         daily_logs_ttl = config.MONGO_DAILY_LOGS_TTL_DAYS
+        activity_ttl = config.MONGO_ACTIVITY_LOGS_TTL_DAYS
+        sleep_ttl = config.MONGO_SLEEP_LOGS_TTL_DAYS
+        chat_ttl = config.MONGO_CHAT_HISTORY_TTL_DAYS
 
         self.db["users"].create_index("user_id", unique=True)
         self.db["daily_logs"].create_index(
@@ -77,6 +93,18 @@ class MongoStore:
         if 0 < meals_ttl:
             self.db["meals"].create_index(
                 "timestamp", expireAfterSeconds=meals_ttl * 86400
+            )
+        if 0 < activity_ttl:
+            self.db["activity_logs"].create_index(
+                "timestamp", expireAfterSeconds=activity_ttl * 86400
+            )
+        if 0 < sleep_ttl:
+            self.db["sleep_logs"].create_index(
+                "timestamp", expireAfterSeconds=sleep_ttl * 86400
+            )
+        if 0 < chat_ttl:
+            self.db["chat_history"].create_index(
+                "updated_at", expireAfterSeconds=chat_ttl * 86400
             )
 
         self.db["activities"].create_index("activity_id", unique=True)
@@ -96,15 +124,13 @@ class MongoStore:
             [("user_id", ASCENDING), ("timestamp", DESCENDING)]
         )
 
-    
-    #  Activities                                                        #
     def save_activity(self, activity_doc: dict[str, Any]) -> bool:
         """Upsert an activity document. Returns True on success, False otherwise."""
         if not self.enabled or self.db is None:
             return False
         try:
             doc = dict(activity_doc)
-            doc.pop("created_at", None)  # Remove created_at if present to avoid conflict
+            doc.pop("created_at", None)  # avoid conflict with $setOnInsert created_at
             self.db["activities"].update_one(
                 {"activity_id": doc["activity_id"]},
                 {"$set": doc, "$setOnInsert": {"created_at": datetime.now(UTC)}},
@@ -130,7 +156,6 @@ class MongoStore:
             logger.exception("[MongoDB] get_activities failed for user_id=%s", user_id)
             return []
 
-    #  Recommendations                                                    
     def save_recommendation(self, rec_doc: dict[str, Any]) -> bool:
         """Insert a recommendation document. Returns True on success, False otherwise."""
         if not self.enabled or self.db is None:
@@ -157,7 +182,6 @@ class MongoStore:
             logger.exception("[MongoDB] get_recommendations failed for user_id=%s", user_id)
             return []
 
-    #  Meals                                                              #
     def save_meal(self, meal_doc: dict[str, Any]) -> bool:
         """Upsert a meal document. Returns True on success, False otherwise."""
         if not self.enabled or self.db is None:
@@ -202,7 +226,6 @@ class MongoStore:
         db_name = config.MONGO_DB_NAME
         return cls(uri, db_name)
 
-    #  Users                                                               #
     def save_user(self, user_doc: dict[str, Any]) -> bool:
         """Upsert a user document. Returns True on success, False otherwise."""
         if not self.enabled or self.db is None:
@@ -239,7 +262,6 @@ class MongoStore:
             return 0
 
     
-    #  Daily logs                                                          #
     def save_daily_log(
         self, user_id: str, date_str: str, log_doc: dict[str, Any]
     ) -> bool:
@@ -279,7 +301,6 @@ class MongoStore:
             logger.exception("[MongoDB] get_daily_logs failed for user_id=%s", user_id)
             return []
 
-    #  Scheduled tasks + productivity sessions                    #
     def save_schedule(self, user_id: str, schedule_doc: dict[str, Any]) -> bool:
         """Insert a schedule optimization result."""
         if not self.enabled or self.db is None:
@@ -340,7 +361,6 @@ class MongoStore:
             )
             return []
 
-    #  Activity logs                                                #
     def save_activity_log(self, log_doc: dict[str, Any]) -> bool:
         """Insert an ActivityLog document. Returns True on success, False otherwise."""
         if not self.enabled or self.db is None:
@@ -369,7 +389,6 @@ class MongoStore:
             logger.exception("[MongoDB] get_activity_logs failed for user_id=%s", user_id)
             return []
 
-    #  Sleep logs                                                   #
     def save_sleep_log(self, log_doc: dict[str, Any]) -> bool:
         """Insert a sleep log document. Returns True on success, False otherwise."""
         if not self.enabled or self.db is None:
@@ -398,7 +417,6 @@ class MongoStore:
             logger.exception("[MongoDB] get_sleep_logs failed for user_id=%s", user_id)
             return []
 
-    #  Chat history                                                       #
     def save_chat_history(self, user_id: str, messages: list[dict[str, Any]]) -> bool:
         """Upsert the most recent conversation turns for a user.
 
@@ -442,3 +460,78 @@ class MongoStore:
         except PyMongoError:
             logger.exception("[MongoDB] delete_chat_history failed for user_id=%s", user_id)
             return False
+
+    def delete_user_data(self, user_id: str) -> dict[str, int]:
+        """Permanently cascade-delete all records associated with user_id."""
+        deleted: dict[str, int] = {}
+        if not self.enabled or self.db is None:
+            return deleted
+
+        collections = [
+            "users",
+            "daily_logs",
+            "meals",
+            "activity_logs",
+            "activities",
+            "schedules",
+            "productivity_sessions",
+            "chat_history",
+            "sleep_logs",
+            "recommendations",
+        ]
+        for col_name in collections:
+            try:
+                res = self.db[col_name].delete_many({"user_id": user_id})
+                deleted[col_name] = res.deleted_count
+            except PyMongoError:
+                logger.exception("[MongoDB] Failed deleting user_id=%s from %s", user_id, col_name)
+                deleted[col_name] = 0
+        return deleted
+
+    def export_user_data(
+        self, user_id: str, start_date: str | None = None, end_date: str | None = None
+    ) -> dict[str, Any]:
+        """Export all stored health data for user_id with password hashes redacted."""
+        if not self.enabled or self.db is None:
+            return {}
+
+        user_doc = self.get_user(user_id)
+        if user_doc:
+            user_doc.pop("password_hash", None)
+
+        export_data = {
+            "export_metadata": {
+                "user_id": user_id,
+                "exported_at": datetime.now(UTC).isoformat(),
+                "version": "1.0.0",
+                "filter_start_date": start_date,
+                "filter_end_date": end_date,
+            },
+            "user_profile": user_doc,
+            "daily_logs": self.get_daily_logs(user_id),
+            "meals": self.get_meals(user_id, limit=10000),
+            "activity_logs": self.get_activity_logs(user_id, limit=10000),
+            "sleep_logs": self.get_sleep_logs(user_id, limit=10000),
+            "schedules": self.get_schedules(user_id, limit=10000),
+            "productivity_sessions": self.get_productivity_sessions(user_id, limit=10000),
+            "chat_history": self.get_chat_history(user_id),
+        }
+        return export_data
+
+    def prune_retention_data(self, collection_name: str, days: int) -> int:
+        """Manually prune documents older than `days` based on timestamp/updated_at."""
+        if not self.enabled or self.db is None or days <= 0:
+            return 0
+        cutoff = datetime.now(UTC) - timedelta(days=days)
+        time_field = "updated_at" if collection_name in ("daily_logs", "chat_history") else "timestamp"
+        try:
+            res = self.db[collection_name].delete_many({
+                "$or": [
+                    {time_field: {"$lt": cutoff}},
+                    {time_field: {"$lt": cutoff.isoformat()}},
+                ]
+            })
+            return res.deleted_count
+        except PyMongoError:
+            logger.exception("[MongoDB] prune_retention_data failed for %s", collection_name)
+            return 0

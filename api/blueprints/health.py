@@ -62,8 +62,15 @@ def health_live():
 def health_ready():
     """Readiness check for deployment health probes."""
     secret_ok = bool(config.SECRET_KEY)
-    mongo_ok = state.mongo_store.enabled
-    is_ready = secret_ok and (mongo_ok or not config.IS_PRODUCTION)
+    mongo_enabled = state.mongo_store.enabled
+    mongo_healthy = False
+    mongo_latency_ms = 0.0
+
+    if mongo_enabled:
+        mongo_healthy, mongo_latency_ms = state.mongo_store.ping()
+
+    mongo_ok = mongo_healthy if mongo_enabled else not config.IS_PRODUCTION
+    is_ready = secret_ok and mongo_ok
     status_code = 200 if is_ready else 503
 
     return jsonify({
@@ -71,15 +78,19 @@ def health_ready():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "checks": {
             "secret_key": secret_ok,
-            "mongodb": mongo_ok,
-            "memory_fallback": not state.mongo_store.enabled,
+            "mongodb_enabled": mongo_enabled,
+            "mongodb_healthy": mongo_healthy,
+            "mongodb_latency_ms": mongo_latency_ms,
+            "memory_fallback": not mongo_enabled,
             "production_mode": config.IS_PRODUCTION,
         },
         "database": {
-            "enabled": state.mongo_store.enabled,
-            "mode": "mongo" if state.mongo_store.enabled else "memory",
-            "uri": state.mongo_store.uri if state.mongo_store.enabled else None,
-            "database": state.mongo_store.db_name if state.mongo_store.enabled else None,
+            "enabled": mongo_enabled,
+            "healthy": mongo_healthy,
+            "latency_ms": mongo_latency_ms,
+            "mode": "mongo" if mongo_enabled else "memory",
+            "uri": state.mongo_store.uri if mongo_enabled else None,
+            "database": state.mongo_store.db_name if mongo_enabled else None,
         },
     }), status_code
 

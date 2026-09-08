@@ -2,7 +2,6 @@ import os
 import secrets
 from dotenv import load_dotenv
 
-# Load environment variables from .env file if it exists
 load_dotenv()
 
 ENVIRONMENT = os.getenv("APP_ENV", os.getenv("FLASK_ENV", "development")).lower()
@@ -19,9 +18,23 @@ SHOW_API_OUTPUT = os.getenv("SHOW_API_OUTPUT", str(DEVELOPER_MODE)).lower() == "
 # Secret key for signed session cookies (required for /api/auth/login).
 # In production, a real secret must be provided via environment variables.
 SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("FLASK_SECRET_KEY")
+INSECURE_SECRET_PLACEHOLDERS = {
+    "replace-with-a-long-random-secret",
+    "secret",
+    "changeme",
+    "password",
+    "dev_secret",
+}
+if IS_PRODUCTION:
+    if (
+        not SECRET_KEY
+        or SECRET_KEY.strip() in INSECURE_SECRET_PLACEHOLDERS
+        or len(SECRET_KEY.strip()) < 32
+    ):
+        raise RuntimeError(
+            "SECRET_KEY must be set to a strong random string (minimum 32 characters) in production mode."
+        )
 if not SECRET_KEY:
-    if IS_PRODUCTION:
-        raise RuntimeError("SECRET_KEY must be set in production mode.")
     SECRET_KEY = secrets.token_hex(32)
 
 # Session cookie hardening.
@@ -45,9 +58,12 @@ MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "health_tracker")
 MONGO_CONNECT_RETRIES = int(os.getenv("MONGO_CONNECT_RETRIES", "5"))
 MONGO_CONNECT_RETRY_DELAY = float(os.getenv("MONGO_CONNECT_RETRY_DELAY", "2"))
 
-# MongoDB TTL (days) — bounds growth of the meals and daily_logs collections.
+# MongoDB TTL (days) — bounds growth of persisted collections.
 MONGO_MEALS_TTL_DAYS = int(os.getenv("MONGO_MEALS_TTL_DAYS", "365"))
 MONGO_DAILY_LOGS_TTL_DAYS = int(os.getenv("MONGO_DAILY_LOGS_TTL_DAYS", "365"))
+MONGO_ACTIVITY_LOGS_TTL_DAYS = int(os.getenv("MONGO_ACTIVITY_LOGS_TTL_DAYS", "365"))
+MONGO_SLEEP_LOGS_TTL_DAYS = int(os.getenv("MONGO_SLEEP_LOGS_TTL_DAYS", "365"))
+MONGO_CHAT_HISTORY_TTL_DAYS = int(os.getenv("MONGO_CHAT_HISTORY_TTL_DAYS", "180"))
 
 # Rate limiting for external API proxied endpoints (per client IP).
 EXTERNAL_API_RATE_LIMIT = int(os.getenv("EXTERNAL_API_RATE_LIMIT", "30"))

@@ -10,7 +10,6 @@ from models.meal import FoodItem, NutritionInfo
 
 logger = logging.getLogger(__name__)
 
-# All CSV files
 GROUP_FILES = [
     "data/nutrition_data/FOOD-DATA-GROUP1.csv",
     "data/nutrition_data/FOOD-DATA-GROUP2.csv",
@@ -68,10 +67,8 @@ def load_group_files() -> list[FoodItem]:
     if not all_dfs:
         return []
 
-    # Combine all 5 into one dataframe
     combined = pd.concat(all_dfs, ignore_index=True)
 
-    # Clean
     combined = combined.dropna(subset=["food", "Caloric Value"])
     combined = combined[pd.to_numeric(combined["Caloric Value"], errors="coerce") > 0]
     combined = combined.drop_duplicates(subset=["food"])
@@ -106,7 +103,6 @@ def load_nutrients_file() -> list[FoodItem]:
         # Replace trace amounts
         df = df.replace("t", 0)
 
-        # Clean
         df["Calories"] = pd.to_numeric(df["Calories"], errors="coerce")
         df = df.dropna(subset=["Food", "Calories"])
         df = df[df["Calories"] > 0]

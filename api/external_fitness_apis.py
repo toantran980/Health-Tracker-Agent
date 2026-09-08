@@ -10,6 +10,7 @@ from api.external_api_common import (
     TTL_MEDIUM,
     cache_get,
     cache_set,
+    record_external_call,
     logger,
 )
 
@@ -34,9 +35,11 @@ def search_exercise(name: str, language: int = 2) -> list[dict]:
             }
             for s in resp.json().get("suggestions", [])
         ]
+        record_external_call("exercisedb", True)
         return cache_set(cache_key, results, TTL_MEDIUM)
     except requests.exceptions.RequestException as exc:
         logger.warning("[Wger] Search error: %s", exc)
+        record_external_call("exercisedb", False, str(exc))
         return []
 
 
@@ -46,9 +49,11 @@ def proxy_wger_endpoint(endpoint: str, params: dict = None) -> dict:
     try:
         resp = requests.get(url, params=params or {}, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
+        record_external_call("exercisedb", True)
         return resp.json()
     except requests.exceptions.RequestException as exc:
         logger.warning("[Wger] Proxy error for %s: %s", endpoint, exc)
+        record_external_call("exercisedb", False, str(exc))
         return {"error": str(exc)}
 
 
@@ -80,7 +85,9 @@ def search_exercisedb(name: str) -> list[dict]:
             }
             for item in data[:10]
         ]
+        record_external_call("exercisedb", True)
         return cache_set(cache_key, results, TTL_MEDIUM)
     except requests.exceptions.RequestException as exc:
         logger.warning("[ExerciseDB] API error: %s", exc)
+        record_external_call("exercisedb", False, str(exc))
         return []

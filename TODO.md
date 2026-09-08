@@ -50,17 +50,17 @@ every few months; do not build a feature only because it appears in the list.
 
 ### Phase 1: Foundation (before adding more AI)
 
-- [ ] **Production deployment baseline** — remove public MongoDB exposure and
+- [X] **Production deployment baseline** — remove public MongoDB exposure and
   source bind mounts, require external secrets, configure a trusted reverse
   proxy, and verify liveness/readiness probes in a staging environment.
-- [ ] **Privacy and account controls** — add account deletion, data export, clear
+- [X] **Privacy and account controls** — add account deletion, data export, clear
   retention controls, and a documented privacy policy for health data.
-- [ ] **Data-quality contract** — validate units, timestamps, ranges, time zones,
+- [X] **Data-quality contract** — validate units, timestamps, ranges, time zones,
   duplicate submissions, and missing values consistently across all logs.
-- [ ] **Observability** — add structured logs, request IDs, error tracking,
+- [X] **Observability** — add structured logs, request IDs, error tracking,
   dependency health metrics, and alerts for failed background or external API
   operations.
-- [ ] **Release process** — add CI linting, dependency/security scanning,
+- [X] **Release process** — add CI linting, dependency/security scanning,
   migration checks, backup-restore drills, staging deployment, and rollback
   instructions.
 
@@ -72,7 +72,7 @@ every few months; do not build a feature only because it appears in the list.
   clear date range and explicit handling for failed or partial exports.
 - [ ] **MealPlanGenerator / ShoppingList** — produce a weekly plan honoring
   calories, macros, allergies, dietary restrictions, and grocery quantities.
-- [ ] **Comparative analytics** — add week-over-week trends with explanations,
+- [X] **Comparative analytics** — add week-over-week trends with explanations,
   confidence indicators, and links back to the underlying logged data.
 - [ ] **Wearable data import** — start with one documented CSV/JSON format before
   adding vendor APIs; make imports reviewable and reversible.

@@ -13,9 +13,12 @@ from api.blueprints.helpers import (
     coerce_int,
     error_response,
     parse_iso_datetime,
+    validate_iso_timestamp,
+    check_duplicate_submission,
     require_auth,
-    require_fields,
     require_user,
+    require_user_and_auth,
+    require_fields,
 )
 
 sleep_bp = Blueprint('sleep', __name__)
@@ -53,13 +56,9 @@ def log_sleep():
     if missing:
         return missing
 
-    _, err = require_user(user_id)
+    user, err = require_user_and_auth(user_id)
     if err:
         return err
-
-    auth_err = require_auth(user_id)
-    if auth_err:
-        return auth_err
 
     duration, dur_err = coerce_float(data.get('duration_hours'), None, minimum=0.5, maximum=24.0)
     if dur_err:
@@ -91,10 +90,18 @@ def log_sleep():
     if st_err:
         return st_err
 
-    ts = parse_iso_datetime(data.get('timestamp'))
+    ts, ts_err = validate_iso_timestamp(data.get('timestamp'))
+    if ts_err:
+        return ts_err
+
+    log_id = str(data.get('log_id') or f"sleep_{uuid4().hex[:12]}")
+    dupe_key = str(data.get('log_id') or f"{ts.date().isoformat()}:{duration}")
+    dupe_err = check_duplicate_submission(user_id, "sleep", dupe_key)
+    if dupe_err:
+        return dupe_err
 
     log_doc = {
-        "log_id": f"sleep_{uuid4().hex[:12]}",
+        "log_id": log_id,
         "user_id": user_id,
         "timestamp": ts.isoformat(),
         "duration_hours": duration,

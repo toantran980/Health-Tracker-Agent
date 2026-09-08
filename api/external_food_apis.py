@@ -15,6 +15,7 @@ from api.external_api_common import (
     TTL_LONG,
     cache_get,
     cache_set,
+    record_external_call,
     logger,
 )
 
@@ -58,12 +59,15 @@ def search_food_by_name(query: str, page_size: int = 5) -> list[dict]:
             for p in products
             if p.get("product_name") and p.get("nutriments", {}).get("energy-kcal_100g", 0) > 0
         ]
+        record_external_call("openfoodfacts", True)
         return cache_set(cache_key, results, TTL_SHORT)
-    except requests.exceptions.Timeout:
+    except requests.exceptions.Timeout as exc:
         logger.warning("[OpenFoodFacts] Timeout for query: %s", query)
+        record_external_call("openfoodfacts", False, f"Timeout: {exc}")
         return []
     except requests.exceptions.RequestException as exc:
         logger.warning("[OpenFoodFacts] API error: %s", exc)
+        record_external_call("openfoodfacts", False, str(exc))
         return []
 
 
@@ -80,9 +84,11 @@ def get_food_by_barcode(barcode: str) -> dict | None:
         data = resp.json()
         if data.get("status") != 1:
             return None
+        record_external_call("openfoodfacts", True)
         return cache_set(cache_key, parse_food_facts_product(data["product"]), TTL_LONG)
     except requests.exceptions.RequestException as exc:
         logger.warning("[OpenFoodFacts] Barcode lookup error: %s", exc)
+        record_external_call("openfoodfacts", False, str(exc))
         return None
 
 
@@ -98,9 +104,11 @@ def search_usda_food(query: str, page_size: int = 5) -> list[dict]:
         resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         results = resp.json().get("foods", [])
+        record_external_call("usda", True)
         return cache_set(cache_key, results, TTL_MEDIUM)
     except requests.exceptions.RequestException as exc:
         logger.warning("[USDA] API error: %s", exc)
+        record_external_call("usda", False, str(exc))
         return []
 
 

@@ -131,14 +131,78 @@ Before exposing the service publicly:
 - set `DEBUG=False`
 - keep API keys only where needed
 
-## 7. Operational notes
+## 7. Pre-Deployment Migration Checks
 
-- MongoDB should be reachable from the app container or host.
-- If MongoDB is not available in production, the app will not be considered ready.
-- Cache and rate-limit settings are configured via env vars in `CONFIGURATION.md`.
-- Logs can be checked with Docker or Gunicorn console output.
+Before rolling out updates to staging or production, run the migration readiness script:
 
-## 8. Useful commands
+```bash
+python scripts/migration_check.py
+```
+
+This verifies:
+- `SECRET_KEY` presence and entropy (>= 32 chars in production)
+- MongoDB connectivity and database ping
+- Index availability (unique indexes on `users`, `meals`, and TTL indexes on `activity_logs`, `daily_logs`, `sleep_logs`)
+- Module dependencies and import readiness
+
+## 8. Backup and Restore Drills
+
+Routine drills should verify that backups can be restored cleanly without data loss.
+
+### 8.1 Create a backup archive
+```bash
+python scripts/backup_restore.py --backup backups/backup_$(date +%Y%m%d_%H%M%S).json
+```
+
+### 8.2 Verify backup integrity
+```bash
+python scripts/backup_restore.py --verify backups/backup_20260907_120000.json
+```
+
+### 8.3 Restore from backup
+```bash
+python scripts/backup_restore.py --restore backups/backup_20260907_120000.json
+```
+
+## 9. Staging Environment & Verification
+
+Before promoting code to production:
+
+1. **Deploy to Staging**:
+   ```bash
+   docker compose --env-file .env.staging -f docker-compose.yml -f docker-compose.production.yml up --build -d
+   ```
+2. **Verify Liveness and Readiness Probes**:
+   ```bash
+   curl -f http://staging.example.com/api/health/live
+   curl -f http://staging.example.com/api/health/ready
+   ```
+3. **Verify Dependency Observability**:
+   ```bash
+   curl -f http://staging.example.com/api/metrics/dependencies
+   ```
+
+## 10. Rollback Runbook
+
+If a deployment experiences unexpected errors or readiness failure:
+
+1. **Revert Container Images**:
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml rollback
+   # Or switch to the previous git tag / container image hash:
+   git checkout tags/v1.0.0
+   docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml up -d
+   ```
+2. **Restore Database if Data Drift Occurred**:
+   ```bash
+   python scripts/backup_restore.py --restore backups/pre_release_backup.json
+   ```
+3. **Confirm System Health**:
+   ```bash
+   curl -f http://localhost:5001/api/health/ready
+   ```
+
+## 11. Useful commands
 
 Start with Gunicorn:
 
@@ -146,14 +210,16 @@ Start with Gunicorn:
 gunicorn --config gunicorn.conf.py wsgi:app
 ```
 
-With Docker:
+With Docker in production (with Nginx reverse proxy):
 
 ```powershell
-docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml up --build -d
+docker compose --env-file .env.production -f docker-compose.production.yml up --build -d
 ```
 
 Check the app health:
 
 ```bash
 curl -i http://localhost:5001/api/health/ready
+curl -i http://localhost/api/health/ready
 ```
+

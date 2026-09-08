@@ -49,3 +49,4 @@ activity_logs:         dict[str, list]                         = {}  # user_id -
 sleep_logs:            dict[str, list]                         = {}  # user_id -> sleep log dicts
 sleep_predictors:      dict[str, SleepQualityPredictor]        = {}  # user_id -> SleepQualityPredictor
 recovery_predictors:   dict[str, RecoveryPredictor]            = {}  # user_id -> RecoveryPredictor
+recent_submissions:    dict[str, float]                        = {}  # submission_key -> timestamp

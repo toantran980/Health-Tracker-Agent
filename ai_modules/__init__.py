@@ -1,5 +1,3 @@
-# AI Health & Wellness Tracker
-
 """AI Modules Package"""
 
 from .knowledge_base import KnowledgeBase, BehavioralAnalyzer

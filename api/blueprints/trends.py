@@ -3,7 +3,7 @@
 from flask import Blueprint, jsonify, request
 
 from api.blueprints import state
-from api.blueprints.helpers import require_auth, require_user, coerce_int
+from api.blueprints.helpers import require_user_and_auth, coerce_int
 
 trends_bp = Blueprint('trends', __name__)
 
@@ -18,12 +18,9 @@ def get_trends(user_id):
         days : int  — max number of recent nutrition days (default 7)
         focus_limit : int — max number of recent focus points (default 20)
     """
-    user, err = require_user(user_id)
+    user, err = require_user_and_auth(user_id)
     if err:
         return err
-    auth_err = require_auth(user_id)
-    if auth_err:
-        return auth_err
 
     days, days_err = coerce_int(request.args.get('days', 7), 7, minimum=1, maximum=365)
     if days_err:

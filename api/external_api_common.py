@@ -2,6 +2,7 @@
 
 import logging
 import time
+from typing import Any
 
 import config
 from dotenv import load_dotenv
@@ -41,3 +42,27 @@ def cache_get(key: str):
 def cache_set(key: str, value: object, ttl_seconds: int) -> object:
     TTL_CACHE[key] = (time.time() + ttl_seconds, value)
     return value
+
+
+EXTERNAL_METRICS: dict[str, dict[str, Any]] = {
+    "usda": {"total": 0, "success": 0, "errors": 0, "last_error": None},
+    "exercisedb": {"total": 0, "success": 0, "errors": 0, "last_error": None},
+    "openfoodfacts": {"total": 0, "success": 0, "errors": 0, "last_error": None},
+    "groq": {"total": 0, "success": 0, "errors": 0, "last_error": None},
+}
+
+
+def record_external_call(service: str, success: bool, error_msg: str | None = None) -> None:
+    """Record health metrics and error rates for external API operations."""
+    stats = EXTERNAL_METRICS.setdefault(service, {"total": 0, "success": 0, "errors": 0, "last_error": None})
+    stats["total"] += 1
+    if success:
+        stats["success"] += 1
+    else:
+        stats["errors"] += 1
+        stats["last_error"] = {
+            "message": str(error_msg),
+            "timestamp": time.time(),
+        }
+        logger.warning("[EXTERNAL_API_ALERT] Failure in %s: %s", service, error_msg)
+

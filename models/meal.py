@@ -136,10 +136,11 @@ class Meal:
 @dataclass
 class DailyNutritionLog:
     """Aggregated nutrition record for a single calendar day."""
-    log_id:  str
-    user_id: str
-    date:    datetime
-    meals:   List[Meal] = field(default_factory=list)
+    log_id:          str
+    user_id:         str
+    date:            datetime
+    meals:           List[Meal] = field(default_factory=list)
+    water_intake_ml: int = 0
 
     def get_total_nutrition(self) -> NutritionInfo:
         """

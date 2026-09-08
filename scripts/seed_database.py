@@ -2,9 +2,7 @@ from api.mongo_store import MongoStore
 from datetime import datetime
 
 store = MongoStore.from_env()
-# Only run if MongoDB for localhost is enabled
 
-# Insert test users
 u1 = store.save_user({
     "user_id": "user_1",
     "name": "Test User 1",
@@ -22,7 +20,6 @@ u3 = store.save_user({
 })
 print("Inserted users:", u1, u2, u3)
 
-# Insert test daily logs
 d1 = store.db["daily_logs"].insert_one({
     "user_id": "user_1",
     "date": "2024-04-25",
@@ -40,7 +37,6 @@ d3 = store.db["daily_logs"].insert_one({
 })
 print("Inserted daily_logs:", d1.inserted_id, d2.inserted_id, d3.inserted_id)
 
-# Insert test activities
 a1 = store.save_activity({
     "activity_id": "test_activity_1",
     "user_id": "user_1",
@@ -61,7 +57,6 @@ a3 = store.save_activity({
 })
 print("Inserted activities:", a1, a2, a3)
 
-# Insert test recommendations
 r1 = store.save_recommendation({
     "user_id": "user_1",
     "recommendation": "test_recommendation_1",
@@ -79,7 +74,6 @@ r3 = store.save_recommendation({
 })
 print("Inserted recommendations:", r1, r2, r3)
 
-# Insert test meals
 m1 = store.save_meal({
     "meal_id": "test_meal_1",
     "user_id": "user_1",

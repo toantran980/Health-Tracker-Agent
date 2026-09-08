@@ -311,13 +311,11 @@ class MealRecommendationEngine:
 
             ni = food.nutrition_info
 
-            # Individual macro-fit scores
             cal_fit  = macro_fit(ni.calories,  targets["calories"])
             prot_fit = macro_fit(ni.protein_g, targets["protein_g"])
             carb_fit = macro_fit(ni.carbs_g,   targets["carbs_g"])   if targets["carbs_g"]  > 0 else 1.0
             fat_fit  = macro_fit(ni.fat_g,     targets["fat_g"])     if targets["fat_g"]    > 0 else 1.0
 
-            # User satisfaction (default neutral 5/10 when unrated)
             satisfaction = self.user_ratings.get(food.food_id, 5.0) / 10.0
 
             # Weighted composite score

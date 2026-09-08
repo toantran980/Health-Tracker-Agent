@@ -8,9 +8,13 @@ from api.blueprints import state
 from api.blueprints.helpers import (
     require_user,
     require_auth,
+    require_user_and_auth,
     require_fields,
     attach_meal_to_user_log,
     parse_iso_datetime,
+    validate_iso_timestamp,
+    check_duplicate_submission,
+    coerce_water_ml,
     coerce_float,
     error_response,
 )
@@ -44,20 +48,24 @@ def log_user_meal():
     if auth_err:
         return auth_err
 
-    # 1. Process Food Items
+    ts, ts_err = validate_iso_timestamp(data.get('timestamp'))
+    if ts_err:
+        return ts_err
+
+    # 1. Process Food Items with strict range bounds
     food_items_data = data.get('food_items', [])
     food_items = []
     for item in food_items_data:
-        calories, cal_err = coerce_float(item.get('calories'), 0, minimum=0)
+        calories, cal_err = coerce_float(item.get('calories'), 0, minimum=0, maximum=10000)
         if cal_err:
             return cal_err
-        protein, prot_err = coerce_float(item.get('protein_g'), 0, minimum=0)
+        protein, prot_err = coerce_float(item.get('protein_g'), 0, minimum=0, maximum=1000)
         if prot_err:
             return prot_err
-        carbs, carbs_err = coerce_float(item.get('carbs_g'), 0, minimum=0)
+        carbs, carbs_err = coerce_float(item.get('carbs_g'), 0, minimum=0, maximum=2000)
         if carbs_err:
             return carbs_err
-        fat, fat_err = coerce_float(item.get('fat_g'), 0, minimum=0)
+        fat, fat_err = coerce_float(item.get('fat_g'), 0, minimum=0, maximum=1000)
         if fat_err:
             return fat_err
         food_items.append(FoodItem(
@@ -71,13 +79,18 @@ def log_user_meal():
             )
         ))
 
-    # 2. Create Meal Object
-    ts = parse_iso_datetime(data.get('timestamp'))
+    # Duplicate submission prevention
+    meal_id = data.get("meal_id") or f"meal_{datetime.now().timestamp()}"
+    dupe_key = str(data.get("meal_id") or f"{ts.isoformat()}:{len(food_items)}")
+    dupe_err = check_duplicate_submission(user_id, "meal", dupe_key)
+    if dupe_err:
+        return dupe_err
+
     meal_type_raw = str(data.get('meal_type', 'lunch')).strip()
     meal_type = MealType(meal_type_raw) if meal_type_raw in MealType._value2member_map_ else MealType.LUNCH
 
     meal = Meal(
-        meal_id=data.get("meal_id", f"meal_{datetime.now().timestamp()}"),
+        meal_id=meal_id,
         user_id=user_id,
         meal_type=meal_type,
         timestamp=ts,
@@ -85,7 +98,6 @@ def log_user_meal():
         notes=data.get('notes', ''),
     )
 
-    # 3. Persist to MongoDB
     total = meal.get_total_nutrition()
     meal_doc = {
         "meal_id": meal.meal_id,
@@ -97,7 +109,6 @@ def log_user_meal():
     }
     success = state.mongo_store.save_meal(meal_doc)
 
-    # 4. Sync with AI Module History
     attach_meal_to_user_log(user_id, meal)
 
     return jsonify({
@@ -111,14 +122,67 @@ def log_user_meal():
         },
     }), 201
 
-@nutrition_bp.route('/api/nutrition/analysis/<user_id>', methods=['GET'])
-def analyze_nutrition(user_id):
-    """Return the full nutrition report for a user (auth required)."""
-    user, err = require_user(user_id)
-    if err: return err
+
+@nutrition_bp.route('/api/water/log', methods=['POST'])
+def log_water():
+    """
+    Log water intake with unit validation (auth required).
+
+    Body (JSON):
+        user_id   : str    (required)
+        amount    : float  (required)
+        unit      : str    ('ml', 'oz', 'l', optional, default 'ml')
+        timestamp : str    (ISO-8601, optional)
+    """
+    data = request.get_json(silent=True) or {}
+    user_id = data.get("user_id")
+
+    missing = require_fields(data, ["user_id", "amount"])
+    if missing:
+        return missing
+
+    _, err = require_user(user_id)
+    if err:
+        return err
     auth_err = require_auth(user_id)
     if auth_err:
         return auth_err
+
+    ts, ts_err = validate_iso_timestamp(data.get('timestamp'))
+    if ts_err:
+        return ts_err
+
+    amount_ml, ml_err = coerce_water_ml(data.get('amount'), unit=data.get('unit', 'ml'))
+    if ml_err:
+        return ml_err
+
+    dupe_err = check_duplicate_submission(user_id, "water", f"{ts.isoformat()}:{amount_ml}")
+    if dupe_err:
+        return dupe_err
+
+    date_str = ts.date().isoformat()
+    from api.blueprints.helpers import get_or_create_daily_log, sync_analyzer_daily_log
+    daily_log = get_or_create_daily_log(user_id, date_str)
+    daily_log.water_intake_ml += amount_ml
+    sync_analyzer_daily_log(user_id, date_str, daily_log)
+
+    if state.mongo_store.enabled:
+        from api.blueprints.serialization_helpers import serialize_daily_log
+        state.mongo_store.save_daily_log(user_id, date_str, serialize_daily_log(daily_log))
+
+    return jsonify({
+        "status": "success",
+        "user_id": user_id,
+        "logged_ml": amount_ml,
+        "total_water_ml": daily_log.water_intake_ml,
+        "timestamp": ts.isoformat(),
+    }), 201
+
+@nutrition_bp.route('/api/nutrition/analysis/<user_id>', methods=['GET'])
+def analyze_nutrition(user_id):
+    """Return the full nutrition report for a user (auth required)."""
+    user, err = require_user_and_auth(user_id)
+    if err: return err
 
     analyzer = state.nutrition_analyzers.get(user_id)
     if not analyzer:
@@ -131,11 +195,8 @@ def analyze_nutrition(user_id):
 @nutrition_bp.route('/api/nutrition/recommendations/<user_id>', methods=['GET'])
 def get_macro_recommendations(user_id):
     """Return goal-aware macro recommendations for a user (auth required)."""
-    user, err = require_user(user_id)
+    user, err = require_user_and_auth(user_id)
     if err: return err
-    auth_err = require_auth(user_id)
-    if auth_err:
-        return auth_err
 
     analyzer = state.nutrition_analyzers.get(user_id)
     if not analyzer:
@@ -148,11 +209,8 @@ def get_macro_recommendations(user_id):
 @nutrition_bp.route('/api/nutrition/meal-recommendations/<user_id>', methods=['GET'])
 def get_meal_recommendations(user_id):
     """Personalized food recommendations from MealRecommendationEngine (auth required)."""
-    user, err = require_user(user_id)
+    user, err = require_user_and_auth(user_id)
     if err: return err
-    auth_err = require_auth(user_id)
-    if auth_err:
-        return auth_err
 
     recommender = state.meal_recommenders.get(user_id)
     if not recommender:

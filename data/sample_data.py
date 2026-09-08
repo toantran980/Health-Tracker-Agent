@@ -44,7 +44,7 @@ SAMPLE_FOODS = [
         satisfaction_score=8.0,
     ),
     FoodItem(
-        food_id="greek_yogurt",          # fixed: was "Greek yogurt"
+        food_id="greek_yogurt",
         name="Greek Yogurt (200g)",
         nutrition_info=NutritionInfo(calories=130, protein_g=23, carbs_g=9,  fat_g=0.4),
         category="dairy",
@@ -243,9 +243,6 @@ SAMPLE_FOODS = [
         satisfaction_score=7.0,
     ),
 ]
-
-
-# Sample users with contrasting goals
 
 def create_sample_user() -> UserProfile:
     """

@@ -31,7 +31,6 @@ def init_provider():
     if provider == "groq" and client is not None:
         return
     if not GROQ_API_KEY:
-        # No API key -> keyless rule-based fallback (no network, no dependency).
         provider = "local"
         print("[Chatbot] Provider: local (keyless rule-based — no GROQ_API_KEY set).")
         return

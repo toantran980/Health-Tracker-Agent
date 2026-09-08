@@ -307,7 +307,6 @@ class TestNewEndpoints(unittest.TestCase):
         self.assertEqual(data["status"], "success")
         self.assertEqual(data["sleep_log"]["duration_hours"], 7.5)
 
-        # Check logs retrieval
         logs_resp = self.client.get(f"/api/sleep/logs/{self.user_id}")
         self.assertEqual(logs_resp.status_code, 200)
         logs_data = logs_resp.get_json()

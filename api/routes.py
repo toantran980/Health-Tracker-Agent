@@ -4,14 +4,18 @@ Route logic lives in api/blueprints/<domain>.py.
 """
 
 import hmac
+import logging
 import os
+import time
+import uuid
 
-from flask import Flask, render_template, request, session
+from flask import Flask, g, render_template, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from api.blueprints.activity import activity_bp
 from api.blueprints.auth import auth_bp
 from api.blueprints.chat import chat_bp
+from api.blueprints.comparative_analytics import comparative_bp
 from api.blueprints.external import external_bp
 from api.blueprints.health import health_bp
 from api.blueprints.helpers import error_response
@@ -32,6 +36,9 @@ app = Flask(
 )
 
 import config
+
+logger = logging.getLogger("health_tracker.request")
+START_TIME = time.time()
 
 app.wsgi_app = ProxyFix(
     app.wsgi_app,
@@ -55,7 +62,7 @@ if config.SESSION_LIFETIME_MINUTES > 0:
     from datetime import timedelta
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=config.SESSION_LIFETIME_MINUTES)
 
-for bp in (user_bp, auth_bp, nutrition_bp, schedule_bp, chat_bp, external_bp, health_bp, metrics_bp, activity_bp, trends_bp, sleep_bp):
+for bp in (user_bp, auth_bp, nutrition_bp, schedule_bp, chat_bp, external_bp, health_bp, metrics_bp, activity_bp, trends_bp, sleep_bp, comparative_bp):
     app.register_blueprint(bp)
 
 
@@ -67,6 +74,39 @@ CSRF_EXEMPT_PATHS = {
     '/api/user/create',
 }
 CSRF_WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
+
+
+@app.before_request
+def start_request_tracing():
+    """Assign a unique request ID and begin duration timer."""
+    g.start_time = time.perf_counter()
+    req_id = request.headers.get("X-Request-ID")
+    if not req_id or len(req_id) > 128:
+        req_id = uuid.uuid4().hex[:16]
+    g.request_id = req_id
+
+
+@app.after_request
+def finish_request_tracing(response):
+    """Echo request ID header and write structured request log."""
+    req_id = getattr(g, "request_id", None)
+    if req_id:
+        response.headers["X-Request-ID"] = req_id
+
+    start_time = getattr(g, "start_time", None)
+    duration_ms = (time.perf_counter() - start_time) * 1000.0 if start_time else 0.0
+
+    logger.info(
+        "[REQUEST] request_id=%s method=%s path=%s status=%s duration_ms=%.2f user_id=%s ip=%s",
+        req_id or "-",
+        request.method,
+        request.path,
+        response.status_code,
+        duration_ms,
+        session.get("user_id") or "-",
+        request.remote_addr or "-",
+    )
+    return response
 
 
 @app.before_request
@@ -102,6 +142,18 @@ def enforce_csrf():
             403,
         )
     return None
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(exc):
+    req_id = getattr(g, "request_id", "unknown")
+    logger.exception("[UNHANDLED_EXCEPTION] request_id=%s error=%s", req_id, exc)
+    return error_response(
+        "An internal server error occurred.",
+        "INTERNAL_SERVER_ERROR",
+        status=500,
+        details={"request_id": req_id} if not config.IS_PRODUCTION else None,
+    )
 
 
 @app.route('/', methods=['GET'])

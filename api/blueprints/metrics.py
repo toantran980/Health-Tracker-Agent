@@ -12,7 +12,6 @@ def productivity_predictor_metrics():
     train_path = 'data/training_data.csv'
     eval_path  = request.args.get('file', 'data/eval.csv')
 
-    # Load and train
     train_cases = []
     try:
         with open(train_path, newline='') as csvfile:
@@ -37,7 +36,6 @@ def productivity_predictor_metrics():
         predictor.add_training_data(features, expected)
     predictor.train()
 
-    # Load eval data
     test_cases = []
     try:
         with open(eval_path, newline='') as csvfile:
@@ -65,3 +63,51 @@ def productivity_predictor_metrics():
         **metrics,
         "csv_path": eval_path
     })
+
+
+@metrics_bp.route('/dependencies', methods=['GET'])
+def get_dependency_metrics():
+    """Return runtime dependency health metrics, database latency, and external API statistics."""
+    import sys
+    import time
+    from datetime import datetime, timezone
+    import config
+    from api.blueprints import state
+    from api.external_api_common import EXTERNAL_METRICS
+
+    mongo_healthy = False
+    mongo_latency_ms = 0.0
+    if state.mongo_store.enabled:
+        mongo_healthy, mongo_latency_ms = state.mongo_store.ping()
+
+    persisted_users = (
+        state.mongo_store.count_users() if state.mongo_store.enabled else len(state.users)
+    )
+
+    try:
+        from api.routes import START_TIME
+        uptime_sec = round(time.time() - START_TIME, 1)
+    except Exception:  # noqa: BLE001
+        uptime_sec = 0.0
+
+    return jsonify({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "uptime_seconds": uptime_sec,
+        "environment": config.ENVIRONMENT,
+        "python_version": sys.version.split()[0],
+        "database": {
+            "type": "mongodb",
+            "enabled": state.mongo_store.enabled,
+            "healthy": mongo_healthy,
+            "latency_ms": mongo_latency_ms,
+            "user_count": persisted_users,
+        },
+        "external_apis": EXTERNAL_METRICS,
+        "memory_caches": {
+            "users": len(state.users),
+            "daily_logs": len(state.daily_logs),
+            "activity_logs": sum(len(v) for v in state.activity_logs.values()),
+            "sleep_logs": sum(len(v) for v in state.sleep_logs.values()),
+            "recent_submissions_tracked": len(state.recent_submissions),
+        }
+    }), 200

@@ -149,6 +149,62 @@ bindClick('btnLogout', async () => {
   updateAuthStatus();
 });
 
+bindClick('btnExportData', async () => {
+  const userId = getActiveUserId();
+  if (!userId) {
+    showToast('Please select or log in to a user first.', 'warning');
+    return;
+  }
+  try {
+    const data = await apiRequest(`/api/user/${encodeURIComponent(userId)}/export`, { method: 'GET' });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `health_data_export_${userId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Health data exported successfully.', 'success');
+    writeOutput('Data Export', data);
+  } catch (err) {
+    showToast(`Export failed: ${err.message || err}`, 'error');
+  }
+});
+
+bindClick('btnPrivacyPolicy', async () => {
+  try {
+    const policy = await apiRequest('/api/privacy', { method: 'GET' });
+    writeOutput('Privacy Policy & Data Protection', policy);
+    showToast('Privacy policy details displayed in API output console.', 'info');
+  } catch (err) {
+    showToast('Could not load privacy policy.', 'error');
+  }
+});
+
+bindClick('btnDeleteAccount', async () => {
+  const userId = getActiveUserId();
+  if (!userId) {
+    showToast('Please select a user to delete.', 'warning');
+    return;
+  }
+  const confirmed = confirm(
+    `Are you sure you want to permanently delete account '${userId}' and all associated records?\n\nThis will purge all logged meals, activities, sleep, and schedules.`
+  );
+  if (!confirmed) return;
+
+  try {
+    const res = await apiRequest(`/api/user/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+    showToast(`Account '${userId}' permanently deleted.`, 'success');
+    writeOutput('Account Deleted', res);
+    if (activeUserEl) activeUserEl.value = '';
+    updateAuthStatus();
+  } catch (err) {
+    showToast(`Deletion failed: ${err.message || err}`, 'error');
+  }
+});
+
 async function updateAuthStatus() {
   const el = document.getElementById('authStatus');
   if (!el) return;
@@ -480,7 +536,6 @@ if (activeUserEl) {
   });
 }
 
-// Clear output button
 document.getElementById('clearOutput')?.addEventListener('click', () => {
   const outputEl = document.getElementById('output');
   if (outputEl) {

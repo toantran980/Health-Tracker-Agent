@@ -29,17 +29,14 @@ class GoalTracker:
         """Compute all active goal milestones, completion percentages, and projections."""
         milestones = []
 
-        # 1. Weight Milestone
         weight_milestone = self.evaluate_weight_goal()
         if weight_milestone:
             milestones.append(weight_milestone)
 
-        # 2. Weekly Exercise Activity Milestone
         exercise_milestone = self.evaluate_exercise_goal()
         if exercise_milestone:
             milestones.append(exercise_milestone)
 
-        # 3. Nutrition Target Adherence Milestone
         nutrition_milestone = self.evaluate_nutrition_adherence_goal()
         if nutrition_milestone:
             milestones.append(nutrition_milestone)
@@ -57,7 +54,6 @@ class GoalTracker:
         start_weight = self.profile.weight_kg
         current_weight = self.profile.current_weight_kg or start_weight
 
-        # Check if user has an active weight-related goal
         is_weight_loss = Goal.WEIGHT_LOSS in self.profile.goals
         is_muscle_gain = Goal.MUSCLE_GAIN in self.profile.goals
 

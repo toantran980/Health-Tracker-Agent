@@ -8,9 +8,12 @@ from api.blueprints import state
 from api.blueprints.helpers import (
     require_user,
     require_auth,
+    require_user_and_auth,
     require_fields,
     error_response,
     parse_iso_datetime,
+    validate_iso_timestamp,
+    check_duplicate_submission,
     coerce_int,
 )
 from ai_modules.activity_recommendation_engine import ActivityRecommendationEngine
@@ -66,12 +69,13 @@ def log_activity():
     missing = require_fields(data, ["user_id", "activity_type", "duration_minutes"])
     if missing:
         return missing
-    _, err = require_user(user_id)
+    user, err = require_user_and_auth(user_id)
     if err:
         return err
-    auth_err = require_auth(user_id)
-    if auth_err:
-        return auth_err
+
+    ts, ts_err = validate_iso_timestamp(data.get('timestamp'))
+    if ts_err:
+        return ts_err
 
     if activity_type_raw not in ActivityType._value2member_map_:
         return error_response(
@@ -87,11 +91,17 @@ def log_activity():
     if energy_err:
         return energy_err
 
+    log_id = str(data.get('log_id') or f"act_{uuid4().hex[:12]}")
+    dupe_key = str(data.get('log_id') or f"{ts.isoformat()}:{activity_type_raw}:{duration}")
+    dupe_err = check_duplicate_submission(user_id, "activity", dupe_key)
+    if dupe_err:
+        return dupe_err
+
     log = ActivityLog(
-        log_id=f"act_{uuid4().hex[:12]}",
+        log_id=log_id,
         user_id=user_id,
         activity_type=ActivityType(activity_type_raw),
-        timestamp=parse_iso_datetime(data.get('timestamp')),
+        timestamp=ts,
         duration_minutes=duration,
         metadata=data.get('metadata') or {},
         energy_after=energy_after,
