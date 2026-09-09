@@ -79,7 +79,7 @@ every few months; do not build a feature only because it appears in the list.
 
 ### Phase 3: Responsible intelligence
 
-- [ ] **External dataset integration** — download the Sleep Health and Lifestyle,
+- [X] **External dataset integration** — download the Sleep Health and Lifestyle,
   FitBit, PAMAP2, and UCI Human Activity Recognition datasets into ignored
   `data/external/` folders; document provenance and licenses; add dataset-
   specific preprocessing without merging unrelated targets into
@@ -93,7 +93,7 @@ every few months; do not build a feature only because it appears in the list.
   calibration, missing-data behavior, and model versions before deployment.
 - [ ] **Explainable recommendations** — show which logged factors influenced a
   recommendation and provide a way to correct inaccurate inputs.
-- [ ] **Safety boundaries** — label wellness guidance as non-diagnostic, add
+- [X] **Safety boundaries** — label wellness guidance as non-diagnostic, add
   escalation language for concerning symptoms, and review high-risk rules
   with a qualified professional.
 - [ ] **Prompt-versioned chatbot** — version prompts and local fallback behavior,

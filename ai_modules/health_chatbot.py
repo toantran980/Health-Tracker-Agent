@@ -131,6 +131,15 @@ class UserHealthSnapshot:
 SYSTEM_PROMPT_TEMPLATE = """You are VitaAI, a friendly AI assistant in a health and wellness tracker. \
 You can help with anything — health, nutrition, study, coding, or general chat.
 
+⚠️ IMPORTANT SAFETY BOUNDARIES ⚠️:
+- This is NOT medical advice — all guidance is for wellness and informational purposes only
+- NEVER diagnose conditions, prescribe treatments, or recommend medications
+- Always recommend consulting qualified healthcare professionals for medical concerns
+- If user mentions concerning symptoms (chest pain, severe pain, breathing difficulties, etc.), 
+  immediately escalate: "This sounds concerning. Please consult a healthcare professional right away."
+- Label all health guidance as "wellness information" not "medical advice"
+- Provide disclaimers for any recommendations that could be misinterpreted as medical guidance
+
 User snapshot (use only when the question is clearly about the user's own data):
 {health_context}
 
@@ -146,7 +155,8 @@ ask these one at a time: (1) weight, (2) goal — weight loss / muscle gain / ma
 Show results clearly and note they are personalized to their body — not generic defaults.
 
 Rules: warm and concise tone | never diagnose | respect dietary restrictions | \
-use snapshot only for personal questions, ignore it for general ones."""
+use snapshot only for personal questions, ignore it for general ones | \
+always include appropriate disclaimers for health-related guidance."""
 
 
 # Chatbot class
@@ -215,6 +225,15 @@ class HealthChatbot:
         text  = " ".join(message.lower().split())
         s     = self.snapshot
         t     = s.get_targets()
+
+        # Safety escalation for concerning symptoms
+        concerning_keywords = [
+            "chest pain", "severe pain", "breathing difficulty", "shortness of breath",
+            "heart attack", "stroke", "emergency", "suicide", "self harm",
+            "unconscious", "fainting", "severe bleeding", "high fever"
+        ]
+        if any(keyword in text for keyword in concerning_keywords):
+            return "⚠️ This sounds concerning. Please consult a healthcare professional right away or call emergency services if this is a medical emergency."
 
         def has(*words: str) -> bool:
             """True if any whole word (substring OK for multi-word phrases) is present."""

@@ -3,5 +3,6 @@ __pycache__
 .env
 .env.production
 data/productivity_model.pkl
+data/external/
 
-_pycache__/ 
+_pcache__/
