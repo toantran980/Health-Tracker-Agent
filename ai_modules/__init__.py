@@ -1,5 +1,6 @@
 """AI Modules Package"""
 
+from .activity_classifier import ActivityClassifier
 from .activity_recommendation_engine import ActivityRecommendationEngine
 from .goal_tracker import GoalTracker
 from .health_risk_assessor import HealthRiskAssessor, HealthWarning
@@ -13,6 +14,7 @@ from .sleep_quality_predictor import SleepFeatures, SleepQualityPredictor
 from .weekly_digest import WeeklyDigestGenerator
 
 __all__ = [
+    'ActivityClassifier',
     'ActivityRecommendationEngine',
     'BehavioralAnalyzer',
     'Features',
