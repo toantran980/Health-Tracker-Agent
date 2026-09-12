@@ -7,5 +7,3 @@ data/sleep_quality_model.pkl
 data/recovery_model.pkl
 data/activity_classifier.pkl
 data/external/
-
-_pcache__/

@@ -116,21 +116,6 @@ class Meal:
             return NutritionInfo(0, 0, 0, 0)
         return sum(f.nutrition_info for f in self.food_items)   # type: ignore[return-value]
 
-    def get_macro_balance(self) -> str:
-        """Classify the meal's macro composition."""
-        macros = self.get_total_nutrition().get_macro_ratio()
-        protein_ok = 30 <= macros["protein_percent"] <= 40
-        carbs_ok   = 45 <= macros["carbs_percent"]   <= 65
-        fat_ok     = 20 <= macros["fat_percent"]     <= 35
-
-        if protein_ok and carbs_ok and fat_ok:
-            return "balanced"
-        if macros["protein_percent"] > 40:
-            return "high_protein"
-        if macros["carbs_percent"] > 65:
-            return "high_carb"
-        return "unbalanced"
-
 
 @dataclass
 class DailyNutritionLog:

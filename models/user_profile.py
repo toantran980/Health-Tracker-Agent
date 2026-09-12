@@ -123,38 +123,6 @@ class UserProfile:
             raise ValueError("activity_level must be positive.")
         return int(self.get_bmr() * activity_level)
 
-    def get_recommended_targets(self, activity_level: float = 1.5) -> dict[str, float]:
-        """
-        Derive evidence-based daily macro targets from TDEE and active goals.
-
-        Macro splits used:
-            MUSCLE_GAIN      — protein 30 %, carbs 50 %, fat 20 %
-            WEIGHT_LOSS      — protein 35 %, carbs 35 %, fat 30 %
-            ENERGY_OPTIMIZATION / GENERAL_WELLNESS — protein 25 %, carbs 50 %, fat 25 %
-
-        When multiple goals are active the first recognised goal wins.
-
-        Returns:
-            Dict with keys: calories, protein_g, carbs_g, fat_g.
-        """
-        tdee = self.get_tdee(activity_level)
-
-        if Goal.MUSCLE_GAIN in self.goals:
-            protein_pct, carbs_pct, fat_pct = 0.30, 0.50, 0.20
-        elif Goal.WEIGHT_LOSS in self.goals:
-            tdee = int(tdee * 0.85)          # 15 % deficit
-            protein_pct, carbs_pct, fat_pct = 0.35, 0.35, 0.30
-        else:
-            protein_pct, carbs_pct, fat_pct = 0.25, 0.50, 0.25
-
-        return {
-            "calories":  float(tdee),
-            "protein_g": round(tdee * protein_pct / 4, 1),   # 4 kcal/g
-            "carbs_g":   round(tdee * carbs_pct   / 4, 1),   # 4 kcal/g
-            "fat_g":     round(tdee * fat_pct     / 9, 1),   # 9 kcal/g
-        }
-
-    # Serialization
     def to_dict(self) -> dict:
         return {
             "user_id":               self.user_id,

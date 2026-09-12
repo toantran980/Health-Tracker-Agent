@@ -84,9 +84,11 @@ every few months; do not build a feature only because it appears in the list.
   `data/external/` folders; document provenance and licenses; add dataset-
   specific preprocessing without merging unrelated targets into
   `training_data.csv`.
-- [ ] **Train module-specific models** — use sleep data for
-  `SleepQualityPredictor`, wearable data for recovery/activity features, and
-  PAMAP2 or UCI HAR for a separate activity-classification model.
+- [X] **Train module-specific models** — `models/train_sleep_model.py`,
+  `models/train_recovery_model.py`, `models/train_activity_classifier.py`
+  produce gitignored `data/*.pkl` from the external datasets with proper
+  train/val/test splits; the sleep + recovery predictors load the trained
+  models at runtime (falling back to synthetic bootstrap when absent).
 - [ ] **Feature store for ML predictors** — share versioned feature engineering
   across productivity, sleep, and recovery models.
 - [ ] **Model evaluation and drift checks** — track accuracy by user segment,

@@ -1,4 +1,6 @@
+import pickle
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
@@ -23,10 +25,27 @@ def get_serialized_user_logs(user_id: str) -> list[dict]:
     return [serialize_daily_log(logs_map[k]) for k in sorted(logs_map.keys(), reverse=True)]
 
 
+_PRETRAINED_RECOVERY_MODEL = Path(__file__).resolve().parents[2] / "data" / "recovery_model.pkl"
+_pretrained_recovery: RecoveryPredictor | None = None
+_pretrained_recovery_loaded = False
+
+
+def _create_recovery_predictor() -> RecoveryPredictor:
+    """Use the dataset-trained model when present, else fall back to the synthetic bootstrap."""
+    global _pretrained_recovery, _pretrained_recovery_loaded
+    if not _pretrained_recovery_loaded:
+        _pretrained_recovery_loaded = True
+        try:
+            _pretrained_recovery = RecoveryPredictor.load_model(str(_PRETRAINED_RECOVERY_MODEL))
+        except (OSError, pickle.UnpicklingError, AttributeError, TypeError):
+            _pretrained_recovery = None
+    return _pretrained_recovery or RecoveryPredictor()
+
+
 def get_or_create_recovery_predictor(user_id: str) -> RecoveryPredictor:
     predictor = state.recovery_predictors.get(user_id)
     if not predictor:
-        predictor = RecoveryPredictor()
+        predictor = _create_recovery_predictor()
         state.recovery_predictors[user_id] = predictor
     return predictor
 

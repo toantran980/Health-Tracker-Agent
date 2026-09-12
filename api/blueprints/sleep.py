@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pickle
+from pathlib import Path
 from uuid import uuid4
 
 from flask import Blueprint, jsonify, request
@@ -21,11 +23,27 @@ from api.blueprints.helpers import (
 
 sleep_bp = Blueprint('sleep', __name__)
 
+_PRETRAINED_SLEEP_MODEL = Path(__file__).resolve().parents[2] / "data" / "sleep_quality_model.pkl"
+_pretrained_sleep: SleepQualityPredictor | None = None
+_pretrained_sleep_loaded = False
+
+
+def _create_sleep_predictor() -> SleepQualityPredictor:
+    """Use the dataset-trained model when present, else fall back to the synthetic bootstrap."""
+    global _pretrained_sleep, _pretrained_sleep_loaded
+    if not _pretrained_sleep_loaded:
+        _pretrained_sleep_loaded = True
+        try:
+            _pretrained_sleep = SleepQualityPredictor.load_model(str(_PRETRAINED_SLEEP_MODEL))
+        except (OSError, pickle.UnpicklingError, AttributeError, TypeError):
+            _pretrained_sleep = None
+    return _pretrained_sleep or SleepQualityPredictor()
+
 
 def get_or_create_sleep_predictor(user_id: str) -> SleepQualityPredictor:
     predictor = state.sleep_predictors.get(user_id)
     if not predictor:
-        predictor = SleepQualityPredictor()
+        predictor = _create_sleep_predictor()
         state.sleep_predictors[user_id] = predictor
     return predictor
 

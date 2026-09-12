@@ -1,6 +1,5 @@
 """Sample data and food database"""
 from models.meal import FoodItem, NutritionInfo
-from models.user_profile import BiologicalSex, Goal, UserProfile
 
 # Food database: 25 items with varied nutrition profiles
 SAMPLE_FOODS = [
@@ -242,83 +241,3 @@ SAMPLE_FOODS = [
         satisfaction_score=7.0,
     ),
 ]
-
-def create_sample_user() -> UserProfile:
-    """
-    Primary demo user: male, 22, energy optimisation goal.
-    Targets set above TDEE to support active student lifestyle.
-    """
-    return UserProfile(
-        user_id="user_001",
-        name="John Doe",
-        age=22,
-        weight_kg=75,
-        height_cm=180,
-        biological_sex=BiologicalSex.MALE,
-        goals=[Goal.ENERGY_OPTIMIZATION, Goal.GENERAL_WELLNESS],
-        dietary_restrictions=[],
-        allergies=[],
-        preferred_cuisine=["Asian", "Mediterranean"],
-        target_calories=2200,
-        target_protein_g=150,
-        target_carbs_g=250,
-        target_fat_g=65,
-        work_hours_per_day=8,
-        study_hours_per_day=3,
-        current_sleep_hours=7.5,
-        current_energy_level=6,
-    )
-
-
-def create_sample_user_muscle() -> UserProfile:
-    """
-    Secondary demo user: male, 24, muscle gain goal.
-    High protein target demonstrates different recommendation output.
-    """
-    return UserProfile(
-        user_id="user_002",
-        name="Alex Kim",
-        age=24,
-        weight_kg=80,
-        height_cm=178,
-        biological_sex=BiologicalSex.MALE,
-        goals=[Goal.MUSCLE_GAIN],
-        dietary_restrictions=[],
-        allergies=[],
-        preferred_cuisine=["American", "Japanese"],
-        target_calories=2800,
-        target_protein_g=200,
-        target_carbs_g=300,
-        target_fat_g=70,
-        work_hours_per_day=6,
-        study_hours_per_day=2,
-        current_sleep_hours=8.0,
-        current_energy_level=8,
-    )
-
-
-def create_sample_user_weightloss() -> UserProfile:
-    """
-    Tertiary demo user: female, 21, weight loss goal.
-    Lower calorie target and vegan restriction tests constraint filtering.
-    """
-    return UserProfile(
-        user_id="user_003",
-        name="Sara Patel",
-        age=21,
-        weight_kg=62,
-        height_cm=165,
-        biological_sex=BiologicalSex.FEMALE,
-        goals=[Goal.WEIGHT_LOSS],
-        dietary_restrictions=["vegan"],
-        allergies=["tree_nuts"],          # filters out almonds
-        preferred_cuisine=["Indian", "Mediterranean"],
-        target_calories=1600,
-        target_protein_g=100,
-        target_carbs_g=180,
-        target_fat_g=45,
-        work_hours_per_day=7,
-        study_hours_per_day=4,
-        current_sleep_hours=7.0,
-        current_energy_level=5,
-    )
