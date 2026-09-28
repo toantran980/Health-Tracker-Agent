@@ -12,7 +12,7 @@ below; `## Open / Next` lists only actionable items.
 | High     | Persist activity logs + trends                                           | Done   | `tests/test_api_blueprints.py:test_activity_log_logs_trends`        |
 | High     | MongoDB TTL indexes (meals, daily_logs)                                  | Done   | `api/mongo_store.py` (index creation)                               |
 | Medium   | `train_model.py` CLI with incremental updates                          | Done   | ran`--save` and `--incremental` locally                           |
-| Medium   | Expanded unit tests (engines, blueprints, rate limit)                    | Done   | 53 tests, both modules pass                                           |
+| Medium   | Expanded unit tests (engines, blueprints, rate limit)                    | Done   | 132 tests pass (`pytest`)                                             |
 | Medium   | Frontend error-envelope handling in`static/api.js`                     | Done   | `toApiError` (HTTP + network)                                       |
 | Medium   | Per-client rate limiting on external endpoints                           | Done   | `TestRateLimiter` + 429 integration test                            |
 | Low      | Docker pins +`.env.example` + Mongo credentials docs                   | Done   | `git status`, README/QUICKSTART                                     |
@@ -235,3 +235,10 @@ every few months; do not build a feature only because it appears in the list.
   `state.knowledge_bases[user_id]`.
 - [X] **CSRF session key rename**: `_csrf_token` session key renamed to `csrf_token`
   (`api/routes.py`, `api/blueprints/helpers.py`) — no underscore prefix.
+- [X] **ActivityClassifier + training scripts**: `ai_modules/activity_classifier.py`
+  (Random Forest, UCI HAR, 561 features, 6 activities) with
+  `models/train_activity_classifier.py`, `models/train_recovery_model.py`, and
+  `models/train_sleep_model.py` producing gitignored `data/*.pkl` artifacts.
+- [X] **Safety boundaries**: unit + integration coverage in
+  `tests/test_safety_boundaries.py`; disclaimers/escalation language in the
+  health chatbot (`tests/test_ai_modules.py`).
