@@ -15,9 +15,9 @@ below; `## Open / Next` lists only actionable items.
 | Medium   | Expanded unit tests (engines, blueprints, rate limit)                    | Done   | 132 tests pass (`pytest`)                                             |
 | Medium   | Frontend error-envelope handling in`static/api.js`                     | Done   | `toApiError` (HTTP + network)                                       |
 | Medium   | Per-client rate limiting on external endpoints                           | Done   | `TestRateLimiter` + 429 integration test                            |
-| Low      | Docker pins +`.env.example` + Mongo credentials docs                   | Done   | `git status`, README/QUICKSTART                                     |
+| Low      | Docker pins +`.env.example` + Mongo credentials docs                   | Done   | `git status`, README/IMPLEMENTATION                               |
 | Low      | Centralized request validation helpers                                   | Done   | `helpers.py` used across blueprints                                 |
-| Low      | Unified README/QUICKSTART/IMPLEMENTATION                                 | Done   | doc review                                                            |
+| Low      | Unified README/IMPLEMENTATION                                           | Done   | doc review                                                            |
 | Low      | Removed stale`chatbox.py`/`chatbot.py` references                    | Done   | grep clean                                                            |
 | High     | CSRF token protection (X-CSRF-Token on state-changing calls)             | Done   | `TestCsrf` (403 on missing/wrong token)                             |
 | Medium   | Session-cookie hardening flags (Secure/SameSite/HttpOnly)                | Done   | `api/routes.py` config wiring                                       |
@@ -175,11 +175,11 @@ every few months; do not build a feature only because it appears in the list.
 ### Low Priority
 
 - [X] **Docker**: aligned `requirements.docker.txt` scikit-learn to 1.8.0;
-  created `.env.example` from `config.py` keys; README/QUICKSTART document
+  created `.env.example` from `config.py` keys; README documents
   MongoDB + secret-key setup.
 - [X] **Validation**: `coerce_int`/`coerce_float`/`parse_iso_datetime`/`require_fields`
   in `api/blueprints/helpers.py`, used across user/nutrition/schedule/activity.
-- [X] **Documentation**: unified README/QUICKSTART/IMPLEMENTATION (auth flow,
+- [X] **Documentation**: unified README/IMPLEMENTATION (auth flow,
   activity logging, history endpoints, retraining CLI, test discovery).
 - [X] **Code quality**: removed stale `chatbox.py`/`chatbot.py` references;
   updated `main.py` endpoint log.

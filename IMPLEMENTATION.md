@@ -15,7 +15,7 @@ This project is a Flask-based health and productivity platform with:
 
 ## Start Here
 
-For setup and run commands, use [QUICKSTART.md](QUICKSTART.md).
+For setup and run commands, use [README.md](README.md).
 
 Quick Docker start:
 
@@ -48,7 +48,15 @@ docker compose down
 - [ai_modules/nutrition_analyzer.py](ai_modules/nutrition_analyzer.py): nutrition trends and adherence.
 - [ai_modules/meal_recommendation_engine.py](ai_modules/meal_recommendation_engine.py): meal recommendations.
 - [ai_modules/activity_recommendation_engine.py](ai_modules/activity_recommendation_engine.py): activity recommendations.
-- [ai_modules/health_chatbot.py](ai_modules/health_chatbot.py): AI health chatbot (Groq-powered).
+- [ai_modules/health_chatbot.py](ai_modules/health_chatbot.py): AI health chatbot (Groq-powered, keyless rule-based fallback).
+- [ai_modules/health_risk_assessor.py](ai_modules/health_risk_assessor.py): rule-based risk warnings (BMI, calories, protein, sleep, hydration).
+- [ai_modules/sleep_quality_predictor.py](ai_modules/sleep_quality_predictor.py): sleep quality prediction (random forest).
+- [ai_modules/recovery_predictor.py](ai_modules/recovery_predictor.py): recovery / readiness prediction (random forest).
+- [ai_modules/activity_classifier.py](ai_modules/activity_classifier.py): sensor-based activity recognition (random forest).
+- [ai_modules/goal_tracker.py](ai_modules/goal_tracker.py): goal milestones and projections.
+- [ai_modules/weekly_digest.py](ai_modules/weekly_digest.py): multi-domain weekly digest generator.
+
+See [MODELS.md](MODELS.md) for training data, training scripts, and evaluation notes.
 
 ### Authentication
 
@@ -62,21 +70,29 @@ docker compose down
 
 - [api/mongo_store.py](api/mongo_store.py) handles MongoDB connectivity.
 - Falls back to in-memory behavior if MongoDB is unavailable.
-- TTL indexes are created on `meals.timestamp` and `daily_logs.updated_at` from `MONGO_MEALS_TTL_DAYS` / `MONGO_DAILY_LOGS_TTL_DAYS`.
+- TTL indexes are created on `meals.timestamp`, `daily_logs.updated_at`, plus
+  `activity_logs`, `sleep_logs`, and `chat_history` retention from
+  `MONGO_*_TTL_DAYS`.
+- Chat history persistence: `MongoStore.save_chat_history` /
+  `get_chat_history` / `delete_chat_history`.
 
 ## Endpoints Overview
 
 Primary route groups:
 
 - Auth: login, logout, me
-- User: create, fetch profile, set password
+- User: create, fetch profile, set password, delete (with cascade + export)
 - Nutrition: log meal, analysis, macro recommendations, meal recommendations (all require a login session)
 - Schedule: optimize tasks, available slots, schedule history
 - Productivity: predict focus, optimal study time, saved productivity sessions
 - Activity: recommendations, log activity, activity logs, trend analysis
+- Sleep: log sleep, sleep logs, sleep-quality prediction
+- Insights: health risks, recovery readiness, goal progress, weekly digest
 - Chatbot and insights (chatbot requires a login session)
 - External data: food, exercise, weather (rate-limited per client IP)
-- Health and metrics: liveness, service status, model metrics
+- Trends: calories/macros/focus trend series
+- Comparative analytics: week-over-week deltas with explanations
+- Health and metrics: liveness, readiness, dependency metrics, model metrics
 
 For the endpoint implementation, see the blueprint files under
 [api/blueprints](api/blueprints).
@@ -87,7 +103,7 @@ For the endpoint implementation, see the blueprint files under
 - Unit tests:
 
 ```powershell
-python -m unittest discover -s tests -p "test_*.py" -v
+python -m pytest tests/ -v
 ```
 
 - Time-based external integrations (rate limiter, TTL caches) are tested deterministically with small windows.

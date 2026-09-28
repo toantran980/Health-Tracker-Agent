@@ -145,6 +145,18 @@ datasets, training commands, and evaluation notes.
 | Recovery readiness | `RecoveryPredictor` | Random forest regressor | `models/train_recovery_model.py` | FitBit wearable data |
 | Activity recognition | `ActivityClassifier` | Random forest classifier | `models/train_activity_classifier.py` | UCI Human Activity Recognition |
 
+## Quick Demo Flow
+
+1. Open the dashboard and create a user from the User tab (password optional).
+2. Log in using the session login form.
+3. Go to Nutrition and log one meal; run nutrition analysis and macro recommendations.
+4. Go to Schedule and optimize a task list.
+5. Run productivity prediction and review saved sessions.
+6. Log an activity in the Activity tab and review trends.
+7. Log sleep and run the sleep-quality prediction.
+8. Open the Chatbot tab and send a message.
+9. Check Trends and Insights for charts, health risks, recovery, goals, and the weekly digest.
+
 ## Run Tests
 
 ```powershell
@@ -153,6 +165,18 @@ python -m pytest tests/ -v
 
 The suite covers auth, CSRF, session expiry, persistence, rate limiting,
 safety boundaries, rule engines, ML predictors, and comparative analytics.
+
+## Troubleshooting
+
+- **PowerShell won't activate the venv:** run
+  `Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned`.
+- **Port 5001 is already in use:** set `PORT=5002` in `.env` (or run
+  `$env:PORT=5002` in PowerShell) and restart.
+- **MongoDB connection issues:** confirm MongoDB is running and check
+  `MONGO_URI` in `.env`; in Docker use the container service name instead of
+  `localhost`. The app falls back to in-memory storage when MongoDB is down.
+- **Docker startup delays:** wait for health checks —
+  `docker compose ps`.
 
 ## Continuous Integration
 
@@ -167,7 +191,6 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request:
 ## More Documentation
 
 - [MODELS.md](MODELS.md): ML model design, datasets, training commands, fallback behavior
-- [QUICKSTART.md](QUICKSTART.md): demo flow, model commands, and troubleshooting
 - [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md): reverse-proxy HTTPS, Gunicorn, and secrets setup
 - [IMPLEMENTATION.md](IMPLEMENTATION.md): architecture, security, persistence, and API behavior
 - [CONFIGURATION.md](CONFIGURATION.md): environment variables and deployment settings
