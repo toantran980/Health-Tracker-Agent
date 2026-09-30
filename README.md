@@ -16,7 +16,7 @@ AI Health & Wellness Tracker is a Flask-based project combining nutrition tracki
 
 ## Current Status
 
-- **Tests:** 132 unit and integration tests passing (`pytest`)
+- **Tests:** 146 unit and integration tests passing (`pytest`)
 - **Training scripts:** `sleep`, `recovery`, and `activity-classifier` models trainable from bundled public datasets
 - **Safety boundaries:** wellness guidance labeled as non-diagnostic, with escalation language for concerning symptoms
 - **Roadmap:** Phase 1 (foundation, privacy, observability, release process) and comparative analytics complete; Phase 3 (module-specific trained models, external datasets, safety boundaries) largely complete. See [TODO.md](TODO.md).
@@ -121,7 +121,9 @@ Then open `http://localhost:5001/`.
 - Week-over-week comparative analytics with explanations
 - Loading states and disabled controls during API calls
 - Inline status banner for clearer API errors
-- Developer mode: raw API output log via the Developer mode toggle; client (production) mode renders action results as readable cards and only writes the raw log while the "Show diagnostics" switch is on (off by default)
+- Developer mode: raw API output log written on every action; client (production)
+  mode only logs while the "Show diagnostics" switch is on (off by default). The
+  log is a pure diagnostics stream — no per-action result cards
 - Trend charts:
 
   - Calories trend

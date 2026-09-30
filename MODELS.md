@@ -28,7 +28,8 @@ box while models are only loaded when available.
 - **Training:** `python models/train_model.py` (options: `--train`, `--eval`,
   `--model`, `--incremental` for incremental updates, `--save`).
 - **Evaluation data:** `data/eval.csv`; the dashboard exposes live metrics
-  (MAE, RMSE, R², sample count) at `/productivity_predictor`.
+  (MAE, RMSE, R², sample count) at `/api/metrics/productivity_predictor`
+  (cached per process with a 5-minute TTL; `?refresh=1` forces a recompute).
 
 ### SleepQualityPredictor
 

@@ -56,6 +56,10 @@ The app falls back to in-memory storage when MongoDB is unavailable.
 - `EXERCISEDB_API_KEY`: ExerciseDB lookup key.
 - `GROQ_API_KEY`: optional hosted chatbot key. Without it, the local rule-based
   chatbot is used.
+- `GROQ_MAX_COMPLETION_TOKENS`: max output tokens per Groq reply (default
+  `4096`). Free-tier models reserve this whole budget per request against their
+  TPM, so values ≥ `8000` always trip rate limits; on a `413` the chatbot
+  retries once with a reduced budget and truncated context.
 
 External service keys are optional; built-in fallbacks are used when they are
 empty.

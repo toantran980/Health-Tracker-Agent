@@ -38,6 +38,7 @@ docker compose down
 - In-memory caches are used for live runtime objects.
 - When MongoDB is available, users, daily meal logs, schedules, productivity sessions, and activity logs are persisted and rehydrated.
 - Error responses are standardized as `{"error": "...", "code": "..."}` — see `api/blueprints/helpers.py:error_response`.
+- Routing-level HTTP errors keep native status codes: werkzeug `HTTPException`s (e.g. `404 NOT_FOUND`, `405 METHOD_NOT_ALLOWED`) are not wrapped as 500s, and `GET /favicon.ico` returns `204` (see `api/routes.py`).
 - External API wrappers include lightweight TTL caching (USDA, Open Food Facts, Wger, Open-Meteo) and a shared sliding-window rate limiter (`api/rate_limiter.py`), pluggable between an in-process backend and Redis.
 
 ### AI Modules
@@ -48,7 +49,7 @@ docker compose down
 - [ai_modules/nutrition_analyzer.py](ai_modules/nutrition_analyzer.py): nutrition trends and adherence.
 - [ai_modules/meal_recommendation_engine.py](ai_modules/meal_recommendation_engine.py): meal recommendations.
 - [ai_modules/activity_recommendation_engine.py](ai_modules/activity_recommendation_engine.py): activity recommendations.
-- [ai_modules/health_chatbot.py](ai_modules/health_chatbot.py): AI health chatbot (Groq-powered, keyless rule-based fallback).
+- [ai_modules/health_chatbot.py](ai_modules/health_chatbot.py): AI health chatbot (Groq-powered `openai/gpt-oss-120b`, keyless rule-based fallback). Groq calls are TPM-bounded by `GROQ_MAX_COMPLETION_TOKENS` (default 4096) and retried once with a smaller budget on HTTP 413.
 - [ai_modules/health_risk_assessor.py](ai_modules/health_risk_assessor.py): rule-based risk warnings (BMI, calories, protein, sleep, hydration).
 - [ai_modules/sleep_quality_predictor.py](ai_modules/sleep_quality_predictor.py): sleep quality prediction (random forest).
 - [ai_modules/recovery_predictor.py](ai_modules/recovery_predictor.py): recovery / readiness prediction (random forest).

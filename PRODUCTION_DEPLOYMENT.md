@@ -142,7 +142,8 @@ python scripts/migration_check.py
 This verifies:
 - `SECRET_KEY` presence and entropy (>= 32 chars in production)
 - MongoDB connectivity and database ping
-- Index availability (unique indexes on `users`, `meals`, and TTL indexes on `activity_logs`, `daily_logs`, `sleep_logs`)
+- Index availability (primary indices on `users`/`meals`, and TTL indexes on
+  `daily_logs`, `activity_logs`, `sleep_logs`, and `chat_history`)
 - Module dependencies and import readiness
 
 ## 8. Backup and Restore Drills
@@ -204,22 +205,12 @@ If a deployment experiences unexpected errors or readiness failure:
 
 ## 11. Useful commands
 
-Start with Gunicorn:
+Startup (Gunicorn or Compose), health probes, and rollback commands are covered
+in sections 3, 5, and 10. Quick reference:
 
 ```bash
-gunicorn --config gunicorn.conf.py wsgi:app
-```
-
-With Docker in production (with Nginx reverse proxy):
-
-```powershell
-docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml up --build -d
-```
-
-Check the app health:
-
-```bash
-curl -i http://localhost:5001/api/health/ready
-curl -i http://localhost/api/health/ready
+gunicorn --config gunicorn.conf.py wsgi:app          # WSGI start
+curl -i http://localhost:5001/api/health/ready       # readiness probe
+python scripts/migration_check.py                    # pre-deploy checks
 ```
 

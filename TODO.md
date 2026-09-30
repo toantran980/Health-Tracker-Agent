@@ -12,7 +12,7 @@ below; `## Open / Next` lists only actionable items.
 | High     | Persist activity logs + trends                                           | Done   | `tests/test_api_blueprints.py:test_activity_log_logs_trends`        |
 | High     | MongoDB TTL indexes (meals, daily_logs)                                  | Done   | `api/mongo_store.py` (index creation)                               |
 | Medium   | `train_model.py` CLI with incremental updates                          | Done   | ran`--save` and `--incremental` locally                           |
-| Medium   | Expanded unit tests (engines, blueprints, rate limit)                    | Done   | 132 tests pass (`pytest`)                                             |
+| Medium   | Expanded unit tests (engines, blueprints, rate limit)                    | Done   | 146 tests pass (`pytest`)                                             |
 | Medium   | Frontend error-envelope handling in`static/api.js`                     | Done   | `toApiError` (HTTP + network)                                       |
 | Medium   | Per-client rate limiting on external endpoints                           | Done   | `TestRateLimiter` + 429 integration test                            |
 | Low      | Docker pins +`.env.example` + Mongo credentials docs                   | Done   | `git status`, README/IMPLEMENTATION                               |
@@ -272,5 +272,23 @@ every few months; do not build a feature only because it appears in the list.
   no longer converts routing-level `HTTPException`s (e.g. `404 /favicon.ico`)
   into `500 INTERNAL_SERVER_ERROR`; werkzeug exceptions now return their native
   code with a `NOT_FOUND`/`METHOD_NOT_ALLOWED` envelope (`api/routes.py`), plus
-  a `GET /favicon.ico` → 204 route. Covered by `TestHTTPErrorHandling`
-  (137 tests total).
+  a `GET /favicon.ico` → 204 route. Covered by `TestHTTPErrorHandling`.
+- [X] **Groq free-tier TPM handling**: `GROQ_MAX_COMPLETION_TOKENS` lowered to
+  4096 (was 8192) so LLM replies stop tripping Groq `413` rate limits; chatbot
+  input is bounded (`_bounded_context`, ~10k chars ≈ 2.5k tokens) and a `413`
+  retries once with a 1024-token output budget and 3k-char context. Covered by
+  `TestGroqChatBudget` in `tests/test_ai_modules.py`; `.env.example` synced.
+- [X] **Chat reset + history round-trip coverage**: `/api/chat/<id>/reset`
+  requires a matching session (`401 AUTH_REQUIRED` pre-auth), an authenticated
+  reset clears in-memory history and the Mongo document, `set_history`
+  rehydrates the bot on restart, and non-turn entries are filtered. Covered by
+  4 new tests (`tests/test_api_blueprints.py`, `tests/test_ai_modules.py`).
+- [X] **Frontend layout polish**: action rows no longer stretch unevenly
+  (`.actions`/`.inline-fields` buttons flex 1:1, `.insight-actions` becomes a
+  responsive grid, `.grid` uses `align-items: start`, `.hint` spacing fixed).
+- [X] **Dead-code cleanup**: removed the never-imported `outputEl` export
+  (`static/dom.js`), de-exported internal-only `setKpi` (`static/ui.js`), and
+  deleted four unused CSS palette variables (`--bg`, `--bg-accent`,
+  `--accent`, `--gradient-accent`) left over from the warm pre-teal theme.
+  Full-repo sweep (ruff `F`/`ARG`, JS export/import graph, CSS orphan selector
+  scan) found no other dead code. (146 tests total.)
