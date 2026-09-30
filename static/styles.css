@@ -147,6 +147,29 @@ body {
   display: none;
 }
 
+.session-login-top #loginForm,
+#activityLogForm {
+  align-items: end;
+}
+
+.session-login-top #loginForm .actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.session-login-top #loginForm input,
+.session-login-top #loginForm .btn {
+  height: 44px;
+  box-sizing: border-box;
+}
+
+.session-login-top #loginForm .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .deck-hint {
   margin: 0;
   align-self: end;
@@ -1141,6 +1164,11 @@ textarea {
   .grid.three,
   .grid.two.compact {
     grid-template-columns: 1fr;
+  }
+
+  .session-login-top #loginForm,
+  #activityLogForm {
+    align-items: stretch;
   }
 
   .kpi-strip,

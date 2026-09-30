@@ -1,5 +1,4 @@
 export const apiBaseEl = document.getElementById('apiBase');
-export const activeUserEl = document.getElementById('activeUserId');
 export const taskListEl = document.getElementById('taskList');
 export const taskSummaryEl = document.getElementById('taskSummary');
 export const toastContainerEl = document.getElementById('toastContainer');

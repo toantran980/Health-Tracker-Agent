@@ -4,11 +4,8 @@ import logging
 import time
 from typing import Any
 
-from dotenv import load_dotenv
-
 import config
 
-load_dotenv()
 logger = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = 10
@@ -22,7 +19,6 @@ RAPIDAPI_KEY = config.EXERCISEDB_API_KEY
 
 FOOD_FACTS_BASE = "https://world.openfoodfacts.org"
 WGER_BASE = "https://wger.de/api/v2"
-OPEN_METEO_BASE = "https://api.open-meteo.com/v1"
 USDA_BASE = "https://api.nal.usda.gov/fdc/v1"
 EXERCISEDB_HOST = "exercisedb.p.rapidapi.com"
 

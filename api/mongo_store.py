@@ -7,11 +7,8 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from dotenv import load_dotenv
 from pymongo import ASCENDING, DESCENDING, MongoClient
 from pymongo.errors import PyMongoError
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 

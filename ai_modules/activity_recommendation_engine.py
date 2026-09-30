@@ -71,7 +71,7 @@ class ActivityRecommendationEngine:
         scored.sort(key=lambda x: x[2], reverse=True)
 
         results = []
-        for act, display_name, score in scored[:n]:
+        for act, display_name, _score in scored[:n]:
             intensity_ratio = act["intensity"] / 10.0
             duration = max(10, int(available_minutes * (1.0 - intensity_ratio * 0.3)))
 

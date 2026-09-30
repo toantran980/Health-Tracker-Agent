@@ -120,7 +120,6 @@ def apply_session_expiry():
         if config.SESSION_REFRESH:
             # Touch the session so PERMANENT_SESSION_LIFETIME slides forward.
             session.modified = True
-    return
 
 
 @app.before_request

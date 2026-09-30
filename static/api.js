@@ -1,4 +1,4 @@
-import { apiBaseEl, activeUserEl } from './dom.js';
+import { apiBaseEl } from './dom.js';
 import { writeOutput } from './ui.js';
 
 let csrfToken = null;
@@ -11,14 +11,13 @@ export function getApiBase() {
 }
 
 export function getActiveUserId() {
-  const userId = activeUserEl ? activeUserEl.value.trim() : sessionUserId;
+  const userId = sessionUserId.trim();
   if (!userId) throw new Error('Active User ID is required for this action.');
   return userId;
 }
 
 export function setSessionUserId(userId) {
   sessionUserId = (userId || '').trim();
-  if (activeUserEl) activeUserEl.value = sessionUserId;
 }
 
 /**

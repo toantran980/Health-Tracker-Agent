@@ -1,4 +1,4 @@
-import { apiBaseEl, activeUserEl } from './dom.js';
+import { apiBaseEl } from './dom.js';
 import { appMetrics } from './state.js';
 import { apiRequest, requestForActiveUser, getActiveUserId, getAuthStatus, setSessionUserId, login, logout } from './api.js';
 import { initTabs, setChatEmptyState, refreshKpis, writeOutput, showToast, switchTab, appendChatMessage, removeLastChatMessage, showStatusBanner } from './ui.js';
@@ -8,9 +8,6 @@ import { bindClick, bindSubmit } from './utils.js';
 import { DEFAULTS } from './config.js';
 
 const savedBase = localStorage.getItem('apiBase');
-// Clear any stale active-user id persisted by older versions so it no longer
-// auto-restores on page load / server restart.
-localStorage.removeItem('activeUserId');
 
 const PROTECTED_CONTROL_IDS = [
   'btnGetUser',
@@ -125,9 +122,6 @@ bindSubmit('createUserForm', async (form) => {
   if (password) body.password = password;
 
   const payload = await apiRequest('/api/user/create', { method: 'POST', body });
-  if (payload.user && payload.user.user_id) {
-    if (activeUserEl) activeUserEl.value = payload.user.user_id;
-  }
   showToast('User profile created.', 'success');
   writeOutput('User Created', payload);
 });
@@ -136,9 +130,6 @@ bindSubmit('loginForm', async (form) => {
   const userId = form.elements['user_id'].value.trim() || getActiveUserId();
   const password = form.elements['password'].value;
   const payload = await login(userId, password);
-  if (payload.user_id) {
-    if (activeUserEl) activeUserEl.value = payload.user_id;
-  }
   form.reset();
   showToast(`Logged in as ${payload.user_id}.`, 'success');
   writeOutput('Login', payload);
@@ -201,7 +192,6 @@ bindClick('btnDeleteAccount', async () => {
     const res = await apiRequest(`/api/user/${encodeURIComponent(userId)}`, { method: 'DELETE' });
     showToast(`Account '${userId}' permanently deleted.`, 'success');
     writeOutput('Account Deleted', res);
-    if (activeUserEl) activeUserEl.value = '';
     updateAuthStatus();
   } catch (err) {
     showToast(`Deletion failed: ${err.message || err}`, 'error');
@@ -586,13 +576,6 @@ window.addEventListener('trends-refresh', () => {
   if (userId) loadTrends(userId);
 });
 
-// Reload trends whenever the active user changes.
-if (activeUserEl) {
-  activeUserEl.addEventListener('change', () => {
-    const userId = activeUserEl.value.trim();
-    if (userId) loadTrends(userId);
-  });
-}
 
 document.getElementById('clearOutput')?.addEventListener('click', () => {
   const outputEl = document.getElementById('output');

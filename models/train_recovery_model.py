@@ -111,12 +111,12 @@ def load_merged_days() -> pd.DataFrame:
 
 def build_examples(days: pd.DataFrame) -> list[tuple[RecoveryFeatures, int]]:
     examples = []
-    for user_id, user_days in days.groupby("Id"):
+    for _user_id, user_days in days.groupby("Id"):
         user_days = user_days.sort_values("date")
         user_days["load_3d"] = user_days["active_minutes"].rolling(3, min_periods=1).sum()
         rest_since: list[int] = []
         last_rest = None
-        for index, row in user_days.iterrows():
+        for _index, row in user_days.iterrows():
             if row["active_minutes"] < REST_THRESHOLD_MINUTES:
                 last_rest = row["date"]
             rest_days = (row["date"] - last_rest).days if last_rest is not None else 7
