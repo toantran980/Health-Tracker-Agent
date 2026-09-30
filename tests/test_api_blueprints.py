@@ -568,5 +568,98 @@ class TestSessionExpiry(unittest.TestCase):
         self.assertNotIn("Expires=", set_cookie, "session stays transient when no TTL is configured")
 
 
+class TestPretrainedProductivityModel(unittest.TestCase):
+    """The productivity endpoints must use the saved model, not fresh defaults.
+
+    Regression guard: schedule.py previously built a bare ProductivityPredictor()
+    with no load_model(), so every prediction fell back to the synthetic weights
+    and clamped to 10.
+    """
+
+    USER: ClassVar[dict] = {
+        "user_id": "model_load_user", "password": "secret123",
+        "age": 25, "weight_kg": 70.0, "height_cm": 175.0,
+    }
+
+    def setUp(self):
+        from api.blueprints import schedule
+        self.schedule = schedule
+        # Force a fresh lazy-load so the test does not depend on import order.
+        schedule._pretrained_productivity = None
+        schedule._pretrained_productivity_loaded = False
+        self.client = make_client()
+        self.client.post("/api/user/create", json=self.USER)
+        login = self.client.post("/api/auth/login", json={
+            "user_id": self.USER["user_id"], "password": self.USER["password"],
+        })
+        self.headers = {"X-CSRF-Token": login.get_json()["csrf_token"]}
+
+    def _predict(self, **overrides):
+        body = {
+            "hour_of_day": 10, "day_of_week": 0, "sleep_quality": 8.0,
+            "sleep_hours": 8.0, "nutrition_score": 80.0, "energy_level": 7,
+            "previous_session_duration": 60, "task_difficulty": 5,
+        }
+        body.update(overrides)
+        return self.client.post(
+            f"/api/productivity/predict/{self.USER['user_id']}",
+            headers=self.headers, json=body,
+        )
+
+    def test_predict_uses_trained_model_when_artifact_exists(self):
+        from pathlib import Path
+        artifact = Path(__file__).resolve().parents[1] / "data" / "productivity_model.pkl"
+        if not artifact.exists():
+            self.skipTest("productivity_model.pkl not trained; run models/train_model.py --save")
+        self._predict()
+        self.assertIsNotNone(
+            self.schedule._pretrained_productivity,
+            "trained artifact exists but the blueprint never loaded it",
+        )
+        self.assertTrue(self.schedule._pretrained_productivity.is_trained)
+
+    def test_focus_score_varies_across_scenarios(self):
+        """Different inputs must not all collapse to the same clamped score."""
+        from pathlib import Path
+        artifact = Path(__file__).resolve().parents[1] / "data" / "productivity_model.pkl"
+        if not artifact.exists():
+            self.skipTest("productivity_model.pkl not trained; run models/train_model.py --save")
+        good = self._predict(
+            hour_of_day=10, sleep_quality=9.0, sleep_hours=8.5,
+            nutrition_score=92, energy_level=9,
+        ).get_json()["predicted_focus_score"]
+        poor = self._predict(
+            hour_of_day=3, sleep_quality=3.0, sleep_hours=4.0,
+            nutrition_score=30, energy_level=2,
+        ).get_json()["predicted_focus_score"]
+        self.assertGreater(
+            good, poor,
+            f"trained model should rate the well-rested day above the poor one (got {good} vs {poor})",
+        )
+
+    def test_falls_back_when_artifact_missing(self):
+        """A missing/corrupt artifact must degrade to a usable predictor, not raise."""
+        predictor = self.schedule._create_productivity_predictor()
+        self.assertIsNotNone(predictor)
+        from ai_modules import Features
+        score = predictor.predict(Features(
+            hour_of_day=10, day_of_week=0, sleep_quality=8.0, sleep_hours=8.0,
+            nutrition_score=80.0, energy_level=7, previous_session_duration=60,
+            task_difficulty=5,
+        ))
+        self.assertGreaterEqual(score, 1)
+        self.assertLessEqual(score, 10)
+
+    def test_optimal_time_endpoint_uses_trained_model(self):
+        resp = self.client.get(f"/api/productivity/optimal-time/{self.USER['user_id']}")
+        self.assertEqual(resp.status_code, 200)
+        body = resp.get_json()
+        self.assertIn(body["optimal_day"], [
+            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+        ])
+        self.assertGreaterEqual(body["predicted_focus_score"], 1)
+        self.assertLessEqual(body["predicted_focus_score"], 10)
+
+
 if __name__ == "__main__":
     unittest.main()

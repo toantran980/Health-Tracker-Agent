@@ -1,6 +1,8 @@
 """schedule.py — Schedule optimisation, productivity prediction, and knowledge base endpoints."""
 
+import pickle
 from datetime import datetime, timezone
+from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
@@ -14,6 +16,26 @@ from api.blueprints.helpers import (
 )
 
 schedule_bp = Blueprint('schedule', __name__)
+
+
+_PRETRAINED_PRODUCTIVITY_MODEL = Path(__file__).resolve().parents[2] / "data" / "productivity_model.pkl"
+_pretrained_productivity: ProductivityPredictor | None = None
+_pretrained_productivity_loaded = False
+
+
+def _create_productivity_predictor() -> ProductivityPredictor:
+    """Use the trained model when present, else fall back to the synthetic bootstrap."""
+    global _pretrained_productivity, _pretrained_productivity_loaded
+    if not _pretrained_productivity_loaded:
+        _pretrained_productivity_loaded = True
+        try:
+            _pretrained_productivity = ProductivityPredictor.load_model(
+                str(_PRETRAINED_PRODUCTIVITY_MODEL)
+            )
+        except (OSError, pickle.UnpicklingError, AttributeError, TypeError, ValueError):
+            _pretrained_productivity = None
+    return _pretrained_productivity or ProductivityPredictor()
+
 
 
 # Schedule optimization
@@ -117,7 +139,7 @@ def predict_productivity(user_id):
         task_difficulty           = data.get('task_difficulty',           5),
     )
 
-    predictor   = ProductivityPredictor()
+    predictor   = _create_productivity_predictor()
     focus_score = predictor.predict(features)
     duration    = predictor.estimate_session_duration(
         data.get('task_difficulty', 5),
@@ -172,7 +194,7 @@ def get_optimal_study_time(user_id):
     if err:
         return err
 
-    predictor        = ProductivityPredictor()
+    predictor        = _create_productivity_predictor()
     hour, day, focus = predictor.suggest_optimal_time(
         user.earliest_study_time, user.latest_study_time
     )

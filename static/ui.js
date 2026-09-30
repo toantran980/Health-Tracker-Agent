@@ -18,22 +18,14 @@ export function writeOutput(title, data) {
   if (placeholder) placeholder.remove();
 
   const timestamp = new Date().toLocaleTimeString();
-  const formattedData = formatJsonForDisplay(data);
-  const dataString = JSON.stringify(data, null, 2);
+  const displayData = formatJsonForDisplay(data);
 
-  // Truncate very long responses
-  const isLong = dataString.length > 2000;
-  const displayData = isLong ? 
-    formattedData.substring(0, 2000) + '<span class="truncated-indicator">... (truncated)</span>' : 
-    formattedData;
-  
   const entry = document.createElement('div');
   entry.className = 'output-entry';
   entry.innerHTML = `
     <div class="output-header-line">
       <span class="output-title">${title}</span>
       <span class="output-time">${timestamp}</span>
-      ${isLong ? '<span class="output-badge">Large response</span>' : ''}
     </div>
     <div class="output-content">${displayData}</div>
   `;
