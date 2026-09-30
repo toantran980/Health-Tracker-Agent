@@ -153,7 +153,7 @@ export function setFormBusy(formEl, busy) {
   });
 }
 
-export function setKpi(prefix, value, status, tone = 'neutral') {
+function setKpi(prefix, value, status, tone = 'neutral') {
   const valueEl = document.getElementById(`kpi${prefix}`);
   const statusEl = document.getElementById(`kpi${prefix}Status`);
   const cardEl = valueEl ? valueEl.closest('.kpi-card') : null;
