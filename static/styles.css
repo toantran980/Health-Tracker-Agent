@@ -1,8 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg: #f8f5f0;
-  --bg-accent: #e8dcc8;
   --surface: rgba(255, 255, 255, 0.92);
   --surface-strong: rgba(255, 255, 255, 0.98);
   --text: #1a2526;
@@ -11,13 +9,11 @@
   --line-strong: #b8a882;
   --primary: #0d8a6f;
   --primary-strong: #0a6e58;
-  --accent: #e07a45;
   --chip: #c8e8dd;
   --focus-ring: rgba(13, 138, 111, 0.28);
   --shadow: 0 24px 48px rgba(45, 35, 20, 0.12);
   --shadow-soft: 0 14px 28px rgba(45, 35, 20, 0.08);
   --gradient-primary: linear-gradient(135deg, #0d8a6f 0%, #0a6e58 100%);
-  --gradient-accent: linear-gradient(135deg, #e07a45 0%, #c96a35 100%);
 }
 
 * {
