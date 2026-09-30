@@ -258,6 +258,27 @@ class TestProtectedEndpoints(unittest.TestCase):
         self.assertIn(body["provider"], ("groq", "local"))
         self.assertTrue(body["reply"].strip())
 
+    def test_chat_reset_requires_auth(self):
+        resp = self.client.post(f"/api/chat/{self.user_id}/reset")
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.get_json()["code"], "AUTH_REQUIRED")
+
+    def test_authenticated_chat_reset_clears_history(self):
+        login = self.client.post("/api/auth/login", json={
+            "user_id": self.user_id, "password": self.USER["password"],
+        })
+        self.assertEqual(login.status_code, 200)
+        headers = {"X-CSRF-Token": login.get_json()["csrf_token"]}
+
+        self.client.post(f"/api/chat/{self.user_id}", headers=headers, json={"message": "hello"})
+        self.assertIn(self.user_id, state.bot_sessions)
+        self.assertTrue(state.bot_sessions[self.user_id].history)
+
+        resp = self.client.post(f"/api/chat/{self.user_id}/reset", headers=headers)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.get_json()["status"], "ok")
+        self.assertEqual(state.bot_sessions[self.user_id].history, [])
+
     def test_other_user_cannot_authenticate_for_me(self):
         other = make_client()
         resp = other.post("/api/user/create", json=dict(self.USER, name="Other", user_id="other_one"))

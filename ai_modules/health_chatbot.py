@@ -194,7 +194,7 @@ class HealthChatbot:
         try:
             response = client.chat.completions.create(
                 model      = model,
-                max_completion_tokens = 2048,
+                max_completion_tokens = config.GROQ_MAX_COMPLETION_TOKENS,
                 temperature = 1,
                 top_p = 1,
                 reasoning_effort = "medium",
@@ -202,19 +202,54 @@ class HealthChatbot:
                     {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(
                         health_context=self.snapshot.to_context_block()
                     )},
-                    *self.history,
+                    *self._bounded_context(),
                 ],
             )
             reply = response.choices[0].message.content.strip()
             self.last_source = "groq"
+            if response.choices[0].finish_reason == "length":
+                reply += "\n\n*(My reply hit its length cap — ask me to continue.)*"
         except Exception as e:
-            self.history.pop()
-            print(f"[Chatbot] Error: {e}")
-            reply = "I'm having trouble connecting right now. Please try again."
-            self.last_source = "error"
+            # Free-tier Groq rejects oversized requests (HTTP 413 / TPM). Retry
+            # once with a much smaller budget before giving up.
+            if getattr(e, "status_code", None) == 413:
+                self.last_source = "groq"
+                try:
+                    response = client.chat.completions.create(
+                        model      = model,
+                        max_completion_tokens = 1024,
+                        temperature = 1,
+                        top_p = 1,
+                        reasoning_effort = "medium",
+                        messages   = [
+                            {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(
+                                health_context=self.snapshot.to_context_block()
+                            )},
+                            *self._bounded_context(max_chars=3000),
+                        ],
+                    )
+                    reply = response.choices[0].message.content.strip()
+                except Exception:
+                    self.last_source = "error"
+                    reply = "I'm having trouble connecting right now. Please try again."
+            else:
+                self.history.pop()
+                print(f"[Chatbot] Error: {e}")
+                reply = "I'm having trouble connecting right now. Please try again."
+                self.last_source = "error"
 
         self.history.append({"role": "assistant", "content": reply})
         return reply
+
+    def _bounded_context(self, max_chars: int = 10000) -> list[dict]:
+        """Most recent turns, trimmed from the front so the Groq request stays
+        well under the free-tier TPM budget (input tokens + output cap)."""
+        msgs = list(self.history)
+        total = sum(len(m["content"]) for m in msgs)
+        while msgs and total > max_chars:
+            total -= len(msgs[0]["content"])
+            msgs.pop(0)
+        return msgs
 
     def local_reply(self, message: str) -> str:
         """

@@ -77,3 +77,8 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 USDA_API_KEY = os.getenv("USDA_API_KEY", "DEMO_KEY")
 EXERCISEDB_API_KEY = os.getenv("EXERCISEDB_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+# Max completion tokens for the Groq chatbot. Free-tier models (TPM ~8000)
+# reserve this whole output budget per request, so values ≥ 8000 always trip
+# rate limits; 4096 covers long structured answers while leaving headroom for
+# the input context. Groq truncates the reply when the model hits this cap.
+GROQ_MAX_COMPLETION_TOKENS = int(os.getenv("GROQ_MAX_COMPLETION_TOKENS", "4096"))

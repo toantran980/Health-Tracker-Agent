@@ -264,5 +264,21 @@ class TestPhase1Foundation(unittest.TestCase):
                 os.remove(temp_path)
 
 
+class TestHTTPErrorHandling(unittest.TestCase):
+    """Routing-level HTTP exceptions keep their native status codes."""
+
+    def setUp(self):
+        self.client = app.test_client()
+
+    def test_unknown_route_returns_404_not_500(self):
+        resp = self.client.get("/api/does-not-exist")
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.get_json()["code"], "NOT_FOUND")
+
+    def test_favicon_request_returns_204(self):
+        resp = self.client.get("/favicon.ico")
+        self.assertEqual(resp.status_code, 204)
+
+
 if __name__ == "__main__":
     unittest.main()

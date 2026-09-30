@@ -121,7 +121,7 @@ Then open `http://localhost:5001/`.
 - Week-over-week comparative analytics with explanations
 - Loading states and disabled controls during API calls
 - Inline status banner for clearer API errors
-- Client mode renders action results as readable cards next to the action (dev mode keeps the raw JSON console)
+- Developer mode: raw API output log via the Developer mode toggle; client (production) mode renders action results as readable cards and only writes the raw log while the "Show diagnostics" switch is on (off by default)
 - Trend charts:
 
   - Calories trend

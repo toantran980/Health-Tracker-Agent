@@ -251,10 +251,10 @@ every few months; do not build a feature only because it appears in the list.
   Predict with Current Inputs button that passes form values to
   `GET /api/sleep/predict/<id>` and renders score + hygiene tips inline
   (`static/main.js`). All sleep controls included in the auth gate.
-- [X] **Client-mode result cards**: `writeOutput` now renders readable per-tab
-  result cards (`static/ui.js:renderResultCard`) when the raw JSON console is
-  hidden; inline insight/sleep areas use a `quiet` option to avoid duplication
-  (`static/api.js:requestForActiveUser`).
+- [X] **Removed auto result cards / duplicate log**: chat replies render only as
+  chat bubbles; `writeOutput` no longer generates per-submit result cards. The
+  raw JSON log is a pure diagnostics stream (always in dev mode, on-demand in
+  client mode via the "Show diagnostics" switch) plus inline insight/sleep areas.
 - [X] **CSS cleanup + a11y**: removed duplicated `.chart-panel canvas` rule;
   added `:focus-visible` outline fallback for buttons, `.auth-mode-tab`, and
   `.hero-link`; added empty-state placeholders for insight/sleep result areas.
@@ -268,3 +268,9 @@ every few months; do not build a feature only because it appears in the list.
   three missing TTL keys (`MONGO_ACTIVITY_LOGS_TTL_DAYS`,
   `MONGO_SLEEP_LOGS_TTL_DAYS`, `MONGO_CHAT_HISTORY_TTL_DAYS`); live
   `.env`/`.env.production` untouched.
+- [X] **HTTP exceptions keep native status codes**: `@app.errorhandler(Exception)`
+  no longer converts routing-level `HTTPException`s (e.g. `404 /favicon.ico`)
+  into `500 INTERNAL_SERVER_ERROR`; werkzeug exceptions now return their native
+  code with a `NOT_FOUND`/`METHOD_NOT_ALLOWED` envelope (`api/routes.py`), plus
+  a `GET /favicon.ico` → 204 route. Covered by `TestHTTPErrorHandling`
+  (137 tests total).

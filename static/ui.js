@@ -3,122 +3,49 @@ import { toastContainerEl, statusBannerEl, chatMessagesEl } from './dom.js';
 
 export function writeOutput(title, data) {
   const developerMode = document.body.dataset.developerMode === 'true';
-  if (!developerMode) {
-    // Client mode has no raw JSON console; render a readable card into the
-    // section the user is currently viewing.
-    renderResultCard(title, data);
-    return;
-  }
+  // Client mode writes the raw JSON log only while "Show diagnostics" is on;
+  // otherwise the log stays out of the way. Dev mode always keeps the log.
+  const diagnosticsOn = developerMode ||
+    document.getElementById('toggleApiOutput')?.checked === true;
+  if (!diagnosticsOn) return;
 
   const outputEl = document.getElementById('output');
-  if (outputEl) {
-    const placeholder = outputEl.querySelector('.output-placeholder');
-    if (placeholder) placeholder.remove();
-    
-    const timestamp = new Date().toLocaleTimeString();
-    const formattedData = formatJsonForDisplay(data);
-    const dataString = JSON.stringify(data, null, 2);
-    
-    // Truncate very long responses
-    const isLong = dataString.length > 2000;
-    const displayData = isLong ? 
-      formattedData.substring(0, 2000) + '<span class="truncated-indicator">... (truncated)</span>' : 
-      formattedData;
-    
-    const entry = document.createElement('div');
-    entry.className = 'output-entry';
-    entry.innerHTML = `
-      <div class="output-header-line">
-        <span class="output-title">${title}</span>
-        <span class="output-time">${timestamp}</span>
-        ${isLong ? '<span class="output-badge">Large response</span>' : ''}
-      </div>
-      <div class="output-content">${displayData}</div>
-    `;
-    
-    // Add new entry at the top
-    outputEl.insertBefore(entry, outputEl.firstChild);
-    
-    // Keep only last 5 entries to prevent overflow
-    const entries = outputEl.querySelectorAll('.output-entry');
-    if (entries.length > 5) {
-      entries[entries.length - 1].remove();
-    }
-    
+  if (!outputEl) {
+    console.info(title, data);
     return;
   }
-  console.info(title, data);
-}
+  const placeholder = outputEl.querySelector('.output-placeholder');
+  if (placeholder) placeholder.remove();
 
-const RESULT_SKIP_KEYS = new Set(['user_id', 'assessed_at', 'status']);
+  const timestamp = new Date().toLocaleTimeString();
+  const formattedData = formatJsonForDisplay(data);
+  const dataString = JSON.stringify(data, null, 2);
 
-function unwrapResultPayload(data) {
-  if (data && typeof data === 'object' && !Array.isArray(data) && data.status === 'success') {
-    const nested = Object.keys(data)
-      .filter((key) => !RESULT_SKIP_KEYS.has(key) && data[key] && typeof data[key] === 'object')
-      .map((key) => data[key]);
-    if (nested.length === 1) return nested[0];
-  }
-  return data;
-}
-
-function resultRows(data) {
-  const rows = [];
-  for (const [key, value] of Object.entries(data || {})) {
-    if (RESULT_SKIP_KEYS.has(key) || value === null || value === undefined) continue;
-    if (Array.isArray(value)) {
-      rows.push([key, `${value.length} record(s)`]);
-    } else if (typeof value === 'object') {
-      rows.push([key, JSON.stringify(value)]);
-    } else {
-      rows.push([key, typeof value === 'number' ? (Number.isInteger(value) ? String(value) : value.toFixed(2)) : String(value)]);
-    }
-  }
-  return rows;
-}
-
-export function renderResultCard(title, data) {
-  const activeSection = document.querySelector('.tab-section:not(.tab-hidden)');
-  if (!activeSection) return;
-  let card = activeSection.querySelector('.result-card');
-  if (!card) {
-    card = document.createElement('div');
-    card.className = 'result-card';
-    activeSection.appendChild(card);
-  }
-  const existing = card.querySelectorAll('.result-entry');
-  if (existing.length >= 3) existing[existing.length - 1].remove();
-
+  // Truncate very long responses
+  const isLong = dataString.length > 2000;
+  const displayData = isLong ? 
+    formattedData.substring(0, 2000) + '<span class="truncated-indicator">... (truncated)</span>' : 
+    formattedData;
+  
   const entry = document.createElement('div');
-  entry.className = 'result-entry';
-  entry.innerHTML = '<div class="result-title"><span class="result-heading"></span><span class="result-time"></span></div><div class="result-body"></div>';
-  entry.querySelector('.result-heading').textContent = title;
-  entry.querySelector('.result-time').textContent = new Date().toLocaleTimeString();
-
-  const inner = unwrapResultPayload(data);
-  const rows = resultRows(inner);
-  const body = entry.querySelector('.result-body');
-  if (!rows.length) {
-    const empty = document.createElement('p');
-    empty.className = 'chat-empty';
-    empty.textContent = 'No data yet. Log something to get started.';
-    body.appendChild(empty);
-  } else if (rows.length <= 8) {
-    const dl = document.createElement('dl');
-    for (const [key, value] of rows) {
-      const dt = document.createElement('dt');
-      dt.textContent = key.replaceAll('_', ' ');
-      const dd = document.createElement('dd');
-      dd.textContent = value;
-      dl.append(dt, dd);
-    }
-    body.appendChild(dl);
-  } else {
-    const pre = document.createElement('pre');
-    pre.textContent = JSON.stringify(data, null, 2);
-    body.appendChild(pre);
+  entry.className = 'output-entry';
+  entry.innerHTML = `
+    <div class="output-header-line">
+      <span class="output-title">${title}</span>
+      <span class="output-time">${timestamp}</span>
+      ${isLong ? '<span class="output-badge">Large response</span>' : ''}
+    </div>
+    <div class="output-content">${displayData}</div>
+  `;
+  
+  // Add new entry at the top
+  outputEl.insertBefore(entry, outputEl.firstChild);
+  
+  // Keep only last 5 entries to prevent overflow
+  const entries = outputEl.querySelectorAll('.output-entry');
+  if (entries.length > 5) {
+    entries[entries.length - 1].remove();
   }
-  card.insertBefore(entry, card.firstChild);
 }
 
 function formatJsonForDisplay(data) {

@@ -356,7 +356,6 @@ bindSubmit('chatForm', async (form) => {
     appendChatMessage('assistant', payload.reply || 'No response from chatbot.', payload.provider);
     showToast('Chatbot replied.', 'success');
     form.reset();
-    writeOutput('Chatbot Reply', payload);
   } catch (err) {
     if (err && err.code === 'AUTH_REQUIRED') {
       removeLastChatMessage('user');
@@ -602,17 +601,10 @@ document.getElementById('clearOutput')?.addEventListener('click', () => {
   }
 });
 
+// The Live Output panel follows the server config (SHOW_API_OUTPUT /
+// developer mode). The toggle is a session-only view switch: it never
+// persists, so a stale value can't force the console to reappear.
 const apiOutputToggle = document.getElementById('toggleApiOutput');
-const savedApiOutput = localStorage.getItem('showApiOutput');
-if (apiOutputToggle && (savedApiOutput === 'true' || savedApiOutput === 'false')) {
-  apiOutputToggle.checked = savedApiOutput === 'true';
-  const outputPanel = document.getElementById('outputPanel');
-  if (outputPanel) outputPanel.style.display = apiOutputToggle.checked ? '' : 'none';
-  document.querySelectorAll('.developer-api-control').forEach((control) => {
-    control.style.display = apiOutputToggle.checked ? '' : 'none';
-  });
-}
-
 apiOutputToggle?.addEventListener('change', (event) => {
   const outputPanel = document.getElementById('outputPanel');
   if (!outputPanel) return;
@@ -620,7 +612,6 @@ apiOutputToggle?.addEventListener('change', (event) => {
   document.querySelectorAll('.developer-api-control').forEach((control) => {
     control.style.display = event.target.checked ? '' : 'none';
   });
-  localStorage.setItem('showApiOutput', event.target.checked ? 'true' : 'false');
 });
 window.addEventListener('auth-required', () => {
   setAuthGate(false);

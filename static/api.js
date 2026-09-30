@@ -97,10 +97,9 @@ export async function apiRequest(path, options = {}) {
 export async function requestForActiveUser(title, pathFactory, options = {}) {
   const userId = getActiveUserId();
   const payload = await apiRequest(pathFactory(userId), options);
-  // In client mode, quiet callers render results into their own inline area
-  // (e.g. insights, sleep prediction) instead of a generic result card.
-  const developerMode = document.body.dataset.developerMode === 'true';
-  if (!options.quiet || developerMode) writeOutput(title, payload);
+  // The raw JSON log (dev mode / "Show diagnostics") always receives the
+  // payload. Callers that render their own inline area skip the log.
+  if (!options.quiet) writeOutput(title, payload);
   return payload;
 }
 

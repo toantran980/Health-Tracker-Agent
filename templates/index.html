@@ -11,11 +11,15 @@
   <div class="noise-layer" aria-hidden="true"></div>
   <main class="container">
     <section class="panel command-deck{% if not developer_mode %} client-mode{% endif %}" aria-label="Connection settings{% if show_api_output %} and output console{% endif %}">
-      <label class="developer-mode-toggle" title="Show or hide developer API diagnostics">
+      {% if developer_mode %}<label class="developer-mode-toggle" title="Show or hide developer API diagnostics">
         <span>Developer mode</span>
         <input id="toggleApiOutput" type="checkbox"{% if show_api_output %} checked{% endif %}>
         <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
-      </label>
+      </label>{% else %}<label class="developer-mode-toggle" title="Reveal the raw API response log (hidden by default)">
+        <span>Show diagnostics</span>
+        <input id="toggleApiOutput" type="checkbox">
+        <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+      </label>{% endif %}
       <div class="auth-mode-tabs" role="tablist" aria-label="Account access">
         <button class="auth-mode-tab active" type="button" data-auth-mode="login">Log in</button>
         {% if not developer_mode %}<button class="auth-mode-tab" type="button" data-auth-mode="register">Register</button>{% endif %}
@@ -40,7 +44,7 @@
           <h3>Live API Output</h3>
           <div class="output-controls">
             <span class="pill">JSON stream</span>
-            {% if developer_mode %}<button id="clearOutput" class="btn" type="button" style="padding: 4px 8px; font-size: 11px;">Clear</button>{% endif %}
+            <button id="clearOutput" class="btn" type="button" style="padding: 4px 8px; font-size: 11px;">Clear</button>
           </div>
         </div>
         <pre id="output"><div class="output-placeholder">Run any action to see the response payload here.</div></pre>

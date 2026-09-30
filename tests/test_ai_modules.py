@@ -737,6 +737,31 @@ class TestKeylessChatbotFallback(unittest.TestCase):
         roles = [m["role"] for m in self.bot.history]
         self.assertEqual(roles, ["user", "assistant", "user", "assistant"])
 
+    def test_set_history_restores_after_restart(self):
+        self.chat("hello")
+        saved = self.bot.history
+        restored = self.hc.HealthChatbot(
+            self.hc.UserHealthSnapshot(name="Test User", weight_lbs=200),
+        )
+        restored.set_history(saved)
+        self.assertEqual([m["content"] for m in restored.history],
+                         [m["content"] for m in saved])
+        self.assertTrue(all(
+            m["role"] in ("user", "assistant") and m["content"]
+            for m in restored.history))
+        reply = restored.chat("how much water should i drink")
+        self.assertTrue(reply.strip())
+
+    def test_set_history_ignores_non_turns(self):
+        self.bot.set_history([
+            {"role": "user", "content": "hi"},
+            {"role": "system", "content": "ignore me"},
+            {"content": "no role"},
+            {"role": "assistant", "content": ""},
+        ])
+        self.assertEqual(len(self.bot.history), 1)
+        self.assertEqual(self.bot.history[0]["content"], "hi")
+
     def test_local_mode_reports_provider(self):
         with mock.patch.object(self.hc, "provider", "local"):
             self.assertEqual(self.bot.get_provider(), "local")
@@ -745,6 +770,81 @@ class TestKeylessChatbotFallback(unittest.TestCase):
         msg = "hello"
         reply = self.chat(msg)
         self.assertNotEqual(reply.strip().lower(), msg)
+
+
+class TestGroqChatBudget(unittest.TestCase):
+    """Cover token-budget handling for the Groq provider (free-tier TPM)."""
+
+    def setUp(self):
+        from types import SimpleNamespace
+
+        from ai_modules import health_chatbot as hc
+        self.hc = hc
+        self.bot = hc.HealthChatbot(
+            hc.UserHealthSnapshot(name="Test User", weight_lbs=200),
+        )
+        self.bot.history = [
+            {"role": "user", "content": "x" * 8000},
+            {"role": "assistant", "content": "y" * 8000},
+        ]
+        self.SimpleNamespace = SimpleNamespace
+
+    def _mock_client(self, responses):
+        call_log = []
+
+        def fake_create(**kwargs):
+            call_log.append(kwargs)
+            item = responses[len(call_log) - 1]
+            if isinstance(item, Exception):
+                raise item
+            content, finish = item
+            return self.SimpleNamespace(choices=[self.SimpleNamespace(
+                message=self.SimpleNamespace(content=content), finish_reason=finish)])
+
+        self.hc.provider = "groq"
+        self.hc.model = "openai/gpt-oss-120b"
+        self.hc.client = self.SimpleNamespace(
+            chat=self.SimpleNamespace(completions=self.SimpleNamespace(create=fake_create)))
+        return call_log
+
+    def test_bounded_context_drops_oldest_first(self):
+        self.assertEqual(self.bot._bounded_context(max_chars=100), [])
+        ctx = self.bot._bounded_context(max_chars=8000)
+        self.assertEqual(len(ctx), 1)
+        self.assertLessEqual(sum(len(m["content"]) for m in ctx), 8000)
+        full = self.bot._bounded_context(max_chars=10**9)
+        self.assertEqual(full, self.bot.history)
+
+    def test_groq_sends_bounded_context(self):
+        call_log = self._mock_client([("hi there", "stop")])
+        reply = self.bot.chat("hello")
+        self.assertEqual(reply, "hi there")
+        self.assertLess(sum(len(m["content"]) for m in call_log[0]["messages"]), 20000)
+
+    def test_length_cap_appends_continue_note(self):
+        self._mock_client([("short answer", "length")])
+        reply = self.bot.chat("hello")
+        self.assertTrue(reply.startswith("short answer"))
+        self.assertIn("ask me to continue", reply)
+
+    def test_413_retries_with_smaller_budget(self):
+        err = Exception("Request too large")
+        err.status_code = 413
+        call_log = self._mock_client([err, ("recovered", "stop")])
+        reply = self.bot.chat("hello")
+        self.assertEqual(reply, "recovered")
+        self.assertEqual(self.bot.last_source, "groq")
+        self.assertEqual(len(call_log), 2)
+        self.assertEqual(call_log[1]["max_completion_tokens"], 1024)
+
+    def test_413_exhausted_falls_back_to_error(self):
+        err = Exception("Request too large")
+        err.status_code = 413
+        call_log = self._mock_client([err, err])
+        reply = self.bot.chat("hello")
+        self.assertIn("having trouble", reply)
+        self.assertEqual(self.bot.last_source, "error")
+        self.assertEqual(len(call_log), 2)
 
 
 def run_tests():

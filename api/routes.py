@@ -10,6 +10,7 @@ import time
 import uuid
 
 from flask import Flask, g, render_template, request, session
+from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from api.blueprints.activity import activity_bp
@@ -147,6 +148,22 @@ def enforce_csrf():
 @app.errorhandler(Exception)
 def handle_unexpected_error(exc):
     req_id = getattr(g, "request_id", "unknown")
+    if isinstance(exc, HTTPException):
+        # Routing/HTTP errors (404, 405, ...) keep their native status code so
+        # they never surface as internal failures. Log at info for visibility
+        # without the alarming exception traceback.
+        code = {
+            404: "NOT_FOUND",
+            405: "METHOD_NOT_ALLOWED",
+            429: "TOO_MANY_REQUESTS",
+        }.get(exc.code, "HTTP_ERROR")
+        logger.info("[HTTP_ERROR] request_id=%s status=%s path=%s", req_id, exc.code, request.path)
+        return error_response(
+            exc.name or "HTTP error",
+            code,
+            status=exc.code or 500,
+            details={"path": request.path, "request_id": req_id} if not config.IS_PRODUCTION else None,
+        )
     logger.exception("[UNHANDLED_EXCEPTION] request_id=%s error=%s", req_id, exc)
     return error_response(
         "An internal server error occurred.",
@@ -164,6 +181,12 @@ def index():
         show_api_output=config.SHOW_API_OUTPUT,
         developer_mode=config.DEVELOPER_MODE,
     )
+
+
+@app.route('/favicon.ico')
+def favicon():
+    """Return no content so legacy favicon requests never produce 404 noise."""
+    return ('', 204)
 
 
 if __name__ == '__main__':
