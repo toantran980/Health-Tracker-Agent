@@ -62,7 +62,11 @@ See [MODELS.md](MODELS.md) for training data, training scripts, and evaluation n
 
 - Passwords are hashed with Werkzeug (`generate_password_hash`) and stored on the user document; the hash is never exposed by API responses (see `models/user_profile.py:to_public_dict`).
 - `POST /api/auth/login` sets a signed Flask session cookie (`app.secret_key` from `config.SECRET_KEY`); `POST /api/auth/logout` clears it; `GET /api/auth/me` reports the session state.
-- Nutrition logging/analysis and the chatbot endpoints call `require_auth(user_id)` (`api/blueprints/helpers.py`) and return `401 AUTH_REQUIRED` when no matching session exists.
+- Every endpoint that reads or writes a user's data requires a matching login
+  session: nutrition, chatbot, schedule, productivity, activity, and sleep
+  endpoints call `require_user_and_auth(user_id)` (or `require_auth(user_id)` via
+  the combined helper in `api/blueprints/helpers.py`) and return `401 AUTH_REQUIRED`
+  when no matching session exists.
 - Session cookies are hardened via `SESSION_COOKIE_SECURE`/`SESSION_COOKIE_SAMESITE`/`SESSION_COOKIE_HTTPONLY` (`api/routes.py`, `config.py`).
 - CSRF: a per-session token is stored in the cookie (`get_csrf_token` in helpers). `api/routes.py:before_request` rejects state-changing requests that carry an active session but the wrong `X-CSRF-Token` header (`403 CSRF_FAILED`). Pre-auth endpoints (`/api/auth/login`, `/api/user/create`) are exempt. The dashboard sends the header automatically from the token exposed by `/api/auth/me` and the login response.
 
@@ -83,9 +87,9 @@ Primary route groups:
 - Auth: login, logout, me
 - User: create, fetch profile, set password, delete (with cascade + export)
 - Nutrition: log meal, analysis, macro recommendations, meal recommendations (all require a login session)
-- Schedule: optimize tasks, available slots, schedule history
-- Productivity: predict focus, optimal study time, saved productivity sessions
-- Activity: recommendations, log activity, activity logs, trend analysis
+- Schedule: optimize tasks, available slots, schedule history (session required)
+- Productivity: predict focus, optimal study time, saved productivity sessions (session required)
+- Activity: recommendations, log activity, activity logs, trend analysis (session required)
 - Sleep: log sleep, sleep logs, sleep-quality prediction
 - Insights: health risks, recovery readiness, goal progress, weekly digest
 - Chatbot and insights (chatbot requires a login session)

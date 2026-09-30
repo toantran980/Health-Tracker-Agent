@@ -23,6 +23,9 @@ Use a strong, unique value outside local development. Never commit `.env`.
 
 ## Server
 
+- `APP_ENV`: application environment (`development` default, or `production`).
+  `FLASK_ENV` is accepted as a fallback. Production mode enforces a strong
+  `SECRET_KEY` and flips `DEBUG`/`SESSION_COOKIE_SECURE` defaults.
 - `HOST`: bind address; defaults to `0.0.0.0`.
 - `PORT`: application port; defaults to `5001`.
 - `DEBUG`: enables Flask debug mode; defaults to `True` locally and is disabled
@@ -40,8 +43,10 @@ Use a strong, unique value outside local development. Never commit `.env`.
 - `MONGO_DB_NAME`: database name; defaults to `health_tracker`.
 - `MONGO_CONNECT_RETRIES` and `MONGO_CONNECT_RETRY_DELAY`: startup retry
   behavior when MongoDB is unavailable.
-- `MONGO_MEALS_TTL_DAYS` and `MONGO_DAILY_LOGS_TTL_DAYS`: retention periods for
-  the meals and daily logs collections.
+- `MONGO_MEALS_TTL_DAYS`, `MONGO_DAILY_LOGS_TTL_DAYS`,
+  `MONGO_ACTIVITY_LOGS_TTL_DAYS`, `MONGO_SLEEP_LOGS_TTL_DAYS` (default `365`),
+  and `MONGO_CHAT_HISTORY_TTL_DAYS` (default `180`): retention periods for the
+  corresponding MongoDB collections.
 
 The app falls back to in-memory storage when MongoDB is unavailable.
 

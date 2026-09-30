@@ -216,6 +216,34 @@ class TestProtectedEndpoints(unittest.TestCase):
         })
         self.assertEqual(resp.status_code, 401)
 
+    def test_activity_read_endpoints_require_auth(self):
+        for path in (
+            f"/api/activity-recommendations/{self.user_id}",
+            f"/api/activity/logs/{self.user_id}",
+            f"/api/activity/trends/{self.user_id}",
+        ):
+            resp = self.client.get(path)
+            self.assertEqual(resp.status_code, 401, path)
+            self.assertEqual(resp.get_json()["code"], "AUTH_REQUIRED", path)
+
+    def test_schedule_endpoints_require_auth(self):
+        optimize = self.client.post(f"/api/schedule/optimize/{self.user_id}", json={"tasks": []})
+        self.assertEqual(optimize.status_code, 401)
+        self.assertEqual(optimize.get_json()["code"], "AUTH_REQUIRED")
+        for path in (
+            f"/api/schedule/history/{self.user_id}",
+            f"/api/schedule/available-slots/{self.user_id}",
+            f"/api/productivity/sessions/{self.user_id}",
+            f"/api/productivity/optimal-time/{self.user_id}",
+        ):
+            resp = self.client.get(path)
+            self.assertEqual(resp.status_code, 401, path)
+            self.assertEqual(resp.get_json()["code"], "AUTH_REQUIRED", path)
+        predict = self.client.post(f"/api/productivity/predict/{self.user_id}", json={})
+        self.assertEqual(predict.status_code, 401)
+        recs = self.client.post(f"/api/recommendations/{self.user_id}", json={})
+        self.assertEqual(recs.status_code, 401)
+
     def test_authenticated_chat_returns_reply_and_provider(self):
         login = self.client.post("/api/auth/login", json={
             "user_id": self.user_id, "password": self.USER["password"],
@@ -243,6 +271,15 @@ class TestProtectedEndpoints(unittest.TestCase):
             "meal_type": "lunch",
             "food_items": [{"name": "Rice", "calories": 200, "protein_g": 4, "carbs_g": 45, "fat_g": 1}],
         })
+        self.assertEqual(resp.status_code, 401)
+
+    def test_other_user_cannot_read_my_activity_logs(self):
+        other = make_client()
+        resp = other.post("/api/user/create", json=dict(self.USER, name="Other", user_id="other_two"))
+        self.assertEqual(resp.status_code, 201)
+        login = other.post("/api/auth/login", json={"user_id": "other_two", "password": "hunter22"})
+        self.assertEqual(login.status_code, 200)
+        resp = other.get(f"/api/activity/logs/{self.user_id}")
         self.assertEqual(resp.status_code, 401)
 
 

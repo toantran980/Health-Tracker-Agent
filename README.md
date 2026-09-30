@@ -24,7 +24,7 @@ AI Health & Wellness Tracker is a Flask-based project combining nutrition tracki
 ## What Is Included
 
 - Flask backend API split by domain blueprints (auth, user, nutrition, schedule, activity, chat, external, health, metrics, trends, sleep, comparative analytics)
-- Session-based authentication (login/logout) with password hashing; nutrition, chat, and activity endpoints are protected
+- Session-based authentication (login/logout) with password hashing; all user-data endpoints (nutrition, chat, schedule, productivity, activity, sleep) are protected and return `401 AUTH_REQUIRED` without a matching session
 - CSRF protection for state-changing requests (token echoed via `X-CSRF-Token` header; dashboard handles it automatically)
 - Session cookie hardening flags (`SESSION_COOKIE_SECURE`, `SameSite`, `HttpOnly`) and optional session TTL with sliding refresh
 - Built-in frontend dashboard with tab-based section navigation
@@ -43,8 +43,8 @@ AI Health & Wellness Tracker is a Flask-based project combining nutrition tracki
 ## Tech Stack
 
 - Python 3.10+ (the Dockerfile and CI run Python 3.14)
-- Flask, scikit-learn, XGBoost, pandas, and NumPy
-- PyMongo + MongoDB, python-dotenv, requests, kagglehub
+- Flask, scikit-learn, pandas, and NumPy
+- PyMongo + MongoDB, python-dotenv, and requests
 - Groq (optional hosted chatbot provider)
 - Gunicorn + Nginx (production deployment)
 - Chart.js via CDN
@@ -121,6 +121,7 @@ Then open `http://localhost:5001/`.
 - Week-over-week comparative analytics with explanations
 - Loading states and disabled controls during API calls
 - Inline status banner for clearer API errors
+- Client mode renders action results as readable cards next to the action (dev mode keeps the raw JSON console)
 - Trend charts:
 
   - Calories trend
@@ -153,7 +154,7 @@ datasets, training commands, and evaluation notes.
 4. Go to Schedule and optimize a task list.
 5. Run productivity prediction and review saved sessions.
 6. Log an activity in the Activity tab and review trends.
-7. Log sleep and run the sleep-quality prediction.
+7. Go to Sleep, log a night's sleep, review sleep logs, and run the sleep-quality prediction.
 8. Open the Chatbot tab and send a message.
 9. Check Trends and Insights for charts, health risks, recovery, goals, and the weekly digest.
 

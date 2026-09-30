@@ -10,7 +10,7 @@ from api.blueprints.helpers import (
     coerce_int,
     error_response,
     normalize_schedule_tasks,
-    require_user,
+    require_user_and_auth,
 )
 
 schedule_bp = Blueprint('schedule', __name__)
@@ -21,7 +21,7 @@ schedule_bp = Blueprint('schedule', __name__)
 @schedule_bp.route('/api/schedule/optimize/<user_id>', methods=['POST'])
 def optimize_schedule(user_id):
     """Optimise a list of study tasks for a user and persist the result."""
-    user, err = require_user(user_id)
+    user, err = require_user_and_auth(user_id)
     if err:
         return err
 
@@ -59,7 +59,7 @@ def optimize_schedule(user_id):
 @schedule_bp.route('/api/schedule/history/<user_id>', methods=['GET'])
 def schedule_history(user_id):
     """Return previously optimised schedules for a user."""
-    _, err = require_user(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 
@@ -73,7 +73,7 @@ def schedule_history(user_id):
 @schedule_bp.route('/api/schedule/available-slots/<user_id>', methods=['GET'])
 def get_available_slots(user_id):
     """Return available time slots for a given session duration."""
-    user, err = require_user(user_id)
+    user, err = require_user_and_auth(user_id)
     if err:
         return err
 
@@ -101,7 +101,7 @@ def get_available_slots(user_id):
 @schedule_bp.route('/api/productivity/predict/<user_id>', methods=['POST'])
 def predict_productivity(user_id):
     """Predict focus score and recommended session duration; persist the session."""
-    _, err = require_user(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 
@@ -154,7 +154,7 @@ def predict_productivity(user_id):
 @schedule_bp.route('/api/productivity/sessions/<user_id>', methods=['GET'])
 def productivity_sessions(user_id):
     """Return previously saved productivity prediction sessions."""
-    _, err = require_user(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 
@@ -168,7 +168,7 @@ def productivity_sessions(user_id):
 @schedule_bp.route('/api/productivity/optimal-time/<user_id>', methods=['GET'])
 def get_optimal_study_time(user_id):
     """Return the optimal hour and day for a study session."""
-    user, err = require_user(user_id)
+    user, err = require_user_and_auth(user_id)
     if err:
         return err
 
@@ -190,7 +190,7 @@ def get_optimal_study_time(user_id):
 @schedule_bp.route('/api/recommendations/<user_id>', methods=['POST'])
 def get_recommendations(user_id):
     """Run the knowledge base inference engine and return top recommendations."""
-    _, err = require_user(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 

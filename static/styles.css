@@ -927,23 +927,17 @@ textarea {
   .trends-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  
+
   .trends-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .trends-controls {
     width: 100%;
     justify-content: space-between;
   }
-}
-
-.chart-panel canvas {
-  display: block;
-  width: 100% !important;
-  height: 350px !important;
 }
 
 /* Trends UI Improvements */
@@ -1167,4 +1161,73 @@ textarea {
   .toast {
     max-width: none;
   }
+}
+
+/* Result cards — client mode renders action output as readable cards. */
+.result-card {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.result-entry {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+.result-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 700;
+  color: var(--primary-strong);
+}
+
+.result-time {
+  font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.result-body {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.result-body dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  font-size: 13px;
+}
+
+.result-body dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.result-body dd {
+  margin: 0;
+  color: var(--text);
+}
+
+.result-body pre {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+/* Accessible keyboard focus for interactive elements. */
+button:focus-visible,
+.auth-mode-tab:focus-visible,
+.hero-link:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
 }

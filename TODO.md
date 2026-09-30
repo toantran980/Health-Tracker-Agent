@@ -242,3 +242,29 @@ every few months; do not build a feature only because it appears in the list.
 - [X] **Safety boundaries**: unit + integration coverage in
   `tests/test_safety_boundaries.py`; disclaimers/escalation language in the
   health chatbot (`tests/test_ai_modules.py`).
+- [X] **Metrics caching**: `/api/metrics/productivity_predictor` now caches
+  computed metrics per process (5-min TTL) so dashboard loads no longer re-train
+  the Random Forest on every request; `?refresh=1` forces recompute and `?file=`
+  bypasses the cache.
+- [X] **Sleep tracking UI**: new Sleep tab section (`templates/index.html`) with a
+  Log Sleep form wired to `POST /api/sleep/log`, a View Sleep Logs button, and a
+  Predict with Current Inputs button that passes form values to
+  `GET /api/sleep/predict/<id>` and renders score + hygiene tips inline
+  (`static/main.js`). All sleep controls included in the auth gate.
+- [X] **Client-mode result cards**: `writeOutput` now renders readable per-tab
+  result cards (`static/ui.js:renderResultCard`) when the raw JSON console is
+  hidden; inline insight/sleep areas use a `quiet` option to avoid duplication
+  (`static/api.js:requestForActiveUser`).
+- [X] **CSS cleanup + a11y**: removed duplicated `.chart-panel canvas` rule;
+  added `:focus-visible` outline fallback for buttons, `.auth-mode-tab`, and
+  `.hero-link`; added empty-state placeholders for insight/sleep result areas.
+- [X] **Auth-gate schedule + activity endpoints**: schedule (optimize, history,
+  available-slots, recommendations), productivity (predict, sessions,
+  optimal-time), and activity (recommendations, logs, trends) now use
+  `require_user_and_auth` like nutrition/chat/sleep-log, so all user-data
+  endpoints return `401 AUTH_REQUIRED` without a matching session; removed
+  stale `require_user` imports; locked in with 3 new boundary tests.
+- [X] **`.env.example` sync**: added `APP_ENV` (development default) and the
+  three missing TTL keys (`MONGO_ACTIVITY_LOGS_TTL_DAYS`,
+  `MONGO_SLEEP_LOGS_TTL_DAYS`, `MONGO_CHAT_HISTORY_TTL_DAYS`); live
+  `.env`/`.env.production` untouched.

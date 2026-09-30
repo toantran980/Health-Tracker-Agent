@@ -213,7 +213,7 @@ gunicorn --config gunicorn.conf.py wsgi:app
 With Docker in production (with Nginx reverse proxy):
 
 ```powershell
-docker compose --env-file .env.production -f docker-compose.production.yml up --build -d
+docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml up --build -d
 ```
 
 Check the app health:

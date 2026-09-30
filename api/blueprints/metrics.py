@@ -1,4 +1,5 @@
 import csv
+import time
 
 from flask import Blueprint, jsonify, request
 
@@ -8,11 +9,36 @@ from models.evaluation import compute_metrics
 
 metrics_bp = Blueprint('metrics', __name__, url_prefix='/api/metrics')
 
+# Metrics re-train the Random Forest on data/training_data.csv. Cache the
+# result per process so rendering the dashboard does not re-train on every
+# page load; pass ?refresh=1 to force a fresh computation.
+_METRICS_CACHE: dict = {"timestamp": 0.0, "payload": None}
+METRICS_CACHE_TTL_SECONDS = 300
+
+
+def _cached_metrics_payload(refresh: bool) -> dict | None:
+    """Return the cached payload when fresh, otherwise None (forces recompute)."""
+    cached = _METRICS_CACHE["payload"]
+    if (
+        cached
+        and not refresh
+        and time.time() - _METRICS_CACHE["timestamp"] < METRICS_CACHE_TTL_SECONDS
+    ):
+        return cached
+    return None
+
 
 @metrics_bp.route('/productivity_predictor', methods=['GET'])
 def productivity_predictor_metrics():
     train_path = 'data/training_data.csv'
     eval_path  = request.args.get('file', 'data/eval.csv')
+
+    # ?file= changes the evaluated CSV, so bypass the cache.
+    refresh = request.args.get('refresh', '').lower() in ('1', 'true', 'yes')
+    if not request.args.get('file'):
+        cached = _cached_metrics_payload(refresh)
+        if cached is not None:
+            return jsonify(cached)
 
     train_cases = []
     try:
@@ -60,11 +86,14 @@ def productivity_predictor_metrics():
     training_mean = sum(expected for _, expected in train_cases) / len(train_cases)
     metrics = compute_metrics(predictor, test_cases, round(training_mean))
 
-    return jsonify({
+    payload = {
         "model": "ProductivityPredictor",
         **metrics,
         "csv_path": eval_path
-    })
+    }
+    _METRICS_CACHE["timestamp"] = time.time()
+    _METRICS_CACHE["payload"] = payload
+    return jsonify(payload)
 
 
 @metrics_bp.route('/dependencies', methods=['GET'])

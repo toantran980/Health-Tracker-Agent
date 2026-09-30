@@ -57,6 +57,7 @@
         <button class="hero-link" data-target="section-nutrition" type="button">Nutrition</button>
         <button class="hero-link" data-target="section-schedule" type="button">Schedule</button>
         <button class="hero-link" data-target="section-activity" type="button">Activity</button>
+        <button class="hero-link" data-target="section-sleep" type="button">Sleep</button>
         <button class="hero-link" data-target="section-chat" type="button">Chatbot</button>
         <button class="hero-link" data-target="section-trends" type="button">Trends</button>
       </nav>
@@ -294,6 +295,41 @@
       <p class="hint">Logged activities feed the trend analysis under <strong>View Trends</strong> and are persisted when MongoDB is available.</p>
     </section>
 
+    <section id="section-sleep" class="panel tab-section tab-hidden">
+      <h2>Sleep Tracking</h2>
+      <div class="grid two">
+        <form id="sleepLogForm" class="subpanel">
+          <h3>Log Sleep</h3>
+          <div class="grid two compact">
+            <label>Duration (hours)<input name="duration_hours" type="number" step="0.1" min="0.5" max="24" placeholder="e.g. 7.5" required></label>
+            <label>Bedtime (hour)<input name="bedtime_hour" type="number" step="0.5" min="0" max="24" placeholder="e.g. 23"></label>
+            <label>Quality (1-10)<input name="quality_score" type="number" min="1" max="10" placeholder="optional"></label>
+            <label>Caffeine (servings)<input name="caffeine_servings" type="number" min="0" max="20" placeholder="e.g. 2"></label>
+            <label>Exercise (min)<input name="exercise_minutes" type="number" min="0" max="600" placeholder="e.g. 45"></label>
+            <label>Screen before bed (min)<input name="screen_time_bedtime_min" type="number" min="0" max="240" placeholder="e.g. 20"></label>
+            <label>Stress (1-10)<input name="stress_level" type="number" min="1" max="10" placeholder="e.g. 4"></label>
+            <label>Notes<input name="notes" type="text" placeholder="Optional note"></label>
+          </div>
+          <div class="actions span-2">
+            <button class="btn primary" type="submit">Log Sleep</button>
+            <button id="btnSleepLogs" class="btn" type="button">View Sleep Logs</button>
+          </div>
+        </form>
+
+        <div class="subpanel">
+          <h3>Predict Sleep Quality</h3>
+          <p class="hint">Uses the inputs above (or defaults) to preview predicted quality and hygiene tips.</p>
+          <div class="inline-fields">
+            <button id="btnSleepPredictNow" class="btn" type="button">Predict with Current Inputs</button>
+          </div>
+          <div id="sleepResult" class="insight-result" aria-live="polite">
+            <p class="chat-empty">Run a prediction to see the result here.</p>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Logged sleep feeds the SleepQualityPredictor and the KPI snapshot; entries are persisted when MongoDB is available.</p>
+    </section>
+
     <section id="section-chat" class="panel tab-section tab-hidden">
       <h2>Chatbot + Insights</h2>
       <div class="grid two">
@@ -322,7 +358,7 @@
             <button id="btnDigest" class="btn" type="button">Weekly Digest</button>
             <button id="btnSleepPredict" class="btn" type="button">Sleep Quality</button>
           </div>
-          <div id="insightResult" class="insight-result" aria-live="polite"></div>
+          <div id="insightResult" class="insight-result" aria-live="polite"><p class="chat-empty">Run an insight to see the result here.</p></div>
           <details style="margin-top:1em;">
             <summary>KB Recommendation Inputs (optional)</summary>
             <div id="kb-inputs" class="grid two compact" style="margin-top:0.5em;">

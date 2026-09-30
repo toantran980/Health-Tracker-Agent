@@ -97,7 +97,10 @@ export async function apiRequest(path, options = {}) {
 export async function requestForActiveUser(title, pathFactory, options = {}) {
   const userId = getActiveUserId();
   const payload = await apiRequest(pathFactory(userId), options);
-  writeOutput(title, payload);
+  // In client mode, quiet callers render results into their own inline area
+  // (e.g. insights, sleep prediction) instead of a generic result card.
+  const developerMode = document.body.dataset.developerMode === 'true';
+  if (!options.quiet || developerMode) writeOutput(title, payload);
   return payload;
 }
 

@@ -79,8 +79,10 @@ box while models are only loaded when available.
   final test set; a stratified 90/10 validation carve from the official train
   split selects random-forest hyperparameters. Per-sample identifiers
   (`subject`, `Activity`) are excluded from the feature matrix.
-- **Runtime:** `data/training_data.csv` feeds training; the classifier powers
-  activity-recognition features in the tracker.
+- **Runtime:** the trained artifact is loadable via `ActivityClassifier.load_model`
+  and exported through `ai_modules/__init__.py`; it is not yet wired to a
+  dashboard endpoint. Sensor-data ingestion for live predictions is a
+  follow-up (see [TODO.md](TODO.md)).
 
 ## External datasets & provenance
 

@@ -37,6 +37,9 @@ const PROTECTED_CONTROL_IDS = [
   'btnActivityTrends',
   'btnScheduleHistory',
   'btnProductivitySessions',
+  'sleepLogForm',
+  'btnSleepLogs',
+  'btnSleepPredictNow',
 ];
 
 function setAuthGate(authenticated) {
@@ -398,7 +401,7 @@ function showInsightResult(title, payload) {
 }
 
 async function loadInsight(title, path) {
-  const payload = await requestForActiveUser(title, path);
+  const payload = await requestForActiveUser(title, path, { quiet: true });
   showInsightResult(title, payload);
   showToast(`${title} ready.`, 'info');
 }
@@ -481,6 +484,62 @@ bindClick('btnScheduleHistory', async () => {
 bindClick('btnProductivitySessions', async () => {
   await requestForActiveUser('Productivity Sessions', (userId) => `/api/productivity/sessions/${userId}?limit=10`);
   showToast('Productivity sessions loaded.', 'info');
+});
+
+bindSubmit('sleepLogForm', async (form) => {
+  const userId = getActiveUserId();
+  const body = { user_id: userId, duration_hours: Number(form.elements['duration_hours'].value) };
+  const optional = ['bedtime_hour', 'quality_score', 'caffeine_servings', 'exercise_minutes', 'screen_time_bedtime_min', 'stress_level'];
+  for (const key of optional) {
+    const value = Number(form.elements[key]?.value);
+    if (value) body[key] = value;
+  }
+  const notes = (form.elements['notes']?.value || '').trim();
+  if (notes) body.notes = notes;
+  if (!body.duration_hours || body.duration_hours < 0.5) throw new Error('Duration must be greater than 0.');
+  const payload = await apiRequest('/api/sleep/log', { method: 'POST', body });
+  form.reset();
+  showToast('Sleep logged.', 'success');
+  writeOutput('Sleep Logged', payload);
+});
+
+bindClick('btnSleepLogs', async () => {
+  await requestForActiveUser('Sleep Logs', (userId) => `/api/sleep/logs/${userId}?limit=50`);
+  showToast('Sleep logs loaded.', 'info');
+});
+
+bindClick('btnSleepPredictNow', async () => {
+  const userId = getActiveUserId();
+  const form = document.getElementById('sleepLogForm');
+  const params = new URLSearchParams();
+  for (const key of ['duration_hours', 'bedtime_hour', 'caffeine_servings', 'exercise_minutes', 'screen_time_bedtime_min', 'stress_level']) {
+    const value = Number(form.elements[key]?.value);
+    if (value) params.set(key, value);
+  }
+  const qs = params.toString();
+  const payload = await requestForActiveUser('Sleep Quality Prediction', (userId) => `/api/sleep/predict/${userId}${qs ? `?${qs}` : ''}`, { quiet: true });
+  const result = document.getElementById('sleepResult');
+  if (result) {
+    result.replaceChildren();
+    const heading = document.createElement('strong');
+    heading.textContent = 'Predicted Sleep Quality';
+    result.appendChild(heading);
+    if (payload.predicted_sleep_quality != null) {
+      const score = document.createElement('span');
+      score.textContent = `Score: ${payload.predicted_sleep_quality}`;
+      result.appendChild(score);
+    }
+    if (Array.isArray(payload.recommendations) && payload.recommendations.length) {
+      const list = document.createElement('ul');
+      payload.recommendations.forEach((rec) => {
+        const item = document.createElement('li');
+        item.textContent = typeof rec === 'string' ? rec : JSON.stringify(rec);
+        list.appendChild(item);
+      });
+      result.appendChild(list);
+    }
+  }
+  showToast('Sleep prediction ready.', 'info');
 });
 
 initTabs();

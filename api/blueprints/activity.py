@@ -13,7 +13,6 @@ from api.blueprints.helpers import (
     error_response,
     parse_iso_datetime,
     require_fields,
-    require_user,
     require_user_and_auth,
     validate_iso_timestamp,
 )
@@ -23,9 +22,8 @@ activity_bp = Blueprint('activity', __name__)
 
 
 @activity_bp.route('/api/activity-recommendations/<user_id>', methods=['GET'])
-def get_activity_recommendations(user_id):
-    """Return personalized activity recommendations for the user."""
-    user, err = require_user(user_id)
+def activity_recommendations(user_id):
+    user, err = require_user_and_auth(user_id)
     if err:
         return err
 
@@ -118,7 +116,7 @@ def log_activity():
 @activity_bp.route('/api/activity/logs/<user_id>', methods=['GET'])
 def get_activity_logs(user_id):
     """Return logged activities for a user, newest first."""
-    _, err = require_user(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 
@@ -137,7 +135,7 @@ def activity_trends(user_id):
     Returns totals per activity type (count, total duration, avg energy),
     plus per-day summaries for the selected window.
     """
-    _, err = require_user(user_id)
+    _, err = require_user_and_auth(user_id)
     if err:
         return err
 
