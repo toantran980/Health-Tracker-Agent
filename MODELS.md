@@ -6,8 +6,10 @@ behave at runtime when a trained artifact is missing.
 
 Trained artifacts are gitignored and written to `data/*.pkl`. The app never
 requires them: every predictor falls back to a deterministic, documented
-bootstrap path when its model file is absent, so the tracker runs out of the
-box while models are only loaded when available.
+bootstrap path when its model file is absent, so the tracker runs out of the box
+while models are only loaded when available.
+
+## Model inventory
 
 | Model | Module (`ai_modules/`) | Runtime artifact | Training script |
 | ----- | ---------------------- | ---------------- | --------------- |
@@ -15,8 +17,6 @@ box while models are only loaded when available.
 | Sleep quality predictor | `sleep_quality_predictor.py` | `data/sleep_quality_model.pkl` | `models/train_sleep_model.py` |
 | Recovery readiness predictor | `recovery_predictor.py` | `data/recovery_model.pkl` | `models/train_recovery_model.py` |
 | Activity classifier | `activity_classifier.py` | `data/activity_classifier.pkl` | `models/train_activity_classifier.py` |
-
-## Model inventory
 
 ### ProductivityPredictor
 
@@ -101,13 +101,7 @@ from its own dataset; unrelated targets are never merged into
 
 ## Fallback behavior
 
-If a `data/*.pkl` artifact is missing at runtime, the corresponding predictor:
-
-1. Detects the absence and logs a warning.
-2. Loads a deterministic bootstrap / heuristic path (e.g., `RecoveryPredictor`
-   computes the same documented readiness formula the training target uses).
-3. Returns usable results so nothing in the API or dashboard breaks.
-
-This keeps local and containerized runs functional before any dataset has been
-downloaded or any model trained, while still using the trained models when they
-exist.
+If a `data/*.pkl` artifact is missing at runtime, the corresponding predictor
+detects the absence, logs a warning, and uses its deterministic bootstrap path
+(e.g., `RecoveryPredictor` computes the same documented readiness formula the
+training target uses) so nothing in the API or dashboard breaks.

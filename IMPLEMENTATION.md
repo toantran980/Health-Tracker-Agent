@@ -1,42 +1,14 @@
 # AI Health & Wellness Tracker - Implementation Guide
 
-## Summary
+Architecture, security, persistence, and API behavior. For setup, run commands,
+and the feature list, see [README.md](README.md).
 
-This project is a Flask-based health and productivity platform with:
-
-- user profile management
-- nutrition logging and analysis
-- study schedule optimization
-- productivity prediction
-- chatbot interactions
-- external food and exercise API integrations
-- optional MongoDB persistence
-- Docker-based local deployment
-
-## Start Here
-
-For setup and run commands, use [README.md](README.md).
-
-Quick Docker start:
-
-```powershell
-docker compose up --build -d
-```
-
-Open:
-
-- Frontend: [http://localhost:5001/](http://localhost:5001/)
-- Health check: [http://localhost:5001/api/health](http://localhost:5001/api/health)
-
-Stop:
-
-```powershell
-docker compose down
-```
+## Architecture
 
 - Flask routes are split by domain under [api/blueprints](api/blueprints).
 - In-memory caches are used for live runtime objects.
-- When MongoDB is available, users, daily meal logs, schedules, productivity sessions, and activity logs are persisted and rehydrated.
+- When MongoDB is available, users, daily meal logs, schedules, productivity
+  sessions, and activity logs are persisted and rehydrated.
 - Error responses are standardized as `{"error": "...", "code": "..."}` — see `api/blueprints/helpers.py:error_response`.
 - Routing-level HTTP errors keep native status codes: werkzeug `HTTPException`s (e.g. `404 NOT_FOUND`, `405 METHOD_NOT_ALLOWED`) are not wrapped as 500s, and `GET /favicon.ico` returns `204` (see `api/routes.py`).
 - External API wrappers include lightweight TTL caching (USDA, Open Food Facts, Wger, Open-Meteo) and a shared sliding-window rate limiter (`api/rate_limiter.py`), pluggable between an in-process backend and Redis.

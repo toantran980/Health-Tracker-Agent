@@ -12,8 +12,8 @@ below; `## Open / Next` lists only actionable items.
 | High     | Persist activity logs + trends                                           | Done   | `tests/test_api_blueprints.py:test_activity_log_logs_trends`        |
 | High     | MongoDB TTL indexes (meals, daily_logs)                                  | Done   | `api/mongo_store.py` (index creation)                               |
 | Medium   | `train_model.py` CLI with incremental updates                          | Done   | ran`--save` and `--incremental` locally                           |
-| Medium   | Expanded unit tests (engines, blueprints, rate limit)                    | Done   | 146 tests pass (`pytest`)                                             |
-| Medium   | Frontend error-envelope handling in`static/api.js`                     | Done   | `toApiError` (HTTP + network)                                       |
+| Medium   | Expanded unit tests (engines, blueprints, rate limit)                    | Done   | 150 tests pass (`pytest`)                                             |
+| Medium   | Frontend error-envelope handling in `static/api.js`                     | Done   | `toApiError` (HTTP + network)                                       |
 | Medium   | Per-client rate limiting on external endpoints                           | Done   | `TestRateLimiter` + 429 integration test                            |
 | Low      | Docker pins +`.env.example` + Mongo credentials docs                   | Done   | `git status`, README/IMPLEMENTATION                               |
 | Low      | Centralized request validation helpers                                   | Done   | `helpers.py` used across blueprints                                 |
@@ -42,6 +42,13 @@ below; `## Open / Next` lists only actionable items.
 | High     | Stress / RecoveryPredictor (RF physical readiness ML)                    | Done   | `tests/test_new_modules.py:TestRecoveryPredictor`                   |
 | High     | Goal milestone tracking (weight, exercise, nutrition)                    | Done   | `tests/test_new_modules.py:TestGoalTracker`                         |
 | High     | Automated weekly digest (multi-domain report)                            | Done   | `tests/test_new_modules.py:TestWeeklyDigestGenerator`               |
+| High     | Trained productivity model loaded by the API                             | Done   | `TestPretrainedProductivityModel` (`api/blueprints/schedule.py`)     |
+| Medium   | Groq free-tier TPM handling (4096 cap, 413 retry)                        | Done   | `TestGroqChatBudget` (`tests/test_ai_modules.py`)                    |
+| Medium   | Chat reset auth + history rehydration + non-turn filtering               | Done   | `tests/test_api_blueprints.py`, `tests/test_ai_modules.py`           |
+| Medium   | Native HTTP status codes (404/405 passthrough, favicon 204)              | Done   | `TestHTTPErrorHandling`                                              |
+| Medium   | Sleep tracking UI (log, history, prediction)                             | Done   | `templates/index.html`, `static/main.js`                             |
+| Low      | Frontend layout polish (button rows, grid alignment, hint spacing)       | Done   | `static/styles.css`                                                  |
+| Low      | Dead-code cleanup (unused JS exports + CSS palette vars)                 | Done   | repo-wide export/import + CSS selector sweep                         |
 
 ## Open / Next
 
@@ -126,169 +133,9 @@ every few months; do not build a feature only because it appears in the list.
   **GraphQL**, and **Celery** — keep in `SPARK_IDEAS.md` until a validated
   user problem justifies their operational cost.
 
+
 ## Completed
 
-### High Priority
-
-- [X] **User authentication**: session-based login via signed cookies
-  (`api/blueprints/auth.py`), Werkzeug password hashing, `SECRET_KEY` config;
-  chat + nutrition endpoints guarded by `require_auth`. Reviewed
-  `/api/auth/login`, `/api/auth/me`, `/api/user/<id>/password`.
-- [X] **Persist scheduled tasks and productivity sessions**:
-  `save_schedule`/`get_schedules`, `save_productivity_session`/`get_productivity_sessions`
-  in `api/mongo_store.py`; history endpoints in `api/blueprints/schedule.py`;
-  rehydrated via `load_all_user_history`.
-- [X] **Persist activity logs**: `log_activity`/`logs`/`trends` endpoints in
-  `api/blueprints/activity.py`; `ActivityLog` persistence with frontend
-  form + history buttons.
-- [X] **MongoDB indexes**: TTL indexes on `meals.timestamp` and
-  `daily_logs.updated_at`, driven by `MONGO_MEALS_TTL_DAYS` /
-  `MONGO_DAILY_LOGS_TTL_DAYS`.
-- [X] **CSRF protection**: per-session token (`get_csrf_token`) must be echoed
-  via `X-CSRF-Token` on state-changing requests under an active session
-  (`api/routes.py:before_request`, `403 CSRF_FAILED`); login + user-create
-  exempt; dashboard sends the header automatically.
-
-### Medium Priority
-
-- [X] **ProductivityPredictor retraining**: `--incremental` merges `--train` rows
-  into a saved model (`data/productivity_model.pkl`) via
-  `save_model`/`load_model`/`incremental_update`.
-- [X] **Unit tests**: fixed missing `tests/productivity_predictor_eval.csv`
-  (now `data/eval.csv`); fixed untrained-model MAE, food-vector cache ID
-  collision, and the 20-task CSP perf hang (8-task medium set); added
-  `tests/test_api_blueprints.py` (auth, protected endpoints, persistence,
-  rate limiting). Also fixed real `sort_tasks` bug (urgency ordering).
-- [X] **Frontend API error handling**: `toApiError` normalizes HTTP/network
-  failures into the `{error, code, details}` envelope shape.
-- [X] **Rate limiting**: sliding-window `api/rate_limiter.py` wired into
-  `api/blueprints/external.py`, keyed by client IP → `429 RATE_LIMITED`.
-- [X] **Session-cookie hardening**: `SESSION_COOKIE_SECURE`, `SESSION_COOKIE_SAMESITE`,
-  `SESSION_COOKIE_HTTPONLY` in `config.py`, applied in `api/routes.py`.
-- [X] **Frontend auto-switch to login on AUTH_REQUIRED**: `auth-required`
-  CustomEvent in `static/utils.js` → `static/main.js` switches to User tab.
-- [X] **Rate limiter backend abstraction**: `RedisRateLimiter` + `build_limiter()`
-  factory in `api/rate_limiter.py`; backend chosen by `RATE_LIMIT_BACKEND`.
-- [X] **Config-driven rate-limit test**: `test_build_limiter_from_config_memory`
-  builds a limiter from real config values.
-
-### Low Priority
-
-- [X] **Docker**: aligned `requirements.docker.txt` scikit-learn to 1.8.0;
-  created `.env.example` from `config.py` keys; README documents
-  MongoDB + secret-key setup.
-- [X] **Validation**: `coerce_int`/`coerce_float`/`parse_iso_datetime`/`require_fields`
-  in `api/blueprints/helpers.py`, used across user/nutrition/schedule/activity.
-- [X] **Documentation**: unified README/IMPLEMENTATION (auth flow,
-  activity logging, history endpoints, retraining CLI, test discovery).
-- [X] **Code quality**: removed stale `chatbox.py`/`chatbot.py` references;
-  updated `main.py` endpoint log.
-- [X] **Centralized validation in meals/log + activity/log**: both now route
-  through `require_fields` from `api/blueprints/helpers.py`.
-- [X] **CSRF exemption handling**: login + user-create exempt from middleware;
-  tests confirm no regression on pre-auth 401 paths.
-- [X] **Keyless chatbot fallback**: `HealthChatbot` now uses a rule-based
-  responder (`_local_reply`) when `GROQ_API_KEY` is empty, instead of raising;
-  answers from the user's health snapshot (macros, water, sleep, focus,
-  workouts) with whole-word matching. Groq path unchanged when key present.
-- [X] **Auth UI polish**: status reads "Not logged in" (guidance on hover);
-  Session Login moved to the top of the User tab above Create User.
-
-### Recently Completed
-
-- [X] **Keyless responder unit tests**: `TestKeylessChatbotFallback` covers each
-  `_local_reply` branch (macros, water, sleep, focus, protein, greeting,
-  generic fallback, substring false-positive) and history preservation.
-- [X] **Provider indicator in UI**: `/api/chat` now returns `provider`
-  (`groq`/`local`); the assistant chat bubble shows an LLM/Local badge
-  (with hover tooltip).
-- [X] **Rate-limit headers**: `RateLimiter.status()` exposes
-  `limit/remaining/reset`; external endpoints stamp `X-RateLimit-Limit/ Remaining/Reset` on both success and 429 responses (added
-  `test_rate_limit_headers_present_on_success_and_429`).
-- [X] **Water target customization**: `water_target_ml` is now a configurable
-  `UserProfile` field (default 2500), accepted/validated on `/api/user/create`
-  (`coerce_int` 0–10000), round-trips through Mongo (`user_from_doc`), and is
-  passed to the chatbot snapshot. Frontend `config.js`/`main.js`/`index.html`
-  add a Water (mL/day) field. Covered by `TestAuthFlow`.
-- [X] **Activity `energy_after` validation**: `/api/activity/log` rejects
-  out-of-range values via `coerce_int(minimum=1, maximum=10)` with a
-  `VALUE_OUT_OF_RANGE` 400 error. Covered by
-  `test_activity_energy_after_out_of_range_rejected`.
-- [X] **Frontend auth gate disabled-state**: `setAuthGate(authenticated)` in
-  `static/main.js` disables the nutrition/chat/schedule/form controls until a
-  session is active; toggled from `updateAuthStatus()` and the `auth-required`
-  handler (instead of only showing a toast on click).
-- [X] **Chatbot pre-auth prompt**: on `AUTH_REQUIRED` during chat, the just-appended
-  user bubble is removed (`removeLastChatMessage` in `static/ui.js`) and the
-  typed message is preserved in the input while the UI prompts for login.
-- [X] **Session expiry signaling**: `SESSION_LIFETIME_MINUTES` (default 0 =
-  permanent) + `SESSION_REFRESH` sliding TTL via `PERMANENT_SESSION_LIFETIME`
-  and `session.permanent` in `api/routes.py:apply_session_expiry`; documented in
-  `.env.example`; covered by `TestSessionExpiry`.
-- [X] **Chat history persistence**: `MongoStore.save_chat_history` /
-  `get_chat_history` / `delete_chat_history` (unique `chat_history` index);
-  `api/blueprints/chat.py` saves turns after each message and rehydrates the bot
-  via `HealthChatbot.set_history` on restart; reset wipes stored history.
-- [X] **Local KB-powered chatbot depth**: `HealthChatbot.kb_reply()` routes free-form
-  health questions through the per-user `KnowledgeBase` (facts derived from the
-  live snapshot) before falling back to the generic tip; the blueprint wires in
-  `state.knowledge_bases[user_id]`.
-- [X] **CSRF session key rename**: `_csrf_token` session key renamed to `csrf_token`
-  (`api/routes.py`, `api/blueprints/helpers.py`) — no underscore prefix.
-- [X] **ActivityClassifier + training scripts**: `ai_modules/activity_classifier.py`
-  (Random Forest, UCI HAR, 561 features, 6 activities) with
-  `models/train_activity_classifier.py`, `models/train_recovery_model.py`, and
-  `models/train_sleep_model.py` producing gitignored `data/*.pkl` artifacts.
-- [X] **Safety boundaries**: unit + integration coverage in
-  `tests/test_safety_boundaries.py`; disclaimers/escalation language in the
-  health chatbot (`tests/test_ai_modules.py`).
-- [X] **Metrics caching**: `/api/metrics/productivity_predictor` now caches
-  computed metrics per process (5-min TTL) so dashboard loads no longer re-train
-  the Random Forest on every request; `?refresh=1` forces recompute and `?file=`
-  bypasses the cache.
-- [X] **Sleep tracking UI**: new Sleep tab section (`templates/index.html`) with a
-  Log Sleep form wired to `POST /api/sleep/log`, a View Sleep Logs button, and a
-  Predict with Current Inputs button that passes form values to
-  `GET /api/sleep/predict/<id>` and renders score + hygiene tips inline
-  (`static/main.js`). All sleep controls included in the auth gate.
-- [X] **Removed auto result cards / duplicate log**: chat replies render only as
-  chat bubbles; `writeOutput` no longer generates per-submit result cards. The
-  raw JSON log is a pure diagnostics stream (always in dev mode, on-demand in
-  client mode via the "Show diagnostics" switch) plus inline insight/sleep areas.
-- [X] **CSS cleanup + a11y**: removed duplicated `.chart-panel canvas` rule;
-  added `:focus-visible` outline fallback for buttons, `.auth-mode-tab`, and
-  `.hero-link`; added empty-state placeholders for insight/sleep result areas.
-- [X] **Auth-gate schedule + activity endpoints**: schedule (optimize, history,
-  available-slots, recommendations), productivity (predict, sessions,
-  optimal-time), and activity (recommendations, logs, trends) now use
-  `require_user_and_auth` like nutrition/chat/sleep-log, so all user-data
-  endpoints return `401 AUTH_REQUIRED` without a matching session; removed
-  stale `require_user` imports; locked in with 3 new boundary tests.
-- [X] **`.env.example` sync**: added `APP_ENV` (development default) and the
-  three missing TTL keys (`MONGO_ACTIVITY_LOGS_TTL_DAYS`,
-  `MONGO_SLEEP_LOGS_TTL_DAYS`, `MONGO_CHAT_HISTORY_TTL_DAYS`); live
-  `.env`/`.env.production` untouched.
-- [X] **HTTP exceptions keep native status codes**: `@app.errorhandler(Exception)`
-  no longer converts routing-level `HTTPException`s (e.g. `404 /favicon.ico`)
-  into `500 INTERNAL_SERVER_ERROR`; werkzeug exceptions now return their native
-  code with a `NOT_FOUND`/`METHOD_NOT_ALLOWED` envelope (`api/routes.py`), plus
-  a `GET /favicon.ico` → 204 route. Covered by `TestHTTPErrorHandling`.
-- [X] **Groq free-tier TPM handling**: `GROQ_MAX_COMPLETION_TOKENS` lowered to
-  4096 (was 8192) so LLM replies stop tripping Groq `413` rate limits; chatbot
-  input is bounded (`_bounded_context`, ~10k chars ≈ 2.5k tokens) and a `413`
-  retries once with a 1024-token output budget and 3k-char context. Covered by
-  `TestGroqChatBudget` in `tests/test_ai_modules.py`; `.env.example` synced.
-- [X] **Chat reset + history round-trip coverage**: `/api/chat/<id>/reset`
-  requires a matching session (`401 AUTH_REQUIRED` pre-auth), an authenticated
-  reset clears in-memory history and the Mongo document, `set_history`
-  rehydrates the bot on restart, and non-turn entries are filtered. Covered by
-  4 new tests (`tests/test_api_blueprints.py`, `tests/test_ai_modules.py`).
-- [X] **Frontend layout polish**: action rows no longer stretch unevenly
-  (`.actions`/`.inline-fields` buttons flex 1:1, `.insight-actions` becomes a
-  responsive grid, `.grid` uses `align-items: start`, `.hint` spacing fixed).
-- [X] **Dead-code cleanup**: removed the never-imported `outputEl` export
-  (`static/dom.js`), de-exported internal-only `setKpi` (`static/ui.js`), and
-  deleted four unused CSS palette variables (`--bg`, `--bg-accent`,
-  `--accent`, `--gradient-accent`) left over from the warm pre-teal theme.
-  Full-repo sweep (ruff `F`/`ARG`, JS export/import graph, CSS orphan selector
-  scan) found no other dead code. (146 tests total.)
+Every shipped item is listed in the **Status Summary** table above with the test
+or file that verifies it, so it is not repeated here. Implementation history is
+available in the git log; this file is a roadmap, not a changelog.

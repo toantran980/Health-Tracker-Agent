@@ -19,7 +19,7 @@ are optional unless noted otherwise.
   python -c "import secrets; print(secrets.token_hex(32))"
   ```
 
-Use a strong, unique value outside local development. Never commit `.env`.
+Never commit `.env`.
 
 ## Server
 

@@ -12,14 +12,7 @@
 
 Toan Tran independently completed all commits, updates, and expansions after May 15, 2026.
 
-AI Health & Wellness Tracker is a Flask-based project combining nutrition tracking, personalized meal and activity recommendations, study schedule optimization, productivity prediction, behavioral pattern analysis, and rule-based wellness recommendations. It includes a REST API, a built-in frontend dashboard, and a suite of trained machine-learning models for sleep quality, recovery readiness, productivity, and activity recognition.
-
-## Current Status
-
-- **Tests:** 146 unit and integration tests passing (`pytest`)
-- **Training scripts:** `sleep`, `recovery`, and `activity-classifier` models trainable from bundled public datasets
-- **Safety boundaries:** wellness guidance labeled as non-diagnostic, with escalation language for concerning symptoms
-- **Roadmap:** Phase 1 (foundation, privacy, observability, release process) and comparative analytics complete; Phase 3 (module-specific trained models, external datasets, safety boundaries) largely complete. See [TODO.md](TODO.md).
+AI Health & Wellness Tracker is a Flask-based health and productivity platform: nutrition tracking, personalized meal and activity recommendations, schedule optimization, productivity prediction, behavioral pattern analysis, and rule-based wellness guidance. It ships a REST API, a built-in dashboard, and trained ML models for sleep quality, recovery readiness, productivity, and activity recognition.
 
 ## What Is Included
 
@@ -105,34 +98,6 @@ docker compose up --build -d
 
 Then open `http://localhost:5001/`.
 
-## Application Areas
-
-- User creation (with optional password) and profile fetch
-- Session login/logout and login status indicator
-- Meal logging and nutrition analysis (session required)
-- Macro recommendations and meal recommendations
-- Schedule optimization with row-based Task Builder, plus schedule history
-- Productivity prediction, optimal time suggestion, and saved productivity sessions
-- Activity recommendations, activity logging, activity logs view, and trend analysis
-- Sleep logging, history, and sleep-quality prediction
-- Health chatbot and session reset (session required)
-- Knowledge base recommendations and health insights
-- Rule-based health-risk warnings, recovery readiness, goal progress, and weekly multi-domain digest
-- Week-over-week comparative analytics with explanations
-- Loading states and disabled controls during API calls
-- Inline status banner for clearer API errors
-- Developer mode: raw API output log written on every action; client (production)
-  mode only logs while the "Show diagnostics" switch is on (off by default). The
-  log is a pure diagnostics stream — no per-action result cards
-- Trend charts:
-
-  - Calories trend
-  - Macros trend (protein, carbs, fat)
-  - Focus trend
-
-For authentication, endpoint details, and request behavior, see
-[IMPLEMENTATION.md](IMPLEMENTATION.md).
-
 ## Machine Learning Models
 
 The tracker ships four trainable models in `ai_modules/`, produced by the
@@ -150,15 +115,22 @@ datasets, training commands, and evaluation notes.
 
 ## Quick Demo Flow
 
-1. Open the dashboard and create a user from the User tab (password optional).
-2. Log in using the session login form.
-3. Go to Nutrition and log one meal; run nutrition analysis and macro recommendations.
-4. Go to Schedule and optimize a task list.
-5. Run productivity prediction and review saved sessions.
-6. Log an activity in the Activity tab and review trends.
-7. Go to Sleep, log a night's sleep, review sleep logs, and run the sleep-quality prediction.
-8. Open the Chatbot tab and send a message.
-9. Check Trends and Insights for charts, health risks, recovery, goals, and the weekly digest.
+1. Create a user in the User tab (password optional), then log in.
+2. Nutrition: log a meal, run nutrition analysis and macro recommendations.
+3. Schedule: optimize a task list, run a productivity prediction, review sessions.
+4. Activity: log an activity and review trends.
+5. Sleep: log a night, review logs, run the sleep-quality prediction.
+6. Chatbot: send a message.
+7. Trends and Insights: charts, health risks, recovery, goals, weekly digest.
+
+Trend charts cover calories, macros (protein/carbs/fat), and focus score.
+
+Developer mode writes a raw API log for every action; client mode only logs
+while the "Show diagnostics" switch is on (off by default). It is a pure
+diagnostics stream — no per-action result cards.
+
+For authentication, endpoint details, and request behavior, see
+[IMPLEMENTATION.md](IMPLEMENTATION.md).
 
 ## Run Tests
 

@@ -187,12 +187,11 @@ Before promoting code to production:
 
 If a deployment experiences unexpected errors or readiness failure:
 
-1. **Revert Container Images**:
+1. **Redeploy the previous release** — check out the last known-good tag and
+   rebuild:
    ```bash
-   docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml rollback
-   # Or switch to the previous git tag / container image hash:
    git checkout tags/v1.0.0
-   docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml up -d
+   docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.production.yml up --build -d
    ```
 2. **Restore Database if Data Drift Occurred**:
    ```bash
