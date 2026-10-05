@@ -9,8 +9,17 @@ from api.blueprints.helpers import (
     require_user,
     save_user_with_hash,
 )
+from api.rate_limiter import RateLimiter
 
 auth_bp = Blueprint('auth', __name__)
+
+AUTH_FAILURE_LIMITER = RateLimiter(max_requests=5, window_seconds=300)
+
+
+def _auth_failure_key() -> str:
+    """Key failed-login attempts by client IP; public-facing apps should throttle here."""
+    client_ip = request.headers.get("X-Forwarded-For") or request.remote_addr or "unknown"
+    return f"auth-failure:{client_ip}"
 
 
 @auth_bp.route('/api/auth/login', methods=['POST'])
@@ -37,8 +46,16 @@ def login():
 
     from werkzeug.security import check_password_hash
     if not user.password_hash or not check_password_hash(user.password_hash, password):
+        if not AUTH_FAILURE_LIMITER.allow(_auth_failure_key()):
+            return error_response(
+                "Too many failed login attempts. Please wait a few minutes and try again.",
+                "AUTH_RATE_LIMITED",
+                429,
+                details={"window_seconds": 300, "max_attempts": 5},
+            )
         return error_response("Invalid credentials", "INVALID_CREDENTIALS", 401)
 
+    AUTH_FAILURE_LIMITER.reset(_auth_failure_key())
     session.clear()
     session["user_id"] = user.user_id
     return jsonify({

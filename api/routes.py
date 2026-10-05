@@ -89,10 +89,22 @@ def start_request_tracing():
 
 @app.after_request
 def finish_request_tracing(response):
-    """Echo request ID header and write structured request log."""
+    """Echo request ID header, add baseline security headers, and log request metadata."""
     req_id = getattr(g, "request_id", None)
     if req_id:
         response.headers["X-Request-ID"] = req_id
+
+    # Baseline security posture for a browser-served app; these headers are cheap
+    # to add and reduce common client-side attack surfaces without impacting API
+    # responses or static resources materially.
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'",
+    )
 
     start_time = getattr(g, "start_time", None)
     duration_ms = (time.perf_counter() - start_time) * 1000.0 if start_time else 0.0

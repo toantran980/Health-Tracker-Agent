@@ -9,11 +9,13 @@ Unit and integration tests for Production Readiness:
 5. Release Process (backup/restore and migration check verification)
 """
 
+import importlib
 import os
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 
+import config
 from api.blueprints import state
 from api.routes import app
 from scripts import backup_restore, migration_check
@@ -262,6 +264,64 @@ class TestPhase1Foundation(unittest.TestCase):
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
+
+
+class TestConfigurationBooleans(unittest.TestCase):
+    """Environment bool parsing should accept the common values used by Docker and CI."""
+
+    def test_bool_parser_accepts_common_values(self):
+        for raw_value, expected in {
+            "true": True,
+            "TRUE": True,
+            "1": True,
+            "yes": True,
+            "y": True,
+            "on": True,
+            "false": False,
+            "FALSE": False,
+            "0": False,
+            "no": False,
+            "n": False,
+            "off": False,
+        }.items():
+            os.environ["CONFIG_BOOL_TEST"] = raw_value
+            self.assertIs(config.get_bool_env("CONFIG_BOOL_TEST", default=False), expected)
+
+    def test_invalid_boolean_values_fall_back_to_default(self):
+        os.environ["CONFIG_BOOL_TEST"] = "maybe"
+        self.assertIs(config.get_bool_env("CONFIG_BOOL_TEST", default=True), True)
+        self.assertIs(config.get_bool_env("CONFIG_BOOL_TEST", default=False), False)
+
+    def test_config_reload_honors_common_truthy_values(self):
+        old_env = {key: os.environ.get(key) for key in (
+            "DEBUG", "DEVELOPER_MODE", "SHOW_API_OUTPUT",
+            "SESSION_COOKIE_SECURE", "SESSION_COOKIE_HTTPONLY",
+            "SESSION_REFRESH", "CSRF_PROTECTION",
+        )}
+        try:
+            os.environ["DEBUG"] = "1"
+            os.environ["DEVELOPER_MODE"] = "0"
+            os.environ["SHOW_API_OUTPUT"] = "yes"
+            os.environ["SESSION_COOKIE_SECURE"] = "Y"
+            os.environ["SESSION_COOKIE_HTTPONLY"] = "off"
+            os.environ["SESSION_REFRESH"] = "NO"
+            os.environ["CSRF_PROTECTION"] = "on"
+
+            importlib.reload(config)
+            self.assertTrue(config.DEBUG)
+            self.assertFalse(config.DEVELOPER_MODE)
+            self.assertTrue(config.SHOW_API_OUTPUT)
+            self.assertTrue(config.SESSION_COOKIE_SECURE)
+            self.assertFalse(config.SESSION_COOKIE_HTTPONLY)
+            self.assertFalse(config.SESSION_REFRESH)
+            self.assertTrue(config.CSRF_PROTECTION)
+        finally:
+            for key, value in old_env.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+            importlib.reload(config)
 
 
 class TestHTTPErrorHandling(unittest.TestCase):

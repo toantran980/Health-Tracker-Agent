@@ -55,6 +55,25 @@ below; `## Open / Next` lists only actionable items.
 This roadmap assumes a launch target few months - years from now. Revalidate priorities
 every few months; do not build a feature only because it appears in the list.
 
+### Urgent next actions (pre-launch priority)
+
+These are the items most likely to affect production readiness and should be treated as the
+next critical batch before any public-facing rollout or partner deployment:
+
+- [ ] **Security review** — verify auth, CSRF, session expiry, rate limiting,
+  authz boundaries, dependency vulnerabilities, and secret handling in a clean environment.
+- [ ] **Reliability testing** — validate restart recovery, MongoDB failure modes,
+  external API timeouts, concurrent access, backup/restore, and rollback behavior.
+- [ ] **Performance budget** — define target response times and resource budgets for
+  core endpoints, recommendation generation, and dashboard loading under realistic traffic.
+- [ ] **User acceptance testing** — exercise onboarding, logging, corrections,
+  export, deletion, and error-recovery flows with representative users before launch.
+- [ ] **Go/no-go review** — record remaining risks, support process, rollback owner,
+  and exact release version before public exposure.
+
+These should be completed before investing in deeper product extensions or speculative AI
+experiments. Phase 1 and 2 tasks remain useful, but they should not block the launch gate.
+
 ### Phase 1: Foundation (before adding more AI)
 
 - [X] **Production deployment baseline** — remove public MongoDB exposure and

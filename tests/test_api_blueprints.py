@@ -143,6 +143,28 @@ class TestAuthFlow(unittest.TestCase):
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp.get_json()["code"], "INVALID_CREDENTIALS")
 
+    def test_failed_login_requests_are_throttled(self):
+        for _ in range(5):
+            resp = self.client.post("/api/auth/login", json={
+                "user_id": self.user_id,
+                "password": "wrongpass",
+            })
+            self.assertIn(resp.status_code, {401, 429})
+
+        throttled = self.client.post("/api/auth/login", json={
+            "user_id": self.user_id,
+            "password": "wrongpass",
+        })
+        self.assertEqual(throttled.status_code, 429)
+        self.assertEqual(throttled.get_json()["code"], "AUTH_RATE_LIMITED")
+
+    def test_security_headers_are_present(self):
+        resp = self.client.get("/api/health/live")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers.get("X-Frame-Options"), "DENY")
+        self.assertEqual(resp.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(resp.headers.get("Referrer-Policy"), "strict-origin-when-cross-origin")
+
     def test_login_logout_flow(self):
         resp = self.client.post("/api/auth/login", json={
             "user_id": self.user_id, "password": self.USER["password"],

@@ -5,16 +5,35 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def get_bool_env(name: str, default: bool = False) -> bool:
+    """Parse common boolean env values robustly across shells and Docker.
+
+    Accepts values such as True/False, 1/0, yes/no, y/n, on/off. Unknown values
+    fall back to the supplied default to keep configuration safe and predictable.
+    """
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+
+    normalized = str(raw_value).strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off", ""}:
+        return False
+    return default
+
+
 ENVIRONMENT = os.getenv("APP_ENV", os.getenv("FLASK_ENV", "development")).lower()
 IS_PRODUCTION = ENVIRONMENT == "production"
 
 # Server Settings
 PORT = int(os.getenv("PORT", "5001"))
 HOST = os.getenv("HOST", "0.0.0.0")
-DEBUG = os.getenv("DEBUG", str(not IS_PRODUCTION)).lower() == "true"
+DEBUG = get_bool_env("DEBUG", default=not IS_PRODUCTION)
 # Developer mode enables diagnostics such as the raw API output console.
-DEVELOPER_MODE = os.getenv("DEVELOPER_MODE", str(DEBUG)).lower() == "true"
-SHOW_API_OUTPUT = os.getenv("SHOW_API_OUTPUT", str(DEVELOPER_MODE)).lower() == "true"
+DEVELOPER_MODE = get_bool_env("DEVELOPER_MODE", default=DEBUG)
+SHOW_API_OUTPUT = get_bool_env("SHOW_API_OUTPUT", default=DEVELOPER_MODE)
 
 # Secret key for signed session cookies (required for /api/auth/login).
 # In production, a real secret must be provided via environment variables.
@@ -38,19 +57,19 @@ if not SECRET_KEY:
     SECRET_KEY = secrets.token_hex(32)
 
 # Session cookie hardening.
-SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", str(IS_PRODUCTION).lower()).lower() == "true"
+SESSION_COOKIE_SECURE = get_bool_env("SESSION_COOKIE_SECURE", default=IS_PRODUCTION)
 SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
-SESSION_COOKIE_HTTPONLY = os.getenv("SESSION_COOKIE_HTTPONLY", "true").lower() == "true"
+SESSION_COOKIE_HTTPONLY = get_bool_env("SESSION_COOKIE_HTTPONLY", default=True)
 
 # Session lifetime (minutes) before an auth session expires. Default 0 keeps
 # cookies permanent (current behaviour). Set > 0 to expire idle sessions;
 # SESSION_REFRESH extends the TTL on every authenticated request (sliding).
 SESSION_LIFETIME_MINUTES = int(os.getenv("SESSION_LIFETIME_MINUTES", "0"))
-SESSION_REFRESH = os.getenv("SESSION_REFRESH", "true").lower() == "true"
+SESSION_REFRESH = get_bool_env("SESSION_REFRESH", default=True)
 
 # CSRF: enforce an X-CSRF-Token header on state-changing requests that arrive
 # with an active session (see api/routes.py). Exemptions: pre-auth endpoints.
-CSRF_PROTECTION = os.getenv("CSRF_PROTECTION", "true").lower() == "true"
+CSRF_PROTECTION = get_bool_env("CSRF_PROTECTION", default=True)
 
 # MongoDB Settings
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
