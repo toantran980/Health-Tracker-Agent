@@ -46,6 +46,11 @@ class TestPhase1Foundation(unittest.TestCase):
     # -------------------------------------------------------------------------
     def test_health_live_and_ready_probes(self):
         """Verify liveness and readiness endpoints return standard structures."""
+        health_res = self.client.get('/api/health')
+        self.assertEqual(health_res.status_code, 200)
+        health_data = health_res.get_json()
+        self.assertNotIn("uri", health_data["mongodb"])
+
         live_res = self.client.get('/api/health/live')
         self.assertEqual(live_res.status_code, 200)
         live_data = live_res.get_json()
@@ -57,6 +62,7 @@ class TestPhase1Foundation(unittest.TestCase):
         self.assertIn("checks", ready_data)
         self.assertIn("secret_key", ready_data["checks"])
         self.assertIn("database", ready_data)
+        self.assertNotIn("uri", ready_data["database"])
 
     # -------------------------------------------------------------------------
     # 2. Privacy & Account Controls

@@ -62,7 +62,6 @@ def health_check():
         "users":     persisted_users,
         "mongodb": {
             "enabled":  state.mongo_store.enabled,
-            "uri":      state.mongo_store.uri if state.mongo_store.enabled else None,
             "database": state.mongo_store.db_name if state.mongo_store.enabled else None,
         },
     }), 200
@@ -108,7 +107,6 @@ def health_ready():
             "healthy": mongo_healthy,
             "latency_ms": mongo_latency_ms,
             "mode": "mongo" if mongo_enabled else "memory",
-            "uri": state.mongo_store.uri if mongo_enabled else None,
             "database": state.mongo_store.db_name if mongo_enabled else None,
         },
     }), status_code
