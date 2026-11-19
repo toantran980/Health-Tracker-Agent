@@ -103,7 +103,7 @@ def finish_request_tracing(response):
     response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
     response.headers.setdefault(
         "Content-Security-Policy",
-        "default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'",
+        "default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; connect-src 'self'",
     )
 
     start_time = getattr(g, "start_time", None)

@@ -98,6 +98,8 @@ function updateTrendsSummary() {
 }
 
 export function initCharts() {
+  if (typeof Chart === 'undefined') return;
+
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,

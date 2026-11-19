@@ -281,6 +281,21 @@ def require_user(user_id: str):
     return user, None
 
 
+def find_user_by_username(username: str) -> UserProfile | None:
+    """Find a user by normalized account username and load its persisted state."""
+    for user in state.users.values():
+        if user.username.casefold() == username:
+            return require_user(user.user_id)[0]
+
+    if state.mongo_store.enabled:
+        doc = state.mongo_store.get_user_by_username(username)
+        if doc:
+            user = user_from_doc(doc)
+            state.users[user.user_id] = user
+            return require_user(user.user_id)[0]
+    return None
+
+
 def get_or_create_daily_log(user_id: str, date_str: str) -> DailyNutritionLog:
     hydrate_logs_for_user(user_id)
     user_logs = state.daily_logs.setdefault(user_id, {})

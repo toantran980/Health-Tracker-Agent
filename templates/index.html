@@ -10,6 +10,74 @@
   <div class="page-bg"></div>
   <div class="noise-layer" aria-hidden="true"></div>
   <main class="container">
+    {% if not developer_mode %}
+    <section id="authScreen" class="auth-screen" aria-label="Account access">
+      <div class="auth-intro">
+        <p class="eyebrow">AI Health + Study Assistant</p>
+        <h1>Small steps toward better days.</h1>
+        <p>Track nutrition, sleep, activity, and focus. See your progress, plan your day, and get practical AI-guided support for your goals.</p>
+        <ul class="auth-benefits">
+          <li>Spot patterns in your everyday routines</li>
+          <li>Set goals that fit your health and schedule</li>
+          <li>Turn insights into a useful next step</li>
+        </ul>
+      </div>
+
+      <div class="auth-card">
+        <section id="loginView" class="auth-view" aria-labelledby="loginHeading">
+          <p class="eyebrow">Welcome back</p>
+          <h2 id="loginHeading">Log in to your account</h2>
+          <p class="auth-description">Continue where you left off.</p>
+          <form id="loginForm" class="auth-form" novalidate>
+            <label>Account username<input name="username" type="text" autocomplete="username" placeholder="Your username" required></label>
+            <label>Password<input name="password" type="password" autocomplete="current-password" placeholder="Your password" required></label>
+            <button class="btn primary" type="submit">Log in</button>
+          </form>
+          <p id="authStatus" class="hint" hidden>Checking session...</p>
+          <p class="auth-switch">New to Health Tracker? <button type="button" data-auth-view="register">Create an account</button></p>
+        </section>
+
+        <section id="registerView" class="auth-view" aria-labelledby="registerHeading" hidden>
+          <p class="eyebrow">Get started</p>
+          <h2 id="registerHeading">Create your account</h2>
+          <p class="auth-description">Set up your profile to personalize your tracker.</p>
+          <form id="createUserForm" class="auth-form auth-register-form" novalidate>
+            <label class="span-2">Account username<input name="username" type="text" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z][A-Za-z0-9_]{2,31}" placeholder="e.g. alex_health" required></label>
+            <label>Name<input name="name" type="text" autocomplete="name" placeholder="e.g. Alex" required></label>
+            <label>Age<input name="age" type="number" placeholder="e.g. 25" min="1" max="120" required></label>
+            <label>Sex
+              <select name="biological_sex">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </label>
+            <label>Weight (kg)<input name="weight_kg" type="number" step="0.1" placeholder="e.g. 70" min="20" max="300" required></label>
+            <label>Height (cm)<input name="height_cm" type="number" placeholder="e.g. 175" min="50" max="250" required></label>
+            <label>Goal
+              <select name="goal">
+                <option value="general_wellness">General Wellness</option>
+                <option value="weight_loss">Weight Loss</option>
+                <option value="muscle_gain">Muscle Gain</option>
+                <option value="energy_optimization">Energy Optimization</option>
+              </select>
+            </label>
+            <label>Target Calories<input name="target_calories" type="number" placeholder="e.g. 2200" min="500" max="6000"></label>
+            <label>Protein (g)<input name="target_protein_g" type="number" step="0.1" placeholder="e.g. 140" min="0" max="500"></label>
+            <label>Carbs (g)<input name="target_carbs_g" type="number" step="0.1" placeholder="e.g. 240" min="0" max="1000"></label>
+            <label>Fat (g)<input name="target_fat_g" type="number" step="0.1" placeholder="e.g. 70" min="0" max="500"></label>
+            <label>Water (mL/day)<input name="water_target_ml" type="number" placeholder="e.g. 2500" min="0" max="10000"></label>
+            <label class="span-2">Password<input name="password" type="password" autocomplete="new-password" minlength="6" required placeholder="At least 6 characters"></label>
+            <button class="btn primary span-2" type="submit">Create account</button>
+          </form>
+          <p class="auth-switch">Already have an account? <button type="button" data-auth-view="login">Log in</button></p>
+        </section>
+      </div>
+    </section>
+    {% endif %}
+
+    <section id="statusBanner" class="status-banner hidden" aria-live="assertive" aria-atomic="true"></section>
+
+    <div id="appScreen" class="app-screen"{% if not developer_mode %} hidden{% endif %}>
     <section class="panel command-deck{% if not developer_mode %} client-mode{% endif %}" aria-label="Connection settings{% if show_api_output %} and output console{% endif %}">
       {% if developer_mode %}<label class="developer-mode-toggle" title="Show or hide developer API diagnostics">
         <span>Developer mode</span>
@@ -20,25 +88,21 @@
         <input id="toggleApiOutput" type="checkbox">
         <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
       </label>{% endif %}
-      <div class="auth-mode-tabs" role="tablist" aria-label="Account access">
-        <button class="auth-mode-tab active" type="button" data-auth-mode="login">Log in</button>
-        {% if not developer_mode %}<button class="auth-mode-tab" type="button" data-auth-mode="register">Register</button>{% endif %}
-      </div>
       <div class="command-grid">
         <label class="developer-api-control"{% if not show_api_output %} style="display: none;"{% endif %}>API Base URL<input id="apiBase" type="text" placeholder="http://127.0.0.1:5001"></label>
       </div>
-      <div class="subpanel session-login-top">
-        <h3>Session Login</h3>
+      {% if developer_mode %}<div class="subpanel session-login-top">
+        <h2>Welcome back</h2>
         <form id="loginForm" class="grid three" novalidate>
           <label>User ID<input name="user_id" type="text" placeholder="Active User ID"></label>
           <label>Password<input name="password" type="password" placeholder="Your password"></label>
           <div class="actions span-1">
             <button class="btn primary" type="submit">Log In</button>
-            <button id="btnLogout" class="btn" type="button">Log Out</button>
+            <button id="btnLogout" class="btn" type="button" hidden>Log Out</button>
           </div>
         </form>
         <p id="authStatus" class="hint" hidden>Checking session...</p>
-      </div>
+      </div>{% else %}<button id="btnLogout" class="btn app-logout" type="button" hidden>Log out</button>{% endif %}
       <div id="outputPanel" class="subpanel output-panel"{% if not show_api_output %} style="display: none;"{% endif %}>
         <div class="output-header">
           <h3>Live API Output</h3>
@@ -50,8 +114,6 @@
         <pre id="output"><div class="output-placeholder">Run any action to see the response payload here.</div></pre>
       </div>
     </section>
-
-    <section id="statusBanner" class="status-banner hidden" aria-live="assertive" aria-atomic="true"></section>
 
     <header class="hero">
       <p class="eyebrow">AI Health + Study Assistant</p>
@@ -123,46 +185,11 @@
     </section>
 
     <section id="section-user" class="panel tab-section tab-hidden">
-      {% if not developer_mode %}
-      <h2 id="registerHeading">Create User</h2>
-      <form id="createUserForm" class="grid three" novalidate>
-        <label>Name<input name="name" type="text" placeholder="e.g. Alex"></label>
-        <label>Age<input name="age" type="number" placeholder="e.g. 25" min="1" max="120"></label>
-        <label>Sex
-          <select name="biological_sex">
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </label>
-        <label>Weight (kg)<input name="weight_kg" type="number" step="0.1" placeholder="e.g. 70" min="20" max="300"></label>
-        <label>Height (cm)<input name="height_cm" type="number" placeholder="e.g. 175" min="50" max="250"></label>
-        <label>Goal
-          <select name="goal">
-            <option value="general_wellness">General Wellness</option>
-            <option value="weight_loss">Weight Loss</option>
-            <option value="muscle_gain">Muscle Gain</option>
-            <option value="energy_optimization">Energy Optimization</option>
-          </select>
-        </label>
-        <label>Target Calories<input name="target_calories" type="number" placeholder="e.g. 2200" min="500" max="6000"></label>
-        <label>Protein (g)<input name="target_protein_g" type="number" step="0.1" placeholder="e.g. 140" min="0" max="500"></label>
-        <label>Carbs (g)<input name="target_carbs_g" type="number" step="0.1" placeholder="e.g. 240" min="0" max="1000"></label>
-        <label>Fat (g)<input name="target_fat_g" type="number" step="0.1" placeholder="e.g. 70" min="0" max="500"></label>
-        <label>Water (mL/day)<input name="water_target_ml" type="number" placeholder="e.g. 2500" min="0" max="10000"></label>
-        <label class="span-2">Password (required for login)
-          <input name="password" type="password" minlength="6" required placeholder="Set a password to enable login for nutrition/chat">
-        </label>
-        <div class="actions span-3">
-          <button class="btn primary" type="submit">Create User</button>
-          <button id="btnGetUser" class="btn" type="button">Get Active User</button>
-        </div>
-      </form>
-      {% endif %}
-
       <div class="subpanel" style="margin-top: 1.5rem;">
         <h3>Privacy & Account Controls</h3>
         <p class="text-muted">Manage your personal health data, download a complete export archive, or exercise your right to account erasure.</p>
         <div class="inline-fields" style="margin-top: 0.75rem; gap: 0.5rem; display: flex; flex-wrap: wrap;">
+          <button id="btnGetUser" class="btn" type="button">Get Active User</button>
           <button id="btnExportData" class="btn" type="button">Export Health Data (JSON)</button>
           <button id="btnPrivacyPolicy" class="btn" type="button">Privacy Policy</button>
           <button id="btnDeleteAccount" class="btn danger" type="button" style="color: #ef4444; border-color: #ef4444;">Delete Account</button>
@@ -193,11 +220,11 @@
 
         <div class="subpanel">
           <h3>Analysis + Meal Recs</h3>
-          <div class="inline-fields">
+          <div class="inline-fields meal-analysis-actions">
             <button id="btnAnalyze" class="btn" type="button">Get Nutrition Analysis</button>
             <button id="btnMacroRecs" class="btn" type="button">Get Macro Recs</button>
           </div>
-          <form id="mealRecForm">
+          <form id="mealRecForm" class="meal-recommendation-form">
             <div class="grid two compact">
               <label>Target Calories<input name="target_calories" type="number" placeholder="e.g. 650"></label>
               <label>Target Protein<input name="target_protein" type="number" step="0.1" placeholder="e.g. 35"></label>
@@ -210,7 +237,7 @@
               </label>
               <label>Count<input name="n" type="number" placeholder="e.g. 5"></label>
             </div>
-            <button class="btn" type="submit">Get Meal Recommendations</button>
+            <button class="btn meal-rec-submit" type="submit">Get Meal Recommendations</button>
           </form>
         </div>
       </div>
@@ -227,9 +254,11 @@
           </div>
           <div id="taskList" class="task-list"></div>
           <p id="taskSummary" class="hint">Total tasks: 0 | Total duration: 0 min</p>
-          <button class="btn primary" type="submit">Optimize</button>
-          <button id="btnSlots" class="btn" type="button">Get Available Slots</button>
-          <button id="btnScheduleHistory" class="btn" type="button">View Schedule History</button>
+          <div class="actions form-actions">
+            <button class="btn primary" type="submit">Optimize</button>
+            <button id="btnSlots" class="btn" type="button">Get Available Slots</button>
+            <button id="btnScheduleHistory" class="btn" type="button">View Schedule History</button>
+          </div>
         </form>
 
         <form id="productivityForm" class="subpanel">
@@ -244,9 +273,11 @@
             <label>Prev Duration<input name="previous_session_duration" type="number" placeholder="min"></label>
             <label>Difficulty<input name="task_difficulty" type="number" placeholder="1–10"></label>
           </div>
-          <button class="btn primary" type="submit">Predict</button>
-          <button id="btnOptimalTime" class="btn" type="button">Get Optimal Study Time</button>
-          <button id="btnProductivitySessions" class="btn" type="button">View Productivity Sessions</button>
+          <div class="actions form-actions">
+            <button class="btn primary" type="submit">Predict</button>
+            <button id="btnOptimalTime" class="btn" type="button">Get Optimal Study Time</button>
+            <button id="btnProductivitySessions" class="btn" type="button">View Productivity Sessions</button>
+          </div>
         </form>
       </div>
     </section>
@@ -290,7 +321,7 @@
         <label>Duration (minutes)<input name="duration_minutes" type="number" min="1" max="1440" placeholder="e.g. 45"></label>
         <label>Energy After<input name="energy_after" type="number" min="1" max="10" placeholder="1-10 (optional)"></label>
         <label class="span-2">Notes<input name="notes" type="text" placeholder="Optional note"></label>
-        <div class="actions span-1">
+        <div class="actions span-3">
           <button class="btn primary" type="submit">Log Activity</button>
           <button id="btnActivityLogs" class="btn" type="button">View Logs</button>
           <button id="btnActivityTrends" class="btn" type="button">View Trends</button>
@@ -439,6 +470,7 @@
         </div>
       </div>
     </section>
+    </div>
   </main>
 
   <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>

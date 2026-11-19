@@ -112,6 +112,7 @@ def user_from_doc(doc: dict[str, Any]) -> UserProfile:
         weight_kg=doc.get("weight_kg", 70),
         height_cm=doc.get("height_cm", 175),
         biological_sex=bio_sex,
+        username=str(doc.get("username") or ""),
         goals=safe_goals,
         target_calories=doc.get("target_calories", 2000),
         target_protein_g=doc.get("target_protein_g", 150.0),

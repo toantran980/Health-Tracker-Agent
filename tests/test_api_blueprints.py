@@ -136,6 +136,48 @@ class TestAuthFlow(unittest.TestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.get_json()["code"], "PASSWORD_TOO_SHORT")
 
+    def test_account_username_is_distinct_and_can_log_in_case_insensitively(self):
+        created = self.client.post(
+            "/api/user/create",
+            json=dict(self.USER, username="Wellness_User"),
+        )
+        self.assertEqual(created.status_code, 201)
+        account = created.get_json()
+        self.assertEqual(account["username"], "wellness_user")
+        self.assertNotEqual(account["user_id"], account["username"])
+
+        login = self.client.post("/api/auth/login", json={
+            "username": "WELLNESS_USER",
+            "password": self.USER["password"],
+        })
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(login.get_json()["username"], "wellness_user")
+        self.assertEqual(login.get_json()["user_id"], account["user_id"])
+
+        status = self.client.get("/api/auth/me").get_json()
+        self.assertEqual(status["username"], "wellness_user")
+
+    def test_account_username_must_be_unique_and_valid(self):
+        first = self.client.post(
+            "/api/user/create",
+            json=dict(self.USER, username="wellness_user"),
+        )
+        self.assertEqual(first.status_code, 201)
+
+        duplicate = self.client.post(
+            "/api/user/create",
+            json=dict(self.USER, username="WELLNESS_USER"),
+        )
+        self.assertEqual(duplicate.status_code, 409)
+        self.assertEqual(duplicate.get_json()["code"], "USER_ALREADY_EXISTS")
+
+        invalid = self.client.post(
+            "/api/user/create",
+            json=dict(self.USER, username="1bad"),
+        )
+        self.assertEqual(invalid.status_code, 400)
+        self.assertEqual(invalid.get_json()["code"], "INVALID_USERNAME")
+
     def test_wrong_password_denied(self):
         resp = self.client.post("/api/auth/login", json={
             "user_id": self.user_id, "password": "wrongpass",

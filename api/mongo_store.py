@@ -76,6 +76,7 @@ class MongoStore:
         chat_ttl = config.MONGO_CHAT_HISTORY_TTL_DAYS
 
         self.db["users"].create_index("user_id", unique=True)
+        self.db["users"].create_index("username", unique=True, sparse=True)
         self.db["daily_logs"].create_index(
             [("user_id", ASCENDING), ("date", ASCENDING)], unique=True
         )
@@ -247,6 +248,15 @@ class MongoStore:
             return self.db["users"].find_one({"user_id": user_id}, {"_id": 0})
         except PyMongoError:
             logger.exception("[MongoDB] get_user failed for user_id=%s", user_id)
+            return None
+
+    def get_user_by_username(self, username: str) -> dict[str, Any] | None:
+        if not self.enabled or self.db is None:
+            return None
+        try:
+            return self.db["users"].find_one({"username": username}, {"_id": 0})
+        except PyMongoError:
+            logger.exception("[MongoDB] get_user_by_username failed")
             return None
 
     def count_users(self) -> int:

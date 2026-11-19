@@ -112,10 +112,10 @@ export async function getAuthStatus() {
   }
 }
 
-export async function login(userId, password) {
-  if (!userId) throw new Error('Active User ID is required to log in.');
+export async function login(username, password) {
+  if (!username) throw new Error('Account username is required to log in.');
   if (!password) throw new Error('Password is required to log in.');
-  const payload = await apiRequest('/api/auth/login', { method: 'POST', body: { user_id: userId, password }, skipCsrf: true });
+  const payload = await apiRequest('/api/auth/login', { method: 'POST', body: { username, password }, skipCsrf: true });
   if (payload.csrf_token) setCsrfToken(payload.csrf_token);
   setSessionUserId(payload.user_id);
   return payload;

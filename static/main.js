@@ -8,6 +8,8 @@ import { bindClick, bindSubmit } from './utils.js';
 import { DEFAULTS } from './config.js';
 
 const savedBase = localStorage.getItem('apiBase');
+const commandDeck = document.querySelector('.command-deck');
+let authenticatedUsername = '';
 
 const PROTECTED_CONTROL_IDS = [
   'btnGetUser',
@@ -96,18 +98,22 @@ function initQuickActions() {
 }
 
 bindSubmit('createUserForm', async (form) => {
+  const username  = form.elements['username'].value.trim().toLowerCase();
   const name      = form.elements['name'].value.trim();
   const age       = Number(form.elements['age'].value);
   const weight_kg = Number(form.elements['weight_kg'].value);
   const height_cm = Number(form.elements['height_cm'].value);
 
+  if (!/^[a-z][a-z0-9_]{2,31}$/.test(username)) {
+    throw new Error('Username must be 3-32 characters, start with a letter, and use only letters, numbers, or underscores.');
+  }
   if (!name)                        throw new Error('Name is required.');
   if (!age || age < 1)              throw new Error('Valid age is required.');
   if (!weight_kg || weight_kg < 1)  throw new Error('Valid weight is required.');
   if (!height_cm || height_cm < 1)  throw new Error('Valid height is required.');
 
   const body = {
-    name, age,
+    username, name, age,
     biological_sex:   form.elements['biological_sex'].value || DEFAULTS.USER.BIOLOGICAL_SEX,
     weight_kg, height_cm,
     goals:            [form.elements['goal'].value || DEFAULTS.USER.GOALS[0]],
@@ -119,28 +125,44 @@ bindSubmit('createUserForm', async (form) => {
   };
 
   const password = form.elements['password'] ? form.elements['password'].value : '';
-  if (password) body.password = password;
+  if (password.length < 6) throw new Error('Password must be at least 6 characters.');
+  body.password = password;
 
   const payload = await apiRequest('/api/user/create', { method: 'POST', body });
-  showToast('User profile created.', 'success');
+  const loginUsernameInput = document.querySelector('#loginForm [name="username"], #loginForm [name="user_id"]');
+  if (loginUsernameInput) loginUsernameInput.value = username;
+  try {
+    await login(username, password);
+  } catch (error) {
+    switchAuthView('login');
+    throw new Error(`Account created, but automatic login failed. Log in with ${username}. ${error.message}`);
+  }
+  form.reset();
+  showToast(`Account created for ${username}. You're signed in.`, 'success');
   writeOutput('User Created', payload);
+  await updateAuthStatus();
 });
 
 bindSubmit('loginForm', async (form) => {
-  const userId = form.elements['user_id'].value.trim() || getActiveUserId();
+  const identityInput = form.elements['username'] || form.elements['user_id'];
+  const username = identityInput.value.trim() || getActiveUserId();
   const password = form.elements['password'].value;
-  const payload = await login(userId, password);
+  const payload = await login(username, password);
   form.reset();
-  showToast(`Logged in as ${payload.user_id}.`, 'success');
+  showToast(`Logged in as ${payload.username || username}.`, 'success');
   writeOutput('Login', payload);
-  updateAuthStatus();
+  await updateAuthStatus();
 });
 
 bindClick('btnLogout', async () => {
+  const username = authenticatedUsername || getActiveUserId();
   await logout();
+  const loginUsernameInput = document.querySelector('#loginForm [name="username"], #loginForm [name="user_id"]');
+  if (loginUsernameInput) loginUsernameInput.value = username;
+  switchAuthView('login');
   showToast('Logged out.', 'info');
   writeOutput('Logout', { status: 'logged_out' });
-  updateAuthStatus();
+  await updateAuthStatus();
 });
 
 bindClick('btnExportData', async () => {
@@ -200,28 +222,57 @@ bindClick('btnDeleteAccount', async () => {
 
 async function updateAuthStatus() {
   const el = document.getElementById('authStatus');
-  if (!el) return;
   const { ok, payload } = await getAuthStatus();
   if (!ok) {
-    el.hidden = false;
-    el.textContent = 'Session could not be checked (is the server running?).';
+    if (el) {
+      el.hidden = false;
+      el.textContent = 'Session could not be checked (is the server running?).';
+    }
+    const logoutButton = document.getElementById('btnLogout');
+    if (logoutButton) logoutButton.hidden = true;
+    commandDeck?.classList.remove('is-authenticated');
+    setApplicationVisibility(false);
+    setAuthGate(false);
     return;
   }
-  if (payload && payload.authenticated) {
+  const authenticated = !!(payload && payload.authenticated);
+  if (authenticated) {
+    authenticatedUsername = payload.username || payload.user_id;
     setSessionUserId(payload.user_id);
-    el.hidden = false;
-    el.textContent = `Logged in as: ${payload.user_id}`;
-    el.style.color = 'var(--success, #2ecc71)';
-    el.title = '';
+    if (el) {
+      el.hidden = false;
+      el.textContent = `Logged in as: ${authenticatedUsername}`;
+      el.style.color = 'var(--success, #2ecc71)';
+      el.title = '';
+    }
   } else {
+    authenticatedUsername = '';
     setSessionUserId('');
-    el.hidden = true;
-    el.textContent = '';
-    el.title = '';
+    if (el) {
+      el.hidden = true;
+      el.textContent = '';
+      el.title = '';
+    }
   }
-  setAuthGate(!!(payload && payload.authenticated));
+  const logoutButton = document.getElementById('btnLogout');
+  if (logoutButton) logoutButton.hidden = !authenticated;
+  commandDeck?.classList.toggle('is-authenticated', authenticated);
+  setApplicationVisibility(authenticated);
+  setAuthGate(authenticated);
   if (payload && payload.authenticated && payload.user_id) {
     loadTrends(payload.user_id);
+  }
+}
+
+function setApplicationVisibility(authenticated) {
+  const authScreen = document.getElementById('authScreen');
+  const appScreen = document.getElementById('appScreen');
+  if (!authScreen || !appScreen) return;
+  const wasHidden = appScreen.hidden;
+  authScreen.hidden = authenticated;
+  appScreen.hidden = !authenticated;
+  if (authenticated && wasHidden) {
+    window.requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
   }
 }
 
@@ -539,35 +590,19 @@ setChatEmptyState();
 refreshKpis();
 updateAuthStatus();
 
-document.querySelectorAll('[data-auth-mode]').forEach((tab) => {
-  const userSection = document.getElementById('section-user');
-  const commandDeck = document.querySelector('.command-deck');
-  const loginPanel = document.querySelector('.session-login-top');
-  const registerPlaceholder = userSection ? document.createComment('registration location') : null;
-  if (userSection && registerPlaceholder) userSection.parentNode.insertBefore(registerPlaceholder, userSection);
+function switchAuthView(view) {
+  const loginView = document.getElementById('loginView');
+  const registerView = document.getElementById('registerView');
+  if (!loginView || !registerView) return;
+  const registering = view === 'register';
+  loginView.hidden = registering;
+  registerView.hidden = !registering;
+  const input = (registering ? registerView : loginView).querySelector('input');
+  input?.focus();
+}
 
-  tab.addEventListener('click', () => {
-    const mode = tab.dataset.authMode;
-    document.querySelectorAll('[data-auth-mode]').forEach((item) => {
-      item.classList.toggle('active', item.dataset.authMode === mode);
-    });
-    if (mode === 'register') {
-      if (commandDeck && userSection) {
-        commandDeck.classList.add('auth-register-mode');
-        loginPanel?.setAttribute('hidden', '');
-        userSection.classList.remove('tab-hidden');
-        commandDeck.appendChild(userSection);
-      }
-    } else {
-      if (commandDeck && userSection && registerPlaceholder) {
-        commandDeck.classList.remove('auth-register-mode');
-        loginPanel?.removeAttribute('hidden');
-        registerPlaceholder.parentNode.insertBefore(userSection, registerPlaceholder.nextSibling);
-        userSection.classList.add('tab-hidden');
-      }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  });
+document.querySelectorAll('[data-auth-view]').forEach((button) => {
+  button.addEventListener('click', () => switchAuthView(button.dataset.authView));
 });
 
 // Refresh trends from persisted data when the time range changes or Refresh is clicked.
@@ -596,9 +631,13 @@ apiOutputToggle?.addEventListener('change', (event) => {
     control.style.display = event.target.checked ? '' : 'none';
   });
 });
-window.addEventListener('auth-required', () => {
+window.addEventListener('auth-required', async () => {
   setAuthGate(false);
-  switchTab('section-user');
-  updateAuthStatus();
+  if (document.getElementById('authScreen')) {
+    switchAuthView('login');
+  } else {
+    switchTab('section-user');
+  }
+  await updateAuthStatus();
   showToast('Please log in to continue.', 'error');
 });

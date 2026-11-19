@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request, session
 from api.blueprints import state
 from api.blueprints.helpers import (
     error_response,
+    find_user_by_username,
     get_csrf_token,
     require_user,
     save_user_with_hash,
@@ -28,24 +29,29 @@ def login():
     Authenticate a user via its password and open a signed session cookie.
 
     Body (JSON):
-        user_id  : str  (required)
+        username : str  (required for current clients; legacy user_id is accepted)
         password : str  (required)
     """
     data = request.get_json(silent=True) or {}
+    raw_username = str(data.get('username', '')).strip()
+    username = raw_username.lower()
     user_id = str(data.get('user_id', '')).strip()
     password = str(data.get('password', ''))
 
-    if not user_id or not password:
+    if (not username and not user_id) or not password:
         return error_response(
-            "user_id and password are required", "MISSING_AUTH_FIELDS", 400
+            "username and password are required", "MISSING_AUTH_FIELDS", 400
         )
 
-    user, err = require_user(user_id)
-    if err:
-        return err
+    user = find_user_by_username(username) if username else None
+    if not user:
+        lookup_id = raw_username or user_id
+        user, err = require_user(lookup_id)
+        if err:
+            user = None
 
     from werkzeug.security import check_password_hash
-    if not user.password_hash or not check_password_hash(user.password_hash, password):
+    if not user or not user.password_hash or not check_password_hash(user.password_hash, password):
         if not AUTH_FAILURE_LIMITER.allow(_auth_failure_key()):
             return error_response(
                 "Too many failed login attempts. Please wait a few minutes and try again.",
@@ -61,6 +67,7 @@ def login():
     return jsonify({
         "status": "authenticated",
         "user_id": user.user_id,
+        "username": user.username or None,
         "user": user.to_public_dict(),
         "csrf_token": get_csrf_token(),
     }), 200
@@ -81,6 +88,7 @@ def me():
         return jsonify({
             "authenticated": False,
             "user_id": None,
+            "username": None,
             "csrf_token": get_csrf_token(),
         }), 200
 
@@ -97,12 +105,14 @@ def me():
         return jsonify({
             "authenticated": False,
             "user_id": None,
+            "username": None,
             "csrf_token": get_csrf_token(),
         }), 200
 
     return jsonify({
         "authenticated": True,
         "user_id": user_id,
+        "username": user.username or None,
         "csrf_token": get_csrf_token(),
     }), 200
 

@@ -36,6 +36,9 @@ class UserProfile:
     height_cm:  float
     biological_sex: BiologicalSex = BiologicalSex.MALE   # affects BMR formula
 
+    # Account login name; empty for profiles created through legacy API clients.
+    username: str = ""
+
     # Auth (optional; enabled by setting a password on create/login)
     password_hash: str = ""   # werkzeug PBKDF2 hash; empty = password not set
 
@@ -124,7 +127,7 @@ class UserProfile:
         return int(self.get_bmr() * activity_level)
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "user_id":               self.user_id,
             "name":                  self.name,
             "age":                   self.age,
@@ -143,6 +146,9 @@ class UserProfile:
             "allergies":                     self.allergies,
             "password_set":                  bool(self.password_hash),
         }
+        if self.username:
+            payload["username"] = self.username
+        return payload
 
     def to_public_dict(self) -> dict:
         """Same as to_dict, guaranteed to never expose the password hash."""

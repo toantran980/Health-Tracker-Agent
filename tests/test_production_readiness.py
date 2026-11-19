@@ -14,6 +14,7 @@ import os
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 import config
 from api.blueprints import state
@@ -63,6 +64,28 @@ class TestPhase1Foundation(unittest.TestCase):
         self.assertIn("secret_key", ready_data["checks"])
         self.assertIn("database", ready_data)
         self.assertNotIn("uri", ready_data["database"])
+
+    def test_content_security_policy_allows_dashboard_cdn_assets(self):
+        response = self.client.get('/')
+        policy = response.headers["Content-Security-Policy"]
+        self.assertIn("https://cdn.jsdelivr.net", policy)
+        self.assertIn("https://fonts.googleapis.com", policy)
+        self.assertIn("https://fonts.gstatic.com", policy)
+
+    def test_client_auth_views_precede_hidden_dashboard(self):
+        with patch.object(config, "DEVELOPER_MODE", False):
+            response = self.client.get('/')
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('id="loginView"', html)
+        self.assertIn('id="registerView"', html)
+        self.assertIn('id="appScreen" class="app-screen" hidden', html)
+        self.assertIn('name="username"', html)
+        self.assertIn("Account username", html)
+        self.assertNotIn("Your user ID", html)
+        self.assertIn('data-auth-view="register"', html)
+        self.assertIn('data-auth-view="login"', html)
 
     # -------------------------------------------------------------------------
     # 2. Privacy & Account Controls

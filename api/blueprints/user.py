@@ -1,3 +1,4 @@
+import re
 import sys
 import traceback
 from datetime import datetime, timezone
@@ -25,13 +26,28 @@ def create_user():
     Create a new user profile and initialise all AI modules.
 
     Body (JSON):
-        user_id, name, age, weight_kg, height_cm, biological_sex,
+        username, name, age, weight_kg, height_cm, biological_sex,
         goals, target_calories, target_protein_g, target_carbs_g, target_fat_g,
         password (optional; enables /api/auth/login)
     """
     data = request.get_json(silent=True) or request.form.to_dict()
 
-    # Assign and validate user_id uniqueness
+    username = str(data.get('username') or '').strip().lower()
+    if username and not re.fullmatch(r'[a-z][a-z0-9_]{2,31}', username):
+        return error_response(
+            "Username must be 3-32 characters and start with a letter; use only letters, numbers, and underscores.",
+            "INVALID_USERNAME",
+            400,
+        )
+
+    if username:
+        duplicate_username = any(
+            user.username == username for user in state.users.values()
+        ) or bool(state.mongo_store.enabled and state.mongo_store.get_user_by_username(username))
+        if duplicate_username:
+            return error_response("That username is already taken.", "USER_ALREADY_EXISTS", 409)
+
+    # Accept legacy user_id payloads for existing API clients.
     raw_user_id = data.get('user_id')
     if raw_user_id:
         user_id = str(raw_user_id).strip()
@@ -92,6 +108,7 @@ def create_user():
             weight_kg        = weight,
             height_cm        = height,
             biological_sex   = bio_sex,
+            username         = username,
             goals            = [Goal(g) for g in goals_list],
             target_calories  = cal,
             target_protein_g = protein,
@@ -115,7 +132,16 @@ def create_user():
     try:
         state.users[user_id] = user
         ensure_ai_modules(user_id, user)
-        save_user_with_hash(user)
+        saved = save_user_with_hash(user)
+        if state.mongo_store.enabled and not saved:
+            state.users.pop(user_id, None)
+            if username and state.mongo_store.get_user_by_username(username):
+                return error_response("That username is already taken.", "USER_ALREADY_EXISTS", 409)
+            return error_response(
+                "Failed to persist user profile.",
+                "USER_INIT_FAILED",
+                500,
+            )
     except Exception as e:
         # Roll back in-memory state so a retry doesn't collide
         state.users.pop(user_id, None)
@@ -125,6 +151,7 @@ def create_user():
     return jsonify({
         "status": "success",
         "user_id": user_id,
+        "username": user.username or None,
         "user": user.to_public_dict(),
         "password_set": bool(password),
     }), 201
