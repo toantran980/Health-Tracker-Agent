@@ -2,10 +2,8 @@
 AI Health Chatbot.
 
 Two modes:
-  * Groq-powered (recommended, richer answers) when GROQ_API_KEY is set.
-    Get a free key at: https://console.groq.com
-    Install:  pip install groq   |   .env:  GROQ_API_KEY=gsk_...
-  * Keyless rule-based fallback when GROQ_API_KEY is empty or unset.
+  * OpenAI-powered when HEALTH_TRACKER_OPENAI_API_KEY is set.
+  * Keyless rule-based fallback when HEALTH_TRACKER_OPENAI_API_KEY is empty or unset.
     Answers questions about the user's macros, water, sleep, focus, and
     workouts from their health snapshot — no network or external dependency.
 """
@@ -18,7 +16,7 @@ load_dotenv()
 
 import config
 
-GROQ_API_KEY = config.GROQ_API_KEY
+OPENAI_API_KEY = config.OPENAI_API_KEY
 
 client   = None
 model    = None
@@ -28,17 +26,17 @@ def init_provider():
     global client, model, provider
     if provider == "local":
         return
-    if provider == "groq" and client is not None:
+    if provider == "openai" and client is not None:
         return
-    if not GROQ_API_KEY:
+    if not OPENAI_API_KEY:
         provider = "local"
-        print("[Chatbot] Provider: local (keyless rule-based — no GROQ_API_KEY set).")
+        print("[Chatbot] Provider: local (keyless rule-based — no HEALTH_TRACKER_OPENAI_API_KEY set).")
         return
-    from groq import Groq
+    from openai import OpenAI
     if client is None:
-        client = Groq(api_key=GROQ_API_KEY)
-    model    = "openai/gpt-oss-120b"  # Higher intelligence model with reasoning capabilities
-    provider = "groq"
+        client = OpenAI(api_key=OPENAI_API_KEY)
+    model    = config.OPENAI_MODEL
+    provider = "openai"
     print(f"[Chatbot] Provider: {provider}  |  Model: {model}")
 
 
@@ -194,10 +192,9 @@ class HealthChatbot:
         try:
             response = client.chat.completions.create(
                 model      = model,
-                max_completion_tokens = config.GROQ_MAX_COMPLETION_TOKENS,
+                max_completion_tokens = config.OPENAI_MAX_COMPLETION_TOKENS,
                 temperature = 1,
                 top_p = 1,
-                reasoning_effort = "medium",
                 messages   = [
                     {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(
                         health_context=self.snapshot.to_context_block()
@@ -205,22 +202,23 @@ class HealthChatbot:
                     *self._bounded_context(),
                 ],
             )
-            reply = response.choices[0].message.content.strip()
-            self.last_source = "groq"
+            content = response.choices[0].message.content
+            if not content:
+                raise RuntimeError("OpenAI returned an empty chat response")
+            reply = content.strip()
+            self.last_source = "openai"
             if response.choices[0].finish_reason == "length":
                 reply += "\n\n*(My reply hit its length cap — ask me to continue.)*"
         except Exception as e:
-            # Free-tier Groq rejects oversized requests (HTTP 413 / TPM). Retry
-            # once with a much smaller budget before giving up.
             if getattr(e, "status_code", None) == 413:
-                self.last_source = "groq"
+                self.last_source = "openai"
                 try:
+                    retry_token_budget = max(1, config.OPENAI_MAX_COMPLETION_TOKENS // 2)
                     response = client.chat.completions.create(
                         model      = model,
-                        max_completion_tokens = 1024,
+                        max_completion_tokens = retry_token_budget,
                         temperature = 1,
                         top_p = 1,
-                        reasoning_effort = "medium",
                         messages   = [
                             {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE.format(
                                 health_context=self.snapshot.to_context_block()
@@ -228,7 +226,10 @@ class HealthChatbot:
                             *self._bounded_context(max_chars=3000),
                         ],
                     )
-                    reply = response.choices[0].message.content.strip()
+                    content = response.choices[0].message.content
+                    if not content:
+                        raise RuntimeError("OpenAI returned an empty chat response")
+                    reply = content.strip()
                 except Exception:
                     self.last_source = "error"
                     reply = "I'm having trouble connecting right now. Please try again."
@@ -242,8 +243,7 @@ class HealthChatbot:
         return reply
 
     def _bounded_context(self, max_chars: int = 10000) -> list[dict]:
-        """Most recent turns, trimmed from the front so the Groq request stays
-        well under the free-tier TPM budget (input tokens + output cap)."""
+        """Return recent turns within the request character budget."""
         msgs = list(self.history)
         total = sum(len(m["content"]) for m in msgs)
         while msgs and total > max_chars:
@@ -345,7 +345,7 @@ class HealthChatbot:
             "Here's a general wellness tip: build your plate around lean protein, "
             "vegetables, and whole grains, drink water consistently, get 7–9h of sleep, "
             "and move daily. I'm running in keyless mode, so for deeper answers add a "
-            "GROQ_API_KEY to your .env — otherwise I can answer about your macros, "
+            "HEALTH_TRACKER_OPENAI_API_KEY to your .env — otherwise I can answer about your macros, "
             "water, sleep, focus, or workouts."
         )
 

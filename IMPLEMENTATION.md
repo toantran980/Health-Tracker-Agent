@@ -21,7 +21,7 @@ and the feature list, see [README.md](README.md).
 - [ai_modules/nutrition_analyzer.py](ai_modules/nutrition_analyzer.py): nutrition trends and adherence.
 - [ai_modules/meal_recommendation_engine.py](ai_modules/meal_recommendation_engine.py): meal recommendations.
 - [ai_modules/activity_recommendation_engine.py](ai_modules/activity_recommendation_engine.py): activity recommendations.
-- [ai_modules/health_chatbot.py](ai_modules/health_chatbot.py): AI health chatbot (Groq-powered `openai/gpt-oss-120b`, keyless rule-based fallback). Groq calls are TPM-bounded by `GROQ_MAX_COMPLETION_TOKENS` (default 4096) and retried once with a smaller budget on HTTP 413.
+- [ai_modules/health_chatbot.py](ai_modules/health_chatbot.py): AI health chatbot (OpenAI-powered, configurable with `OPENAI_MODEL`; keyless rule-based fallback).
 - [ai_modules/health_risk_assessor.py](ai_modules/health_risk_assessor.py): rule-based risk warnings (BMI, calories, protein, sleep, hydration).
 - [ai_modules/sleep_quality_predictor.py](ai_modules/sleep_quality_predictor.py): sleep quality prediction (random forest).
 - [ai_modules/recovery_predictor.py](ai_modules/recovery_predictor.py): recovery / readiness prediction (random forest).

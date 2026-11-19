@@ -664,7 +664,7 @@ class TestKeylessChatbotFallback(unittest.TestCase):
         self.bot = hc.HealthChatbot(snapshot)
 
     def chat(self, message):
-        # Force the local responder regardless of whether GROQ_API_KEY is set
+        # Force the local responder regardless of whether the OpenAI key is set
         # in the environment (keeps the test hermetic and offline).
         with mock.patch.object(self.hc, "provider", "local"):
             return self.bot.chat(message)
@@ -772,8 +772,8 @@ class TestKeylessChatbotFallback(unittest.TestCase):
         self.assertNotEqual(reply.strip().lower(), msg)
 
 
-class TestGroqChatBudget(unittest.TestCase):
-    """Cover token-budget handling for the Groq provider (free-tier TPM)."""
+class TestOpenAIChat(unittest.TestCase):
+    """Cover chat completions through the OpenAI provider."""
 
     def setUp(self):
         from types import SimpleNamespace
@@ -789,6 +789,22 @@ class TestGroqChatBudget(unittest.TestCase):
         ]
         self.SimpleNamespace = SimpleNamespace
 
+    def test_init_provider_uses_openai_key_and_configured_model(self):
+        test_client = object()
+        with (
+            mock.patch.object(self.hc, "OPENAI_API_KEY", "test-openai-key"),
+            mock.patch.object(self.hc, "client", None),
+            mock.patch.object(self.hc, "model", None),
+            mock.patch.object(self.hc, "provider", None),
+            mock.patch.object(self.hc.config, "OPENAI_MODEL", "test-model"),
+            mock.patch("openai.OpenAI", return_value=test_client) as openai_client,
+        ):
+            self.hc.init_provider()
+            openai_client.assert_called_once_with(api_key="test-openai-key")
+            self.assertIs(self.hc.client, test_client)
+            self.assertEqual(self.hc.model, "test-model")
+            self.assertEqual(self.hc.provider, "openai")
+
     def _mock_client(self, responses):
         call_log = []
 
@@ -801,8 +817,8 @@ class TestGroqChatBudget(unittest.TestCase):
             return self.SimpleNamespace(choices=[self.SimpleNamespace(
                 message=self.SimpleNamespace(content=content), finish_reason=finish)])
 
-        self.hc.provider = "groq"
-        self.hc.model = "openai/gpt-oss-120b"
+        self.hc.provider = "openai"
+        self.hc.model = "gbt-5.6-terra"
         self.hc.client = self.SimpleNamespace(
             chat=self.SimpleNamespace(completions=self.SimpleNamespace(create=fake_create)))
         return call_log
@@ -815,10 +831,12 @@ class TestGroqChatBudget(unittest.TestCase):
         full = self.bot._bounded_context(max_chars=10**9)
         self.assertEqual(full, self.bot.history)
 
-    def test_groq_sends_bounded_context(self):
+    def test_openai_sends_bounded_context_and_configured_model(self):
         call_log = self._mock_client([("hi there", "stop")])
         reply = self.bot.chat("hello")
         self.assertEqual(reply, "hi there")
+        self.assertEqual(call_log[0]["model"], "gbt-5.6-terra")
+        self.assertIn("max_completion_tokens", call_log[0])
         self.assertLess(sum(len(m["content"]) for m in call_log[0]["messages"]), 20000)
 
     def test_length_cap_appends_continue_note(self):
@@ -833,9 +851,9 @@ class TestGroqChatBudget(unittest.TestCase):
         call_log = self._mock_client([err, ("recovered", "stop")])
         reply = self.bot.chat("hello")
         self.assertEqual(reply, "recovered")
-        self.assertEqual(self.bot.last_source, "groq")
+        self.assertEqual(self.bot.last_source, "openai")
         self.assertEqual(len(call_log), 2)
-        self.assertEqual(call_log[1]["max_completion_tokens"], 1024)
+        self.assertEqual(call_log[1]["max_completion_tokens"], 512)
 
     def test_413_exhausted_falls_back_to_error(self):
         err = Exception("Request too large")

@@ -38,7 +38,7 @@ AI Health & Wellness Tracker is a Flask-based health and productivity platform: 
 - Python 3.10+ (the Dockerfile and CI run Python 3.14)
 - Flask, scikit-learn, pandas, and NumPy
 - PyMongo + MongoDB, python-dotenv, and requests
-- Groq (optional hosted chatbot provider)
+- OpenAI (optional hosted chatbot provider; local rule-based fallback available)
 - Gunicorn + Nginx (production deployment)
 - Chart.js via CDN
 - HTML, CSS, and JavaScript in `templates/` and `static/`

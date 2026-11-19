@@ -248,6 +248,6 @@ def get_privacy_policy():
         "third_party_services": {
             "usda_food_api": "Queries food nutrition databases without PII transmission",
             "exercisedb_api": "Queries fitness libraries without PII transmission",
-            "groq_ai": "Processes chat prompts; local rule-based fallback available if keyless"
+            "openai_ai": "Processes chat prompts and health context; local rule-based fallback available if keyless"
         }
     }), 200

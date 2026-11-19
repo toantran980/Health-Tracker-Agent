@@ -25,10 +25,10 @@ below; `## Open / Next` lists only actionable items.
 | Low      | `require_fields` wired into meals/log + activity/log                   | Done   | `api/blueprints/nutrition.py`, `activity.py`                      |
 | Medium   | Rate limiter backend abstraction (memory / optional Redis)               | Done   | `build_limiter` + `RedisRateLimiter`                              |
 | Low      | Config-driven rate-limit test                                            | Done   | `test_build_limiter_from_config_memory`                             |
-| Medium   | Keyless chatbot fallback (GROQ key optional)                             | Done   | `ai_modules/health_chatbot.py:_local_reply`, manual CLI check       |
+| Medium   | Keyless chatbot fallback (OpenAI key optional)                           | Done   | `ai_modules/health_chatbot.py:_local_reply`, manual CLI check       |
 | Low      | Cleaner auth status + login on top UI                                    | Done   | `static/main.js`, `templates/index.html`                          |
 | High     | Keyless responder unit tests                                             | Done   | `tests/test_ai_modules.py:TestKeylessChatbotFallback` (11 tests)    |
-| Medium   | Chat provider indicator (Groq/local badge)                               | Done   | `api/blueprints/chat.py`, `static/ui.js`                          |
+| Medium   | Chat provider indicator (OpenAI/local badge)                              | Done   | `api/blueprints/chat.py`, `static/ui.js`                          |
 | Medium   | Rate-limit response headers                                              | Done   | `api/rate_limiter.py:status`, `api/blueprints/external.py` + test |
 | Medium   | Water target customization                                               | Done   | `models/user_profile.py`, `api/blueprints/user.py`, form + tests  |
 | Medium   | Activity`energy_after` validation                                      | Done   | `coerce_int` min/max in `activity.py` + test                      |
@@ -43,7 +43,7 @@ below; `## Open / Next` lists only actionable items.
 | High     | Goal milestone tracking (weight, exercise, nutrition)                    | Done   | `tests/test_new_modules.py:TestGoalTracker`                         |
 | High     | Automated weekly digest (multi-domain report)                            | Done   | `tests/test_new_modules.py:TestWeeklyDigestGenerator`               |
 | High     | Trained productivity model loaded by the API                             | Done   | `TestPretrainedProductivityModel` (`api/blueprints/schedule.py`)     |
-| Medium   | Groq free-tier TPM handling (4096 cap, 413 retry)                        | Done   | `TestGroqChatBudget` (`tests/test_ai_modules.py`)                    |
+| Medium   | OpenAI chat token budget and oversized-request retry                     | Done   | `TestOpenAIChat` (`tests/test_ai_modules.py`)                     |
 | Medium   | Chat reset auth + history rehydration + non-turn filtering               | Done   | `tests/test_api_blueprints.py`, `tests/test_ai_modules.py`           |
 | Medium   | Native HTTP status codes (404/405 passthrough, favicon 204)              | Done   | `TestHTTPErrorHandling`                                              |
 | Medium   | Sleep tracking UI (log, history, prediction)                             | Done   | `templates/index.html`, `static/main.js`                             |

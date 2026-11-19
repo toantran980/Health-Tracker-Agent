@@ -60,8 +60,8 @@ We do **not** sell, rent, or monetize your health data.
    - Only food query strings are transmitted to fetch nutrient profiles. No user profile information or identifiers are ever shared.
 2. **ExerciseDB API**:
    - Only muscle group or exercise query terms are transmitted. No personal identifiers are sent.
-3. **Groq AI (`openai/gpt-oss-120b`)**:
-   - When configured with `GROQ_API_KEY`, user queries and anonymized health snapshot parameters (e.g. current calorie total, sleep hours) are passed to generate natural language explanations.
+3. **OpenAI API**:
+   - When configured with `HEALTH_TRACKER_OPENAI_API_KEY`, user messages and health snapshot context (which may include profile details, logged health metrics, and dietary restrictions) are sent to OpenAI to generate responses. Review OpenAI's current data-use and retention terms before enabling this integration.
    - **Keyless Fallback**: When no external key is configured, all chatbot responses run entirely offline through local rule-based inference.
 
 ---

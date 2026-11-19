@@ -277,7 +277,7 @@ class TestProtectedEndpoints(unittest.TestCase):
         body = resp.get_json()
         self.assertIn("reply", body)
         self.assertIn("provider", body)
-        self.assertIn(body["provider"], ("groq", "local"))
+        self.assertIn(body["provider"], ("openai", "local"))
         self.assertTrue(body["reply"].strip())
 
     def test_chat_reset_requires_auth(self):

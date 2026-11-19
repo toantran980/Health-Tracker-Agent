@@ -45,7 +45,7 @@ EXTERNAL_METRICS: dict[str, dict[str, Any]] = {
     "usda": {"total": 0, "success": 0, "errors": 0, "last_error": None},
     "exercisedb": {"total": 0, "success": 0, "errors": 0, "last_error": None},
     "openfoodfacts": {"total": 0, "success": 0, "errors": 0, "last_error": None},
-    "groq": {"total": 0, "success": 0, "errors": 0, "last_error": None},
+    "openai": {"total": 0, "success": 0, "errors": 0, "last_error": None},
 }
 
 

@@ -195,8 +195,8 @@ export function appendChatMessage(role, message, provider) {
   if (role === 'assistant' && provider) {
     const badge = document.createElement('span');
     badge.className = 'chat-provider-badge';
-    badge.textContent = provider === 'groq' ? 'LLM' : 'Local';
-    badge.title = `Answered by ${provider === 'groq' ? 'Groq (LLM)' : 'keyless local rules'}`;
+    badge.textContent = provider === 'openai' ? 'OpenAI' : 'Local';
+    badge.title = `Answered by ${provider === 'openai' ? 'OpenAI' : 'keyless local rules'}`;
     bubble.appendChild(badge);
   }
   chatMessagesEl.appendChild(bubble);
