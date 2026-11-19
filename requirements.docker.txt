@@ -4,6 +4,6 @@ requests==2.33.1
 scikit-learn==1.8.0
 python-dotenv==1.2.3
 openai==1.109.1
-pymongo==4.10.1
+pymongo==4.18.3
 numpy==2.4.3
 gunicorn==23.0.0
