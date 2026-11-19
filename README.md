@@ -12,7 +12,15 @@
 
 Toan Tran independently completed all commits, updates, and expansions after May 15, 2026.
 
-AI Health & Wellness Tracker is a Flask-based health and productivity platform: nutrition tracking, personalized meal and activity recommendations, schedule optimization, productivity prediction, behavioral pattern analysis, and rule-based wellness guidance. It ships a REST API, a built-in dashboard, and trained ML models for sleep quality, recovery readiness, productivity, and activity recognition.
+## About
+
+AI Health & Wellness Tracker is a Flask-based health and productivity platform: nutrition tracking, personalized meal and activity recommendations, schedule optimization, productivity prediction, behavioral pattern analysis, and rule-based wellness guidance. It ships a REST API, a built-in dashboard, and ML predictors for sleep quality, recovery readiness, productivity, and activity recognition.
+
+## Live App
+
+Live app: https://health-tracker-agent.onrender.com
+
+Render Free may take about a minute to wake after inactivity.
 
 ## What Is Included
 
@@ -106,16 +114,16 @@ training scripts in `models/`. Trained artifacts are gitignored and written to
 file is absent, so the app runs without them. See [MODELS.md](MODELS.md) for
 datasets, training commands, and evaluation notes.
 
-| Model | Predictor | Type | Training script | Dataset |
-| ----- | --------- | ---- | --------------- | ------- |
-| Productivity | `ProductivityPredictor` | Random forest regressor | `models/train_model.py` | `data/eval.csv` |
-| Sleep quality | `SleepQualityPredictor` | Random forest regressor | `models/train_sleep_model.py` | Sleep Health and Lifestyle |
-| Recovery readiness | `RecoveryPredictor` | Random forest regressor | `models/train_recovery_model.py` | FitBit wearable data |
-| Activity recognition | `ActivityClassifier` | Random forest classifier | `models/train_activity_classifier.py` | UCI Human Activity Recognition |
+| Model                | Predictor                 | Type                     | Training script                         | Dataset                        |
+| -------------------- | ------------------------- | ------------------------ | --------------------------------------- | ------------------------------ |
+| Productivity         | `ProductivityPredictor` | Random forest regressor  | `models/train_model.py`               | `data/eval.csv`              |
+| Sleep quality        | `SleepQualityPredictor` | Random forest regressor  | `models/train_sleep_model.py`         | Sleep Health and Lifestyle     |
+| Recovery readiness   | `RecoveryPredictor`     | Random forest regressor  | `models/train_recovery_model.py`      | FitBit wearable data           |
+| Activity recognition | `ActivityClassifier`    | Random forest classifier | `models/train_activity_classifier.py` | UCI Human Activity Recognition |
 
 ## Quick Demo Flow
 
-1. Create a user in the User tab (password optional), then log in.
+1. Create an account with a username and password. Registration signs you in automatically; existing users can log in with their account username.
 2. Nutrition: log a meal, run nutrition analysis and macro recommendations.
 3. Schedule: optimize a task list, run a productivity prediction, review sessions.
 4. Activity: log an activity and review trends.

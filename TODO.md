@@ -1,18 +1,19 @@
 # TODO
 
-Living roadmap for the AI Health & Wellness Tracker. Completed work is archived
-below; `## Open / Next` lists only actionable items.
+Living roadmap for the AI Health & Wellness Tracker. The app is available at
+the Render URL in [README.md](README.md); production readiness remains subject
+to the open items below. `## Open / Next` lists actionable work.
 
 ## Status Summary
 
 | Priority | Item                                                                     | Status | Verified in                                                           |
 | -------- | ------------------------------------------------------------------------ | ------ | --------------------------------------------------------------------- |
-| High     | User authentication (sessions, hashed passwords, protect chat/nutrition) | Done   | `tests/test_api_blueprints.py` (auth flow, 401s)                    |
+| High     | Username registration/login (sessions, hashed passwords, protected user data) | Done   | `tests/test_api_blueprints.py` (auth flow, 401s)                    |
 | High     | Persist schedules + productivity sessions + history/rehydration          | Done   | `tests/test_api_blueprints.py:TestPersistenceEndpoints`             |
 | High     | Persist activity logs + trends                                           | Done   | `tests/test_api_blueprints.py:test_activity_log_logs_trends`        |
 | High     | MongoDB TTL indexes (meals, daily_logs)                                  | Done   | `api/mongo_store.py` (index creation)                               |
 | Medium   | `train_model.py` CLI with incremental updates                          | Done   | ran`--save` and `--incremental` locally                           |
-| Medium   | Expanded unit tests (engines, blueprints, rate limit)                    | Done   | 150 tests pass (`pytest`)                                             |
+| Medium   | Expanded unit tests (engines, blueprints, rate limit)                    | Done   | `pytest` suite                                                       |
 | Medium   | Frontend error-envelope handling in `static/api.js`                     | Done   | `toApiError` (HTTP + network)                                       |
 | Medium   | Per-client rate limiting on external endpoints                           | Done   | `TestRateLimiter` + 429 integration test                            |
 | Low      | Docker pins +`.env.example` + Mongo credentials docs                   | Done   | `git status`, README/IMPLEMENTATION                               |
@@ -58,7 +59,7 @@ every few months; do not build a feature only because it appears in the list.
 ### Urgent next actions (pre-launch priority)
 
 These are the items most likely to affect production readiness and should be treated as the
-next critical batch before any public-facing rollout or partner deployment:
+next critical batch before production launch or partner deployment:
 
 - [ ] **Security review** — verify auth, CSRF, session expiry, rate limiting,
   authz boundaries, dependency vulnerabilities, and secret handling in a clean environment.
@@ -128,7 +129,7 @@ experiments. Phase 1 and 2 tasks remain useful, but they should not block the la
   redact sensitive logs, and add regression tests for unsafe or misleading
   responses.
 
-### Phase 4: Launch gate (complete before public release)
+### Phase 4: Launch gate (complete before production launch)
 
 - [ ] **Security review** — verify authentication, CSRF, session expiry, rate
   limits, authorization boundaries, dependency vulnerabilities, and secret

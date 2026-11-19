@@ -13,6 +13,7 @@ We collect only information voluntarily provided by the user or computed to supp
 
 1. **User Profile Data**:
    - Age, current weight (kg), height (cm), biological sex, health and fitness goals.
+   - Account username and internal user ID.
    - Credentials: password hash (one-way hashed using Werkzeug `scrypt`/`pbkdf2:sha256`; plaintext passwords are never stored or logged).
 
 2. **Nutritional Logs**:

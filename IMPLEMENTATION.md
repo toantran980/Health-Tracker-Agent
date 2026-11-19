@@ -33,6 +33,9 @@ See [MODELS.md](MODELS.md) for training data, training scripts, and evaluation n
 
 ### Authentication
 
+- Public account registration requires a unique account username and password
+  and signs the new account in automatically. Usernames are case-insensitive;
+  `user_id` remains the internal identifier for session-bound data APIs.
 - Passwords are hashed with Werkzeug (`generate_password_hash`) and stored on the user document; the hash is never exposed by API responses (see `models/user_profile.py:to_public_dict`).
 - `POST /api/auth/login` sets a signed Flask session cookie (`app.secret_key` from `config.SECRET_KEY`); `POST /api/auth/logout` clears it; `GET /api/auth/me` reports the session state.
 - Every endpoint that reads or writes a user's data requires a matching login
